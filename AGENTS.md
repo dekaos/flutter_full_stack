@@ -19,8 +19,8 @@ and the client package plus the app's typed API appear from that.
 
 ## Commands
 
-Every task has a Melos script. Use them instead of ad-hoc commands — CI runs
-exactly these, so if they pass locally they pass in CI.
+Every task has a Melos script. Use them instead of ad-hoc commands — CI invokes
+the same scripts, so a green local run predicts a green pipeline.
 
 ```bash
 melos run setup             # resolve dependencies (once, after cloning)
@@ -35,7 +35,10 @@ melos run test              # server + Flutter tests
 melos run check             # format:check + analyze + test — the CI gate
 ```
 
-Run `melos run check` before declaring any change finished.
+Run `melos run check` before declaring any change finished. It covers CI's
+`static` and `test` jobs. CI's third job, `codegen`, has no local equivalent:
+reproduce it by running `melos run generate` and confirming `git status` is
+clean afterwards.
 
 `melos run` with no arguments opens a picker listing every script and its
 description.

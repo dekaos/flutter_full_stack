@@ -50,8 +50,11 @@ melos run server:stop # stop the containers
 
 ## Before you commit
 
-Run `melos run check`. It is byte-for-byte what CI runs, so a green local run
-means a green pipeline.
+Run `melos run check`. It runs the same format, analyze and test steps as CI.
+
+CI additionally verifies that generated code is up to date. If you changed a
+model, an endpoint or a provider, run `melos run generate` and commit whatever
+it produces — a dirty `git status` afterwards means the pipeline will fail.
 
 ## Contributing
 
