@@ -239,11 +239,16 @@ is deliberately disabled in the root lint config.
 | Port | Service |
 |---|---|
 | 8080 / 8081 / 8082 | API / Insights / web server (dev) |
+| 8181 | Dart VM service, only under `melos run server:debug` |
 | 8090 / 8091 | Postgres / Redis (dev containers) |
 | 9090 / 9091 | Postgres / Redis (test containers) |
 
 Redis is `enabled: false` in both `development.yaml` and `test.yaml`; the
 containers run anyway so enabling it is a one-line change.
+
+`docs/local-development.svg` draws which of these each way of running reaches —
+in particular that the end-to-end suite shares the development database while
+endpoint tests get the separate one on 9090.
 
 ## CI
 

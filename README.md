@@ -194,13 +194,18 @@ melos run check       # format + analyze + test — run before every commit
 melos run generate    # regenerate client, protocol and *.g.dart files
 melos run test        # tests only (needs `melos run docker:up`)
 melos run test:e2e    # end-to-end: real app → real server → real Postgres
+melos run server:debug # like server:start, with the VM service open
 melos run docker:up   # Postgres + Redis, without starting the server
 melos run server:stop # stop the containers
 ```
 
 `melos run` with no arguments lists every available script.
 
-## Testing layers
+## Running and testing locally
+
+<p align="center">
+  <img src="docs/local-development.svg" alt="Three ways to run the stack locally and the database each one reaches. Development runs the server on port 8080 against the development Postgres on 8090, with the VM service on 8181 for a debugger. Endpoint tests boot Serverpod in-process with every port bound to zero and use the throwaway test Postgres on 9090. The end-to-end suite drives the real app over HTTP against that same development server, so it reaches the development database on 8090 too." width="100%">
+</p>
 
 | Layer | Where | What it proves |
 |---|---|---|
@@ -221,6 +226,33 @@ melos run test:e2e            # another
 `E2E_SERVER_URL` the backend. Note that `integration_test` cannot run on web
 devices — see [AGENTS.md](AGENTS.md) for that and the other two constraints.
 
+## Debugging
+
+Breakpoints work on both sides of a call, and pause the real request.
+
+In VS Code, press F5 and pick **flutter_app_back (full stack)**: it starts the
+containers, then runs the server and the app together under the debugger, so a
+breakpoint in an endpoint and one in a Riverpod controller both hit in turn.
+Stopping either stops both.
+
+For a server you started in a terminal, `melos run server:start` exposes no VM
+service and nothing can attach to it. Use the debug variant, then pick **Attach
+to the running server**:
+
+```bash
+melos run server:debug     # VM service on http://127.0.0.1:8181/
+```
+
+At a breakpoint you get the endpoint arguments plus the live `Session`, and from
+there `session.db` and the authenticated user. Breakpoints in the *generated*
+client work too, with no configuration — it is a workspace path dependency, not
+a pub package. Stepping deeper, into `package:serverpod_client` where the HTTP
+request is built, needs `dart.debugExternalPackageLibraries`.
+
+One thing that catches people out: while you sit on a breakpoint the caller
+stays blocked, so the app or `curl` eventually times out. That is not a bug.
+[AGENTS.md](AGENTS.md) has the details.
+
 ## Adding a feature
 
 The short version:
@@ -239,6 +271,7 @@ The long version, with the traps, is in **[AGENTS.md](AGENTS.md)**.
 | Port | Service |
 |---|---|
 | 8080 / 8081 / 8082 | API / Insights / web server |
+| 8181 | Dart VM service, only under `melos run server:debug` |
 | 8090 / 8091 | Postgres / Redis (dev containers) |
 | 9090 / 9091 | Postgres / Redis (test containers) |
 

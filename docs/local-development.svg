@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 700" width="1240" height="700" role="img" aria-label="Three ways to run the stack locally and the database each one reaches. Development runs the server on port 8080 against the development Postgres on 8090, with the VM service on 8181 for a debugger. Endpoint tests boot Serverpod in-process with every port bound to zero and use the throwaway test Postgres on 9090. The end-to-end suite drives the real app over HTTP against that same development server, so it reaches the development database on 8090 too.">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A0F1E"/>
+      <stop offset="1" stop-color="#0F1830"/>
+    </linearGradient>
+    <marker id="bCyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#56C8F5"/>
+    </marker>
+    <marker id="bViolet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/>
+    </marker>
+    <marker id="bEmerald" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#34D399"/>
+    </marker>
+  </defs>
+
+  <rect width="1240" height="700" fill="url(#bg2)"/>
+
+  <text x="42" y="46" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="700" fill="#E6EDF3">Three ways to run it locally</text>
+  <text x="42" y="72" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#8FA0BC">Each path reaches a different database. That is the part worth knowing before you go looking for your data.</text>
+
+  <!-- ══ lane 1: development ═══════════════════════════════════════ -->
+  <rect x="40" y="100" width="1160" height="162" rx="13" fill="#111A2E" stroke="#1E2A45"/>
+  <circle cx="56" cy="122" r="4" fill="#56C8F5"/>
+  <text x="70" y="126" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#56C8F5">melos run server:start</text>
+  <text x="1178" y="126" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">what you use all day</text>
+
+  <rect x="62" y="144" width="290" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="80" y="172" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Flutter app</text>
+  <text x="80" y="194" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter run</text>
+  <text x="80" y="216" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">or the full-stack compound,</text>
+  <text x="80" y="232" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">which debugs both sides at once</text>
+
+  <path d="M356,194 H426" stroke="#56C8F5" stroke-width="1.6" fill="none" marker-end="url(#bCyan)"/>
+  <text x="391" y="184" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#7FA8C4">HTTP</text>
+
+  <rect x="430" y="144" width="350" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="448" y="172" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Serverpod · development</text>
+  <text x="448" y="194" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">:8080 api  :8081 insights  :8082 web</text>
+  <text x="448" y="222" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#FBBF24">:8181 VM service → attach a debugger</text>
+  <text x="448" y="236" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#9A7B2E">only with melos run server:debug</text>
+
+  <path d="M784,194 H834" stroke="#56C8F5" stroke-width="1.6" fill="none" marker-end="url(#bCyan)"/>
+  <text x="809" y="184" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#7FA8C4">SQL</text>
+
+  <rect x="838" y="144" width="320" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="838" y="144" width="3" height="100" rx="1.5" fill="#56C8F5"/>
+  <text x="856" y="172" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Postgres :8090</text>
+  <text x="856" y="194" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter_app_back</text>
+  <text x="856" y="216" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">your development data — it</text>
+  <text x="856" y="232" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">survives restarts, in a volume</text>
+
+  <!-- ══ lane 2: endpoint tests ════════════════════════════════════ -->
+  <rect x="40" y="276" width="1160" height="162" rx="13" fill="#111A2E" stroke="#1E2A45"/>
+  <circle cx="56" cy="298" r="4" fill="#A78BFA"/>
+  <text x="70" y="302" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#A78BFA">melos run test</text>
+  <text x="1178" y="302" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">widget tests are in here too, and reach nothing at all</text>
+
+  <rect x="62" y="320" width="290" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="80" y="348" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Endpoint tests</text>
+  <text x="80" y="370" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">withServerpod(...)</text>
+  <text x="80" y="392" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">calls endpoints as plain Dart</text>
+  <text x="80" y="408" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">functions, never over the wire</text>
+
+  <path d="M356,370 H426" stroke="#A78BFA" stroke-width="1.6" fill="none" marker-end="url(#bViolet)"/>
+  <text x="391" y="360" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#9B8FC4">direct</text>
+
+  <rect x="430" y="320" width="350" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="448" y="348" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Serverpod · test runmode</text>
+  <text x="448" y="370" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">every port bound to 0</text>
+  <text x="448" y="392" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">so suites run concurrently and</text>
+  <text x="448" y="408" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">never collide with your dev server</text>
+
+  <path d="M784,370 H834" stroke="#A78BFA" stroke-width="1.6" fill="none" marker-end="url(#bViolet)"/>
+  <text x="809" y="360" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#9B8FC4">SQL</text>
+
+  <rect x="838" y="320" width="320" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="838" y="320" width="3" height="100" rx="1.5" fill="#A78BFA"/>
+  <text x="856" y="348" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Postgres :9090</text>
+  <text x="856" y="370" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter_app_back_test</text>
+  <text x="856" y="392" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">throwaway — a separate</text>
+  <text x="856" y="408" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">container from the one above</text>
+
+  <!-- ══ lane 3: end-to-end ════════════════════════════════════════ -->
+  <rect x="40" y="452" width="1160" height="162" rx="13" fill="#111A2E" stroke="#1E2A45"/>
+  <circle cx="56" cy="474" r="4" fill="#34D399"/>
+  <text x="70" y="478" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#34D399">melos run test:e2e</text>
+  <text x="1178" y="478" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">needs the server from the first lane already running</text>
+
+  <rect x="62" y="496" width="290" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="80" y="524" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">The real app</text>
+  <text x="80" y="546" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">integration_test/</text>
+  <text x="80" y="568" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">on a desktop or mobile target;</text>
+  <text x="80" y="584" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">web is not supported</text>
+
+  <path d="M356,546 H426" stroke="#34D399" stroke-width="1.6" fill="none" marker-end="url(#bEmerald)"/>
+  <text x="391" y="536" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#6FB89A">HTTP</text>
+
+  <rect x="430" y="496" width="350" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="448" y="524" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">The same development server</text>
+  <text x="448" y="546" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">:8080 — no separate instance</text>
+  <text x="448" y="568" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">override the target with</text>
+  <text x="448" y="584" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#61708C">E2E_SERVER_URL</text>
+
+  <path d="M784,546 H834" stroke="#34D399" stroke-width="1.6" fill="none" marker-end="url(#bEmerald)"/>
+  <text x="809" y="536" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#6FB89A">SQL</text>
+
+  <rect x="838" y="496" width="320" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="838" y="496" width="3" height="100" rx="1.5" fill="#56C8F5"/>
+  <text x="856" y="524" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Postgres :8090 again</text>
+  <text x="856" y="546" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter_app_back</text>
+  <text x="856" y="568" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#F0A6A6">e2e writes to your dev data;</text>
+  <text x="856" y="584" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#F0A6A6">melos run docker:down</text>
+
+  <text x="42" y="646" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#8FA0BC">Why the third lane cannot have its own database: Serverpod accepts only development, test, staging and production as run modes, so there is no e2e mode to</text>
+  <text x="42" y="666" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#8FA0BC">configure — and the test mode binds its ports to 0, which an app needing a fixed URL cannot reach. In CI it does not matter: every container there is new.</text>
+</svg>
