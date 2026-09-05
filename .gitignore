@@ -13,13 +13,13 @@ coverage/
 *.g.dart.lock
 
 # Flutter web build copied into the server
-flutter_app_back_server/web/app/
+flutter_full_stack_server/web/app/
 
 # ---- Secrets ----
 # Real passwords live here and must never be committed.
 # Copy config/passwords.example.yaml to get started.
-flutter_app_back_server/config/passwords.yaml
-flutter_app_back_server/config/firebase_service_account_key.json
+flutter_full_stack_server/config/passwords.yaml
+flutter_full_stack_server/config/firebase_service_account_key.json
 *.pem
 *.p12
 .env

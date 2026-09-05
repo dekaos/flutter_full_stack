@@ -2,15 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "flutter_app_back_flutter",
-            "cwd": "${workspaceFolder}/flutter_app_back_flutter",
+            "name": "flutter_full_stack_flutter",
+            "cwd": "${workspaceFolder}/flutter_full_stack_flutter",
             "request": "launch",
             "type": "dart",
             "program": "lib/main.dart"
         },
         {
-            "name": "flutter_app_back_server",
-            "cwd": "${workspaceFolder}/flutter_app_back_server",
+            "name": "flutter_full_stack_server",
+            "cwd": "${workspaceFolder}/flutter_full_stack_server",
             "request": "launch",
             "type": "dart",
             "preLaunchTask": "docker_compose_up",
@@ -28,7 +28,7 @@
             // fixed URI, then attach here. Breakpoints in endpoint methods
             // bind and pause the real request.
             "name": "Attach to the running server",
-            "cwd": "${workspaceFolder}/flutter_app_back_server",
+            "cwd": "${workspaceFolder}/flutter_full_stack_server",
             "request": "attach",
             "type": "dart",
             "vmServiceUri": "http://127.0.0.1:8181/"
@@ -42,10 +42,10 @@
             //
             // The two start in parallel, which is safe: nothing in the app
             // touches the server until you press send, by which time it is up.
-            "name": "flutter_app_back (full stack)",
+            "name": "flutter_full_stack (server + app)",
             "configurations": [
-                "flutter_app_back_server",
-                "flutter_app_back_flutter"
+                "flutter_full_stack_server",
+                "flutter_full_stack_flutter"
             ],
             // Stopping either one stops both, so the server never lingers
             // holding port 8080 after you stop the app.

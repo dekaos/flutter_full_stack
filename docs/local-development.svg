@@ -47,7 +47,7 @@
   <rect x="838" y="144" width="320" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
   <rect x="838" y="144" width="3" height="100" rx="1.5" fill="#56C8F5"/>
   <text x="856" y="172" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Postgres :8090</text>
-  <text x="856" y="194" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter_app_back</text>
+  <text x="856" y="194" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter_full_stack</text>
   <text x="856" y="216" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">your development data — it</text>
   <text x="856" y="232" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">survives restarts, in a volume</text>
 
@@ -78,7 +78,7 @@
   <rect x="838" y="320" width="320" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
   <rect x="838" y="320" width="3" height="100" rx="1.5" fill="#A78BFA"/>
   <text x="856" y="348" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Postgres :9090</text>
-  <text x="856" y="370" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter_app_back_test</text>
+  <text x="856" y="370" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter_full_stack_test</text>
   <text x="856" y="392" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">throwaway — a separate</text>
   <text x="856" y="408" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">container from the one above</text>
 
@@ -109,7 +109,7 @@
   <rect x="838" y="496" width="320" height="100" rx="10" fill="#17223A" stroke="#2A3A5E"/>
   <rect x="838" y="496" width="3" height="100" rx="1.5" fill="#56C8F5"/>
   <text x="856" y="524" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">Postgres :8090 again</text>
-  <text x="856" y="546" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter_app_back</text>
+  <text x="856" y="546" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#9FB2CE">flutter_full_stack</text>
   <text x="856" y="568" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#F0A6A6">e2e writes to your dev data;</text>
   <text x="856" y="584" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#F0A6A6">melos run docker:down</text>
 

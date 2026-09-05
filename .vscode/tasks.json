@@ -7,7 +7,7 @@
             "type": "shell",
             "command": "docker compose --progress quiet up --detach",
             "options": {
-                "cwd": "${workspaceFolder}/flutter_app_back_server"
+                "cwd": "${workspaceFolder}/flutter_full_stack_server"
             },
             // Compose writes its status lines to stderr, so without an empty
             // matcher VS Code prompts to pick one on every launch.

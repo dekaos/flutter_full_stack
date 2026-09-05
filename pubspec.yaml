@@ -1,13 +1,13 @@
-name: flutter_app_back
+name: flutter_full_stack
 publish_to: none
 
 environment:
   sdk: '^3.13.0'
 
 workspace:
-  - flutter_app_back_client
-  - flutter_app_back_server
-  - flutter_app_back_flutter
+  - flutter_full_stack_client
+  - flutter_full_stack_server
+  - flutter_full_stack_flutter
 
 dev_dependencies:
   melos: ^8.6.0
@@ -15,11 +15,11 @@ dev_dependencies:
   very_good_analysis: 11.0.0
 
 melos:
-  name: flutter_app_back
+  name: flutter_full_stack
   packages:
-    - flutter_app_back_client
-    - flutter_app_back_server
-    - flutter_app_back_flutter
+    - flutter_full_stack_client
+    - flutter_full_stack_server
+    - flutter_full_stack_flutter
 
   scripts:
     # ---------------------------------------------------------------- setup --
@@ -32,13 +32,13 @@ melos:
       description: Run Serverpod code generation (server + client).
       exec: serverpod generate
       packageFilters:
-        scope: flutter_app_back_server
+        scope: flutter_full_stack_server
 
     generate:flutter:
       description: Run build_runner for the Flutter app (Riverpod, go_router).
       exec: dart run build_runner build --delete-conflicting-outputs
       packageFilters:
-        scope: flutter_app_back_flutter
+        scope: flutter_full_stack_flutter
 
     generate:
       description: Regenerate every piece of generated code in the monorepo.
@@ -56,7 +56,7 @@ melos:
       description: Start Docker services and the Serverpod server with migrations.
       exec: docker compose --progress quiet up --detach && dart bin/main.dart --apply-migrations
       packageFilters:
-        scope: flutter_app_back_server
+        scope: flutter_full_stack_server
 
     server:debug:
       description: >-
@@ -66,25 +66,25 @@ melos:
         unauthenticated, which is why it binds to loopback and never to 0.0.0.0.
       exec: docker compose --progress quiet up --detach && dart run --observe=8181 --disable-service-auth-codes bin/main.dart --apply-migrations
       packageFilters:
-        scope: flutter_app_back_server
+        scope: flutter_full_stack_server
 
     server:stop:
       description: Stop Docker services.
       exec: docker compose down
       packageFilters:
-        scope: flutter_app_back_server
+        scope: flutter_full_stack_server
 
     docker:up:
       description: Start the Postgres/Redis containers only (dev + test).
       exec: docker compose --progress quiet up --detach
       packageFilters:
-        scope: flutter_app_back_server
+        scope: flutter_full_stack_server
 
     docker:down:
       description: Stop the containers and drop their volumes.
       exec: docker compose down --volumes
       packageFilters:
-        scope: flutter_app_back_server
+        scope: flutter_full_stack_server
 
     # --------------------------------------------------------------- format --
     format:
@@ -144,7 +144,7 @@ melos:
         backend with E2E_SERVER_URL. Web is not supported by integration_test.
       exec: flutter test integration_test -d ${E2E_DEVICE:-macos} --dart-define=SERVER_URL=${E2E_SERVER_URL:-http://localhost:8080/}
       packageFilters:
-        scope: flutter_app_back_flutter
+        scope: flutter_full_stack_flutter
 
     # ------------------------------------------------------------------ ci --
     check:

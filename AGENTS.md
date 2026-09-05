@@ -10,9 +10,9 @@ A Melos monorepo backed by a native Dart workspace. Three packages, one
 
 | Package | Kind | Role |
 |---|---|---|
-| `flutter_app_back_server` | Dart | Serverpod 3.4.13 backend: endpoints, models, migrations, web routes |
-| `flutter_app_back_client` | Dart | **Fully generated** client. Never hand-edit. |
-| `flutter_app_back_flutter` | Flutter | The app. Riverpod + go_router, both code-generated. |
+| `flutter_full_stack_server` | Dart | Serverpod 3.4.13 backend: endpoints, models, migrations, web routes |
+| `flutter_full_stack_client` | Dart | **Fully generated** client. Never hand-edit. |
+| `flutter_full_stack_flutter` | Flutter | The app. Riverpod + go_router, both code-generated. |
 
 Data flows one way: you write server models and endpoints, run the generator,
 and the client package plus the app's typed API appear from that.
@@ -50,10 +50,10 @@ description.
 
 **Never hand-edit generated code.** It is overwritten on the next generate run:
 
-- `flutter_app_back_server/lib/src/generated/**`
-- `flutter_app_back_server/test/integration/test_tools/serverpod_test_tools.dart`
-- `flutter_app_back_client/lib/src/protocol/**`
-- every `*.g.dart` in `flutter_app_back_flutter`
+- `flutter_full_stack_server/lib/src/generated/**`
+- `flutter_full_stack_server/test/integration/test_tools/serverpod_test_tools.dart`
+- `flutter_full_stack_client/lib/src/protocol/**`
+- every `*.g.dart` in `flutter_full_stack_flutter`
 
 Change the *source* instead: a `.spy.yaml` model, an endpoint class, or a
 `@riverpod` annotation.
@@ -96,8 +96,8 @@ and a real device. Three constraints worth knowing before extending it:
 **`config/passwords.yaml` is git-ignored and required.** After cloning:
 
 ```bash
-cp flutter_app_back_server/config/passwords.example.yaml \
-   flutter_app_back_server/config/passwords.yaml
+cp flutter_full_stack_server/config/passwords.example.yaml \
+   flutter_full_stack_server/config/passwords.yaml
 ```
 
 Then fill it in following the comments in that file. The `development`/`test`
@@ -133,21 +133,21 @@ choose the folder when you create the model, not afterwards.
 ## Adding a feature end to end
 
 1. **Model** — add or edit a `.spy.yaml` under
-   `flutter_app_back_server/lib/src/<feature>/`. Add `table: <name>` only if it
+   `flutter_full_stack_server/lib/src/<feature>/`. Add `table: <name>` only if it
    is persisted.
 2. **Endpoint** — add `<feature>_endpoint.dart` in the same folder with a class
    extending `Endpoint`. The class name minus the `Endpoint` suffix becomes the
    client-side accessor (`GreetingEndpoint` → `client.greeting`).
 3. **Generate** — `melos run generate`.
 4. **Migration** (only if you touched a `table:`) —
-   `cd flutter_app_back_server && serverpod create-migration`, then restart with
+   `cd flutter_full_stack_server && serverpod create-migration`, then restart with
    `melos run server:start`, which applies it.
 5. **App** — add a controller under
-   `flutter_app_back_flutter/lib/features/<feature>/providers/` and a screen
+   `flutter_full_stack_flutter/lib/features/<feature>/providers/` and a screen
    under `.../presentation/`. Register the route in `lib/app/router.dart`.
-6. **Test** — an integration test in `flutter_app_back_server/test/integration/`
-   using `withServerpod`, and a widget test in `flutter_app_back_flutter/test/`.
-   Add an end-to-end test in `flutter_app_back_flutter/integration_test/` only
+6. **Test** — an integration test in `flutter_full_stack_server/test/integration/`
+   using `withServerpod`, and a widget test in `flutter_full_stack_flutter/test/`.
+   Add an end-to-end test in `flutter_full_stack_flutter/integration_test/` only
    for a critical path: that suite is slow and needs a live server, so it earns
    its place on the few flows that must never break, not on every feature.
 7. `melos run check`, plus `melos run test:e2e` if you touched step 6's
@@ -158,8 +158,8 @@ choose the folder when you create the model, not afterwards.
 Breakpoints in endpoint methods work, and pause the real request.
 
 **From VS Code — the normal path.** Put a breakpoint in the gutter, then press
-F5 and pick **flutter_app_back_server**. Its `preLaunchTask` starts the
-containers first. The **flutter_app_back (full stack)** compound runs the server
+F5 and pick **flutter_full_stack_server**. Its `preLaunchTask` starts the
+containers first. The **flutter_full_stack (server + app)** compound runs the server
 and the app together, both under the debugger, so a breakpoint on each side of
 the same call hits in turn; stopping either stops both. The two start in
 parallel, which is safe because nothing in the app reaches the server until you
@@ -173,8 +173,8 @@ obvious, and it comes down to one rule in the Dart extension: a library is
 
 | Package | Resolves to | Steps in by default? |
 |---|---|---|
-| `flutter_app_back_client` | `../flutter_app_back_client` | **yes** — it is a workspace path dependency, not a pub package |
-| `flutter_app_back_server` | `../flutter_app_back_server` | **yes** |
+| `flutter_full_stack_client` | `../flutter_full_stack_client` | **yes** — it is a workspace path dependency, not a pub package |
+| `flutter_full_stack_server` | `../flutter_full_stack_server` | **yes** |
 | `serverpod_client`, `serverpod`, `riverpod`, `flutter` | `~/.pub-cache/hosted/pub.dev/…` | no |
 
 So breakpoints in the *generated client* work with no configuration — useful for

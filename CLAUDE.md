@@ -8,7 +8,7 @@ them here.
 The three things that cause the most damage if skipped:
 
 1. **Never hand-edit generated code** (`lib/src/generated/**`,
-   `flutter_app_back_client/lib/src/protocol/**`, any `*.g.dart`,
+   `flutter_full_stack_client/lib/src/protocol/**`, any `*.g.dart`,
    `serverpod_test_tools.dart`). Edit the `.spy.yaml` model, the endpoint class,
    or the `@riverpod` annotation, then regenerate.
 2. **Regenerate with `melos run generate`**, never `serverpod generate` or

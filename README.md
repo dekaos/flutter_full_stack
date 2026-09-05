@@ -1,4 +1,4 @@
-# flutter_app_back
+# flutter_full_stack
 
 A Serverpod backend and a Flutter app in one Melos monorepo. You write Dart on
 the server; the app calls it as if it were a local function.
@@ -47,9 +47,9 @@ authenticated user when there is one.
 
 `melos run generate` reads your models and endpoints and writes, in one pass:
 
-- **`flutter_app_back_server/lib/src/generated/**`** — the model classes,
+- **`flutter_full_stack_server/lib/src/generated/**`** — the model classes,
   serialization and the routing table the server uses to dispatch calls.
-- **`flutter_app_back_client/**`** — the *entire* client package: the same model
+- **`flutter_full_stack_client/**`** — the *entire* client package: the same model
   classes, plus a typed method for every endpoint method.
 - **`serverpod_test_tools.dart`** — helpers that let tests call endpoints
   directly.
@@ -90,7 +90,7 @@ what the app would have received.
 ### How the Flutter app connects
 
 One provider owns the client for the whole app —
-[`serverpod_client.dart`](flutter_app_back_flutter/lib/core/providers/serverpod_client.dart):
+[`serverpod_client.dart`](flutter_full_stack_flutter/lib/core/providers/serverpod_client.dart):
 
 ```dart
 @Riverpod(keepAlive: true)
@@ -111,7 +111,7 @@ Future<Client> serverpodClient(Ref ref) async {
 
 Step 2 is worth understanding: when the Flutter **web** build is served by the
 Serverpod web server, that `config.json` is produced *by the server* at runtime
-via [`AppConfigRoute`](flutter_app_back_server/lib/src/web/routes/app_config_route.dart).
+via [`AppConfigRoute`](flutter_full_stack_server/lib/src/web/routes/app_config_route.dart).
 The same build therefore points at the right API in every environment, with no
 rebuild — the server tells the app where it lives.
 
@@ -141,8 +141,8 @@ The widget does `ref.watch(greetingControllerProvider)` and switches on the
 
 `serverpod_auth_idp` supplies email/password sign-in with JWT. Exposing it is a
 one-line subclass per endpoint — see
-[`lib/src/auth/`](flutter_app_back_server/lib/src/auth/) — and the providers are
-wired in [`lib/server.dart`](flutter_app_back_server/lib/server.dart). On the app
+[`lib/src/auth/`](flutter_full_stack_server/lib/src/auth/) — and the providers are
+wired in [`lib/server.dart`](flutter_full_stack_server/lib/server.dart). On the app
 side, `FlutterAuthSessionManager` persists the tokens across launches, and token
 renewal is handled for you: when a call comes back `401`, the client refreshes
 the access token once and retries that same call before surfacing an error.
@@ -151,9 +151,9 @@ the access token once and retries that same call before surfacing an error.
 
 | Package | Kind | Role |
 |---|---|---|
-| [`flutter_app_back_server`](flutter_app_back_server) | Dart | The backend. Models, endpoints, migrations, web routes. **This is where you work.** |
-| [`flutter_app_back_client`](flutter_app_back_client) | Dart | Generated API client. Committed so the app builds without running the generator, but never hand-edited. |
-| [`flutter_app_back_flutter`](flutter_app_back_flutter) | Flutter | The app. Riverpod + go_router, both code-generated. |
+| [`flutter_full_stack_server`](flutter_full_stack_server) | Dart | The backend. Models, endpoints, migrations, web routes. **This is where you work.** |
+| [`flutter_full_stack_client`](flutter_full_stack_client) | Dart | Generated API client. Committed so the app builds without running the generator, but never hand-edited. |
+| [`flutter_full_stack_flutter`](flutter_full_stack_flutter) | Flutter | The app. Riverpod + go_router, both code-generated. |
 
 It is a native Dart workspace: a single `pubspec.lock` at the root, and one
 `dart pub get` there resolves all three packages together.
@@ -171,20 +171,20 @@ It is a native Dart workspace: a single `pubspec.lock` at the root, and one
 dart pub get
 
 # 2. Secrets — the real file is git-ignored
-cp flutter_app_back_server/config/passwords.example.yaml \
-   flutter_app_back_server/config/passwords.yaml
+cp flutter_full_stack_server/config/passwords.example.yaml \
+   flutter_full_stack_server/config/passwords.yaml
 #    then fill it in, following the comments inside
 
 # 3. Containers + server
 melos run server:start
 
 # 4. The app, in another terminal
-cd flutter_app_back_flutter && flutter run
+cd flutter_full_stack_flutter && flutter run
 ```
 
 The server comes up on **http://localhost:8080** (API) and
 **http://localhost:8082** (web). VS Code users can instead pick the
-**flutter_app_back (full stack)** compound launch configuration, which starts
+**flutter_full_stack (server + app)** compound launch configuration, which starts
 the containers, the server and the app together.
 
 ## Everyday commands
@@ -209,9 +209,9 @@ melos run server:stop # stop the containers
 
 | Layer | Where | What it proves |
 |---|---|---|
-| Endpoint tests | `flutter_app_back_server/test/integration/` | an endpoint returns the right thing, calling it as a Dart function via `withServerpod` |
-| Widget tests | `flutter_app_back_flutter/test/` | a screen renders and reacts, with no backend involved |
-| End-to-end | `flutter_app_back_flutter/integration_test/` | the real app, the generated client, HTTP and Postgres actually work together |
+| Endpoint tests | `flutter_full_stack_server/test/integration/` | an endpoint returns the right thing, calling it as a Dart function via `withServerpod` |
+| Widget tests | `flutter_full_stack_flutter/test/` | a screen renders and reacts, with no backend involved |
+| End-to-end | `flutter_full_stack_flutter/integration_test/` | the real app, the generated client, HTTP and Postgres actually work together |
 
 Only the last layer catches a stale generated client, a missing migration or a
 changed serialization — so keep it small and about the critical path. It needs a
@@ -230,7 +230,7 @@ devices — see [AGENTS.md](AGENTS.md) for that and the other two constraints.
 
 Breakpoints work on both sides of a call, and pause the real request.
 
-In VS Code, press F5 and pick **flutter_app_back (full stack)**: it starts the
+In VS Code, press F5 and pick **flutter_full_stack (server + app)**: it starts the
 containers, then runs the server and the app together under the debugger, so a
 breakpoint in an endpoint and one in a Riverpod controller both hit in turn.
 Stopping either stops both.
@@ -257,11 +257,11 @@ stays blocked, so the app or `curl` eventually times out. That is not a bug.
 
 The short version:
 
-1. Model in `flutter_app_back_server/lib/src/<feature>/<name>.spy.yaml`
+1. Model in `flutter_full_stack_server/lib/src/<feature>/<name>.spy.yaml`
 2. Endpoint in `<feature>_endpoint.dart` beside it
 3. `melos run generate`
 4. `serverpod create-migration`, but only if you touched a `table:`
-5. Controller and screen under `flutter_app_back_flutter/lib/features/<feature>/`
+5. Controller and screen under `flutter_full_stack_flutter/lib/features/<feature>/`
 6. Tests, then `melos run check`
 
 The long version, with the traps, is in **[AGENTS.md](AGENTS.md)**.

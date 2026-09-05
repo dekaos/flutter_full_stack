@@ -5,7 +5,7 @@ description: Create, apply, review or repair a Serverpod database migration. Use
 
 # Database migrations
 
-Migrations live in `flutter_app_back_server/migrations/<timestamp>/` and are
+Migrations live in `flutter_full_stack_server/migrations/<timestamp>/` and are
 tracked in `migration_registry.txt`. Both are generated — never edit them by
 hand, including the SQL.
 
@@ -23,7 +23,7 @@ stale schema:
 
 ```bash
 melos run generate
-cd flutter_app_back_server && serverpod create-migration
+cd flutter_full_stack_server && serverpod create-migration
 ```
 
 Read the output. If it warns that data may be destroyed, it stops. Confirm the
@@ -42,7 +42,7 @@ Always read the generated SQL — this is the one part of a change that can
 destroy production data:
 
 ```bash
-cat flutter_app_back_server/migrations/<timestamp>/migration.sql
+cat flutter_full_stack_server/migrations/<timestamp>/migration.sql
 ```
 
 Look for `DROP TABLE`, `DROP COLUMN` and type narrowing. A column rename is
@@ -75,10 +75,10 @@ recreating it** on top of the merged state. Do not hand-merge the timestamps —
 that produces a registry which does not match the folders on disk.
 
 ```bash
-git checkout --theirs flutter_app_back_server/migrations/migration_registry.txt
-rm -rf flutter_app_back_server/migrations/<your-timestamp>/
+git checkout --theirs flutter_full_stack_server/migrations/migration_registry.txt
+rm -rf flutter_full_stack_server/migrations/<your-timestamp>/
 melos run generate
-cd flutter_app_back_server && serverpod create-migration
+cd flutter_full_stack_server && serverpod create-migration
 ```
 
 ## When the live database has drifted
@@ -88,7 +88,7 @@ hand, or a migration was applied then rolled back — compare against the live
 schema instead of the last migration:
 
 ```bash
-cd flutter_app_back_server && serverpod create-repair-migration
+cd flutter_full_stack_server && serverpod create-repair-migration
 ```
 
 Apply it with `dart bin/main.dart --apply-repair-migration`. This is a recovery

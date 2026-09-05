@@ -19,7 +19,7 @@ melos run docker:up
 ## 1. Model
 
 Models live beside their endpoint, in
-`flutter_app_back_server/lib/src/<feature>/<name>.spy.yaml`.
+`flutter_full_stack_server/lib/src/<feature>/<name>.spy.yaml`.
 
 ```yaml
 ### A greeting message which can be sent to or from the server.
@@ -77,10 +77,10 @@ lib/src/orders/
 
 ## 2. Endpoint
 
-`flutter_app_back_server/lib/src/<feature>/<feature>_endpoint.dart`:
+`flutter_full_stack_server/lib/src/<feature>/<feature>_endpoint.dart`:
 
 ```dart
-import 'package:flutter_app_back_server/src/generated/protocol.dart';
+import 'package:flutter_full_stack_server/src/generated/protocol.dart';
 import 'package:serverpod/serverpod.dart';
 
 class GreetingEndpoint extends Endpoint {
@@ -97,7 +97,7 @@ Rules:
 - First parameter is always `Session`. Parameters and return types must be
   serializable — a generated model, a primitive, or a `List`/`Map` of those.
 - Use `session.log(...)` for logging, never `print`.
-- Use package imports (`package:flutter_app_back_server/...`), not relative
+- Use package imports (`package:flutter_full_stack_server/...`), not relative
   ones — `always_use_package_imports` is enforced.
 
 ## 3. Generate
@@ -108,13 +108,13 @@ melos run generate
 
 Never run `serverpod generate` directly: it emits code that `dart format`
 rejects, and the Melos script formats afterwards. This step rewrites
-`lib/src/generated/**`, the whole `flutter_app_back_client` protocol, and
+`lib/src/generated/**`, the whole `flutter_full_stack_client` protocol, and
 `serverpod_test_tools.dart`. Do not hand-edit any of them.
 
 ## 4. Migration — only if the model has `table:`
 
 ```bash
-cd flutter_app_back_server && serverpod create-migration
+cd flutter_full_stack_server && serverpod create-migration
 ```
 
 Then restart the server, which applies it:
@@ -128,7 +128,7 @@ See the `serverpod-migration` skill when a migration fails or needs repairing.
 
 ## 5. Call it from the app
 
-Controller — `flutter_app_back_flutter/lib/features/<feature>/providers/`:
+Controller — `flutter_full_stack_flutter/lib/features/<feature>/providers/`:
 
 ```dart
 @riverpod
@@ -150,14 +150,14 @@ class GreetingController extends _$GreetingController {
   hand.
 - Wrap async work in `AsyncValue.guard` — no manual `isLoading`/`error` fields.
 - Screens go under `.../presentation/` and read state with `ref.watch`.
-- A new route is registered in `flutter_app_back_flutter/lib/app/router.dart`.
+- A new route is registered in `flutter_full_stack_flutter/lib/app/router.dart`.
 
 If you added a provider or route, run `melos run generate` again for the
 `*.g.dart` files.
 
 ## 6. Test and verify
 
-An integration test in `flutter_app_back_server/test/integration/`:
+An integration test in `flutter_full_stack_server/test/integration/`:
 
 ```dart
 withServerpod('Given Greeting endpoint', (sessionBuilder, endpoints) {
@@ -168,10 +168,10 @@ withServerpod('Given Greeting endpoint', (sessionBuilder, endpoints) {
 });
 ```
 
-And a widget test in `flutter_app_back_flutter/test/` for the screen.
+And a widget test in `flutter_full_stack_flutter/test/` for the screen.
 
 For a flow that must never break, add an end-to-end test in
-`flutter_app_back_flutter/integration_test/`, which drives the real app against
+`flutter_full_stack_flutter/integration_test/`, which drives the real app against
 a running server and so catches a stale generated client or a missing
 migration. Keep that suite small — it needs a live backend and a real device:
 
