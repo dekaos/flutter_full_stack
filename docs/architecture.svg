@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 760" width="1240" height="760" role="img" aria-label="A method call travels from a Riverpod controller in the Flutter app, through the generated client, over HTTP POST, into a Serverpod endpoint method, and the typed result comes back the same way. Both the client and the server protocol are generated from the same model and endpoint source files.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A0F1E"/>
+      <stop offset="1" stop-color="#0F1830"/>
+    </linearGradient>
+    <radialGradient id="glowCyan" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#56C8F5" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#56C8F5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowViolet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#A78BFA" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#A78BFA" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowEmerald" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#34D399" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#34D399" stop-opacity="0"/>
+    </radialGradient>
+
+    <marker id="aMuted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4A5B7E"/>
+    </marker>
+    <marker id="aCyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#56C8F5"/>
+    </marker>
+    <marker id="aViolet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/>
+    </marker>
+    <marker id="aEmerald" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#34D399"/>
+    </marker>
+    <marker id="aAmber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#FBBF24"/>
+    </marker>
+  </defs>
+
+  <rect width="1240" height="760" fill="url(#bg)"/>
+  <ellipse cx="214" cy="400" rx="260" ry="200" fill="url(#glowCyan)"/>
+  <ellipse cx="594" cy="400" rx="260" ry="200" fill="url(#glowViolet)"/>
+  <ellipse cx="1000" cy="400" rx="280" ry="200" fill="url(#glowEmerald)"/>
+
+  <!-- ── title ─────────────────────────────────────────────────────── -->
+  <text x="44" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="25" font-weight="700" fill="#E6EDF3">One call, end to end</text>
+  <text x="44" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#8FA0BC">You write a Dart method on the server. The generator hands the app a typed client that calls it like a local function.</text>
+
+  <!-- ── build time panel ──────────────────────────────────────────── -->
+  <rect x="44" y="102" width="1152" height="118" rx="14" fill="#111A2E" stroke="#1E2A45"/>
+  <text x="68" y="128" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#61708C">BUILD TIME</text>
+
+  <!-- sources you write -->
+  <rect x="68" y="140" width="240" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="68" y="140" width="3" height="34" rx="1.5" fill="#34D399"/>
+  <text x="84" y="162" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">greeting.spy.yaml</text>
+  <text x="296" y="162" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">model</text>
+
+  <rect x="68" y="180" width="240" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="68" y="180" width="3" height="34" rx="1.5" fill="#34D399"/>
+  <text x="84" y="202" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">greeting_endpoint.dart</text>
+  <text x="296" y="202" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">endpoint</text>
+
+  <!-- merge into the generator -->
+  <path d="M308,157 H322 M308,197 H322 M322,157 V197" stroke="#4A5B7E" stroke-width="1.4" fill="none"/>
+  <path d="M322,177 H352" stroke="#4A5B7E" stroke-width="1.4" fill="none" marker-end="url(#aMuted)"/>
+
+  <rect x="360" y="157" width="200" height="42" rx="21" fill="#1F2A45" stroke="#B58A2B"/>
+  <text x="460" y="183" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#FBBF24">melos run generate</text>
+
+  <path d="M564,178 H596" stroke="#B58A2B" stroke-width="1.4" fill="none" marker-end="url(#aAmber)"/>
+
+  <!-- generated outputs -->
+  <rect x="604" y="157" width="268" height="42" rx="8" fill="#17223A" stroke="#3A2E5E"/>
+  <rect x="604" y="157" width="3" height="42" rx="1.5" fill="#A78BFA"/>
+  <text x="620" y="175" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#E6EDF3">client/lib/src/protocol/**</text>
+  <text x="620" y="191" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#8B7FB8">the whole client package</text>
+
+  <rect x="888" y="157" width="268" height="42" rx="8" fill="#17223A" stroke="#1F4A3A"/>
+  <rect x="888" y="157" width="3" height="42" rx="1.5" fill="#34D399"/>
+  <text x="904" y="175" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#E6EDF3">server/lib/src/generated/**</text>
+  <text x="904" y="191" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#6FB89A">routing + serialization</text>
+
+  <!-- generated code lands in the two packages below -->
+  <path d="M738,224 C738,258 594,262 594,290" stroke="#A78BFA" stroke-width="1.4" stroke-dasharray="4 4" fill="none" opacity="0.75" marker-end="url(#aViolet)"/>
+  <path d="M1022,224 C1022,258 1000,262 1000,290" stroke="#34D399" stroke-width="1.4" stroke-dasharray="4 4" fill="none" opacity="0.75" marker-end="url(#aEmerald)"/>
+  <text x="584" y="274" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">generates</text>
+  <text x="1014" y="274" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">generates</text>
+
+  <!-- ── run time: three package columns ──────────────────────────── -->
+  <rect x="44" y="296" width="340" height="230" rx="12" fill="#0E1526" stroke="#1B2540"/>
+  <rect x="424" y="296" width="340" height="230" rx="12" fill="#0E1526" stroke="#1B2540"/>
+  <rect x="804" y="296" width="392" height="230" rx="12" fill="#0E1526" stroke="#1B2540"/>
+
+  <circle cx="64" cy="319" r="4" fill="#56C8F5"/>
+  <text x="78" y="323" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#56C8F5">flutter_app_back_flutter</text>
+  <circle cx="444" cy="319" r="4" fill="#A78BFA"/>
+  <text x="458" y="323" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#A78BFA">flutter_app_back_client</text>
+  <circle cx="824" cy="319" r="4" fill="#34D399"/>
+  <text x="838" y="323" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#34D399">flutter_app_back_server</text>
+
+  <!-- the three actors -->
+  <rect x="60" y="344" width="308" height="88" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="76" y="372" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">GreetingController</text>
+  <text x="76" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">sayHello('Bob')</text>
+  <text x="76" y="416" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">@riverpod · AsyncValue.guard</text>
+
+  <rect x="440" y="344" width="308" height="88" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="456" y="372" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">EndpointGreeting</text>
+  <text x="456" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">client.greeting.hello('Bob')</text>
+  <text x="456" y="416" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">generated · never edit by hand</text>
+
+  <rect x="820" y="344" width="360" height="88" rx="10" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="836" y="372" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">GreetingEndpoint</text>
+  <text x="836" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">hello(Session session, String name)</text>
+  <text x="836" y="416" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">your code · plain Dart, runs on :8080</text>
+
+  <!-- request hops -->
+  <path d="M372,388 H432" stroke="#56C8F5" stroke-width="1.6" fill="none" marker-end="url(#aCyan)"/>
+  <text x="402" y="376" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#7FA8C4">typed call</text>
+  <path d="M752,388 H812" stroke="#A78BFA" stroke-width="1.6" fill="none" marker-end="url(#aViolet)"/>
+  <text x="782" y="376" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#9B8FC4">HTTP POST</text>
+
+  <!-- optional persistence -->
+  <rect x="820" y="446" width="360" height="32" rx="8" fill="#101A2C" stroke="#2A3A5E" stroke-dasharray="4 3"/>
+  <text x="836" y="466" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#8FA0BC">session.db → Postgres :8090 (models with table:)</text>
+
+  <!-- the way back -->
+  <path d="M812,500 H376" stroke="#34D399" stroke-width="1.6" fill="none" marker-end="url(#aEmerald)"/>
+  <text x="594" y="490" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#6FB89A">Greeting object, deserialized → AsyncValue&lt;Greeting&gt; rebuilds the widget</text>
+
+  <!-- ── the actual wire ──────────────────────────────────────────── -->
+  <rect x="44" y="546" width="1152" height="180" rx="12" fill="#080D1A" stroke="#1E2A45"/>
+  <circle cx="68" cy="562" r="4.5" fill="#FF5F57"/>
+  <circle cx="85" cy="562" r="4.5" fill="#FEBC2E"/>
+  <circle cx="102" cy="562" r="4.5" fill="#28C840"/>
+  <text x="122" y="566" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" letter-spacing="0.6" fill="#61708C">WHAT ACTUALLY GOES OVER THE WIRE</text>
+  <path d="M44,578 H1196" stroke="#1E2A45" stroke-width="1"/>
+
+  <text x="68" y="608" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#56C8F5">→ POST http://localhost:8080/greeting</text>
+  <text x="68" y="630" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#9FB2CE">  {"method":"hello","name":"Bob"}</text>
+  <text x="68" y="664" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#34D399">← 200 OK</text>
+  <text x="68" y="686" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#9FB2CE">  {"__className__":"Greeting","message":"Hello Bob","author":"Serverpod","timestamp":"…"}</text>
+  <text x="68" y="710" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#4A5B7E">The endpoint name is the path; the method name is a field in the body. No REST routes to design, no DTOs to hand-write.</text>
+</svg>
