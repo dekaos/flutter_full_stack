@@ -58,6 +58,16 @@ melos:
       packageFilters:
         scope: flutter_app_back_server
 
+    server:debug:
+      description: >-
+        Like server:start, but exposes the Dart VM service on 127.0.0.1:8181 so
+        a debugger can attach - use the "Attach to the running server" launch
+        configuration in VS Code. Local development only: the service is
+        unauthenticated, which is why it binds to loopback and never to 0.0.0.0.
+      exec: docker compose --progress quiet up --detach && dart run --observe=8181 --disable-service-auth-codes bin/main.dart --apply-migrations
+      packageFilters:
+        scope: flutter_app_back_server
+
     server:stop:
       description: Stop Docker services.
       exec: docker compose down

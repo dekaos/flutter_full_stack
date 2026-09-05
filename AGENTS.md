@@ -26,6 +26,7 @@ the same scripts, so a green local run predicts a green pipeline.
 melos run setup             # resolve dependencies (once, after cloning)
 melos run docker:up         # Postgres + Redis, dev and test containers
 melos run server:start      # docker:up + run the server with migrations
+melos run server:debug      # same, with the VM service open for a debugger
 melos run server:stop       # stop the containers
 
 melos run generate          # regenerate ALL generated code (see below)
@@ -151,6 +152,42 @@ choose the folder when you create the model, not afterwards.
    its place on the few flows that must never break, not on every feature.
 7. `melos run check`, plus `melos run test:e2e` if you touched step 6's
    end-to-end suite.
+
+## Debugging the server
+
+Breakpoints in endpoint methods work, and pause the real request.
+
+**From VS Code — the normal path.** Put a breakpoint in the gutter, then press
+F5 and pick **flutter_app_back_server**. Its `preLaunchTask` starts the
+containers first. The **flutter_app_back (full stack)** compound runs the server
+and the app together, so a breakpoint on each side of the same call both hit.
+
+**Attaching to a server you started in a terminal.** `melos run server:start`
+exposes no VM service, so nothing can attach to it. Use the debug variant
+instead, then pick **Attach to the running server**:
+
+```bash
+melos run server:debug     # VM service on http://127.0.0.1:8181/
+```
+
+It passes `--observe=8181 --disable-service-auth-codes`, which is what makes the
+URI stable enough to hard-code in `launch.json`. That also makes it
+unauthenticated, so it binds to loopback only — never expose that port. The same
+URI serves DevTools at `/devtools`.
+
+**Two things that surprise people:**
+
+- **While you sit on a breakpoint, the caller is blocked.** The isolate is
+  paused, so the HTTP request stays open and the client eventually gives up —
+  `curl --max-time` returns empty, and the Flutter app surfaces a timeout in its
+  `AsyncValue`. A client-side timeout after a debugging session is not a bug.
+- **`session` is inspectable, and it is the useful part.** At a breakpoint you
+  get the endpoint arguments plus the live `MethodCallSession` — from there,
+  `session.db`, the authenticated user, and the passwords.
+
+Endpoint tests are debuggable the same way: put a breakpoint in the endpoint and
+launch the test in `test/integration/` with the debugger rather than
+`melos run test`.
 
 ## Conventions
 
