@@ -1,0 +1,24 @@
+# Shared lint configuration for every package in this monorepo.
+#
+# Each package's own analysis_options.yaml includes this file and adds only the
+# excludes that are specific to it. Change lint rules HERE so the three packages
+# can never drift apart.
+include: package:very_good_analysis/analysis_options.11.0.0.yaml
+
+linter:
+  rules:
+    # This is an application monorepo, not a published package, so public
+    # members do not need dartdoc.
+    public_member_api_docs: false
+
+    # Fire-and-forget futures must be made explicit with `unawaited(...)`.
+    unawaited_futures: true
+
+    # Dart 3.13 lets a constructor be declared as `new(...)` instead of
+    # repeating the class name. It is valid, but unfamiliar to read - notably in
+    # Flutter widgets, where `const MyWidget({super.key})` is the idiom everyone
+    # recognises. Keep the conventional form.
+    unnecessary_type_name_in_constructor: false
+
+formatter:
+  trailing_commas: preserve

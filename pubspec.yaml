@@ -1,0 +1,141 @@
+name: flutter_app_back
+publish_to: none
+
+environment:
+  sdk: '^3.13.0'
+
+workspace:
+  - flutter_app_back_client
+  - flutter_app_back_server
+  - flutter_app_back_flutter
+
+dev_dependencies:
+  melos: ^8.6.0
+  # Referenced by the shared analysis_options.yaml at the repo root.
+  very_good_analysis: 11.0.0
+
+melos:
+  name: flutter_app_back
+  packages:
+    - flutter_app_back_client
+    - flutter_app_back_server
+    - flutter_app_back_flutter
+
+  scripts:
+    # ---------------------------------------------------------------- setup --
+    setup:
+      description: Install all workspace dependencies.
+      exec: dart pub get
+
+    # -------------------------------------------------------------- codegen --
+    generate:server:
+      description: Run Serverpod code generation (server + client).
+      exec: serverpod generate
+      packageFilters:
+        scope: flutter_app_back_server
+
+    generate:flutter:
+      description: Run build_runner for the Flutter app (Riverpod, go_router).
+      exec: dart run build_runner build --delete-conflicting-outputs
+      packageFilters:
+        scope: flutter_app_back_flutter
+
+    generate:
+      description: Regenerate every piece of generated code in the monorepo.
+      # `serverpod generate` and `build_runner` emit code that does not satisfy
+      # `dart format` on this language version, so formatting is part of the
+      # step. Always use this script instead of calling the generators directly,
+      # otherwise `melos run format:check` will fail in CI.
+      run: |
+        melos run generate:server --no-select &&
+        melos run generate:flutter --no-select &&
+        melos run format --no-select
+
+    # --------------------------------------------------------------- server --
+    server:start:
+      description: Start Docker services and the Serverpod server with migrations.
+      exec: docker compose --progress quiet up --detach && dart bin/main.dart --apply-migrations
+      packageFilters:
+        scope: flutter_app_back_server
+
+    server:stop:
+      description: Stop Docker services.
+      exec: docker compose down
+      packageFilters:
+        scope: flutter_app_back_server
+
+    docker:up:
+      description: Start the Postgres/Redis containers only (dev + test).
+      exec: docker compose --progress quiet up --detach
+      packageFilters:
+        scope: flutter_app_back_server
+
+    docker:down:
+      description: Stop the containers and drop their volumes.
+      exec: docker compose down --volumes
+      packageFilters:
+        scope: flutter_app_back_server
+
+    # --------------------------------------------------------------- format --
+    format:
+      description: Format every package in the monorepo.
+      exec: dart format .
+
+    format:check:
+      description: Fail if any file is not formatted.
+      exec: dart format --output=none --set-exit-if-changed .
+
+    # -------------------------------------------------------------- analyze --
+    analyze:dart:
+      description: Analyze pure Dart packages (server, client).
+      exec: dart analyze --fatal-infos .
+      packageFilters:
+        flutter: false
+
+    analyze:flutter:
+      description: Analyze the Flutter app.
+      exec: flutter analyze --fatal-infos
+      packageFilters:
+        flutter: true
+
+    analyze:
+      description: Analyze every package in the monorepo.
+      run: |
+        melos run analyze:dart --no-select &&
+        melos run analyze:flutter --no-select
+
+    # ----------------------------------------------------------------- test --
+    test:dart:
+      description: Run pure Dart package tests (requires `melos run docker:up`).
+      exec: dart test
+      packageFilters:
+        flutter: false
+        dirExists: test
+
+    test:flutter:
+      description: Run Flutter app tests.
+      exec: flutter test
+      packageFilters:
+        flutter: true
+        dirExists: test
+
+    test:
+      description: Run every test in the monorepo.
+      run: |
+        melos run test:dart --no-select &&
+        melos run test:flutter --no-select
+
+    # ------------------------------------------------------------------ ci --
+    check:
+      description: Full quality gate - the same checks CI runs.
+      run: |
+        melos run format:check --no-select &&
+        melos run analyze --no-select &&
+        melos run test --no-select
+
+    # ---------------------------------------------------------------- clean --
+    clean:
+      description: Clean build artifacts of every package.
+      exec: flutter clean
+      packageFilters:
+        flutter: true

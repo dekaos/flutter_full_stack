@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A new push to the same branch cancels the previous run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep in sync with the `environment:` constraints in the pubspecs.
+  FLUTTER_VERSION: '3.47.2'
+  # Keep in sync with the serverpod dependency versions in the pubspecs.
+  SERVERPOD_VERSION: '3.4.13'
+
+jobs:
+  static:
+    name: Format & analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # A single resolve at the root covers every package in the Dart workspace.
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: dart run melos:melos run format:check --no-select
+
+      - name: Analyze
+        run: dart run melos:melos run analyze --no-select
+
+  codegen:
+    name: Generated code is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install Serverpod CLI
+        run: dart pub global activate serverpod_cli ${{ env.SERVERPOD_VERSION }}
+
+      - name: Regenerate everything
+        run: dart run melos:melos run generate --no-select
+
+      # If this fails, someone changed a model/endpoint/provider and committed
+      # without running `melos run generate`.
+      - name: Fail if generated code differs from what is committed
+        run: |
+          if ! git diff --exit-code; then
+            echo "::error::Generated code is stale. Run 'melos run generate' and commit the result."
+            exit 1
+          fi
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    env:
+      # These are not secrets: they must match the passwords declared in
+      # flutter_app_back_server/docker-compose.yaml for the *_test containers,
+      # and they only ever reach throwaway CI containers.
+      SERVERPOD_PASSWORD_database: 'UlVYeCzhThNZR0dMEXY7GyvIQfakUNEY'
+      SERVERPOD_PASSWORD_redis: 'OMp1cvgmgWdN2s4eRYn64LTC7nRSIA76'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Start Postgres and Redis
+        working-directory: flutter_app_back_server
+        run: docker compose up --quiet-pull --detach
+
+      - name: Run tests
+        run: dart run melos:melos run test --no-select
+
+      - name: Stop containers
+        if: always()
+        working-directory: flutter_app_back_server
+        run: docker compose down --volumes

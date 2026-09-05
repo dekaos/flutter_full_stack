@@ -1,0 +1,137 @@
+# AGENTS.md
+
+Working agreement for this repository — for AI agents and humans alike.
+This is the canonical file; `CLAUDE.md` points here.
+
+## What this is
+
+A Melos monorepo backed by a native Dart workspace. Three packages, one
+`pubspec.lock`, one `.dart_tool/` at the root:
+
+| Package | Kind | Role |
+|---|---|---|
+| `flutter_app_back_server` | Dart | Serverpod 3.4.13 backend: endpoints, models, migrations, web routes |
+| `flutter_app_back_client` | Dart | **Fully generated** client. Never hand-edit. |
+| `flutter_app_back_flutter` | Flutter | The app. Riverpod + go_router, both code-generated. |
+
+Data flows one way: you write server models and endpoints, run the generator,
+and the client package plus the app's typed API appear from that.
+
+## Commands
+
+Every task has a Melos script. Use them instead of ad-hoc commands — CI runs
+exactly these, so if they pass locally they pass in CI.
+
+```bash
+melos run setup             # resolve dependencies (once, after cloning)
+melos run docker:up         # Postgres + Redis, dev and test containers
+melos run server:start      # docker:up + run the server with migrations
+melos run server:stop       # stop the containers
+
+melos run generate          # regenerate ALL generated code (see below)
+melos run format            # format every package
+melos run analyze           # analyze every package (--fatal-infos)
+melos run test              # server + Flutter tests
+melos run check             # format:check + analyze + test — the CI gate
+```
+
+Run `melos run check` before declaring any change finished.
+
+`melos run` with no arguments opens a picker listing every script and its
+description.
+
+## Rules that are easy to get wrong
+
+**Never hand-edit generated code.** It is overwritten on the next generate run:
+
+- `flutter_app_back_server/lib/src/generated/**`
+- `flutter_app_back_server/test/integration/test_tools/serverpod_test_tools.dart`
+- `flutter_app_back_client/lib/src/protocol/**`
+- every `*.g.dart` in `flutter_app_back_flutter`
+
+Change the *source* instead: a `.spy.yaml` model, an endpoint class, or a
+`@riverpod` annotation.
+
+**Always use `melos run generate`, never `serverpod generate` on its own.**
+Both generators emit code that `dart format` rejects on this language version,
+so `melos run generate` runs the generators *and then formats*. Calling a
+generator directly leaves the tree unformatted and turns CI red.
+
+**Tests need the containers running.** `melos run test` talks to the `*_test`
+Postgres on port 9090. Start it with `melos run docker:up` first. The test
+runmode binds every server port to `0`, so tests never collide with a running
+dev server.
+
+**`config/passwords.yaml` is git-ignored and required.** After cloning:
+
+```bash
+cp flutter_app_back_server/config/passwords.example.yaml \
+   flutter_app_back_server/config/passwords.yaml
+```
+
+Then fill it in following the comments in that file. The `development`/`test`
+database and Redis entries must match `docker-compose.yaml`. In CI and in
+production, `SERVERPOD_PASSWORD_<name>` environment variables take precedence
+over the file.
+
+**Lint rules live in one place:** the root `analysis_options.yaml`. The three
+package files only add their own `analyzer.exclude` entries. Change a rule at
+the root so the packages cannot drift.
+
+## Adding a feature end to end
+
+1. **Model** — add or edit a `.spy.yaml` under
+   `flutter_app_back_server/lib/src/<feature>/`. Add `table: <name>` only if it
+   is persisted.
+2. **Endpoint** — add `<feature>_endpoint.dart` in the same folder with a class
+   extending `Endpoint`. The class name minus the `Endpoint` suffix becomes the
+   client-side accessor (`GreetingEndpoint` → `client.greeting`).
+3. **Generate** — `melos run generate`.
+4. **Migration** (only if you touched a `table:`) —
+   `cd flutter_app_back_server && serverpod create-migration`, then restart with
+   `melos run server:start`, which applies it.
+5. **App** — add a controller under
+   `flutter_app_back_flutter/lib/features/<feature>/providers/` and a screen
+   under `.../presentation/`. Register the route in `lib/app/router.dart`.
+6. **Test** — an integration test in `flutter_app_back_server/test/integration/`
+   using `withServerpod`, and a widget test in `flutter_app_back_flutter/test/`.
+7. `melos run check`.
+
+## Conventions
+
+**Server.** One folder per domain under `lib/src/`. Endpoint classes end in
+`Endpoint`. Session logging via `session.log(...)`, never `print`.
+
+**Flutter.** Feature-first: `lib/features/<feature>/{presentation,providers}/`.
+Cross-feature code goes in `lib/core/`, app-level wiring in `lib/app/`.
+Providers are always code-generated with `@riverpod` — do not declare
+`Provider`/`FutureProvider` by hand. Async state uses `AsyncValue` and
+`AsyncValue.guard`; do not write manual loading/error booleans.
+
+**Style.** `very_good_analysis` at `--fatal-infos`, 80-column lines. Futures are
+either awaited or wrapped in `unawaited(...)`. Constructors keep the
+conventional `MyWidget({super.key})` form — the Dart 3.13 `new(...)` shorthand
+is deliberately disabled in the root lint config.
+
+## Ports
+
+| Port | Service |
+|---|---|
+| 8080 / 8081 / 8082 | API / Insights / web server (dev) |
+| 8090 / 8091 | Postgres / Redis (dev containers) |
+| 9090 / 9091 | Postgres / Redis (test containers) |
+
+Redis is `enabled: false` in both `development.yaml` and `test.yaml`; the
+containers run anyway so enabling it is a one-line change.
+
+## CI
+
+`.github/workflows/ci.yml` runs three jobs on every push and PR to `main`:
+
+- **static** — `melos run format:check` and `melos run analyze`
+- **codegen** — regenerates everything and fails if the working tree changed,
+  catching a commit made without running `melos run generate`
+- **test** — starts the containers and runs `melos run test`
+
+SDK versions are pinned in the workflow `env` block and must stay in sync with
+the `environment:` constraints in the pubspecs.

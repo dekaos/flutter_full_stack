@@ -1,0 +1,38 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "flutter_app_back_flutter",
+            "cwd": "${workspaceFolder}/flutter_app_back_flutter",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart"
+        },
+        {
+            "name": "flutter_app_back_server",
+            "cwd": "${workspaceFolder}/flutter_app_back_server",
+            "request": "launch",
+            "type": "dart",
+            "preLaunchTask": "docker_compose_up",
+            "program": "bin/main.dart",
+            // Passwords come from config/passwords.yaml. Do not add
+            // SERVERPOD_PASSWORD_* here: environment variables take precedence
+            // over that file, so a stale value here would silently win.
+            "args": [
+                "--apply-migrations"
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "flutter_app_back (full stack)",
+            "configurations": [
+                "flutter_app_back_server",
+                "flutter_app_back_flutter"
+            ],
+            "presentation": {
+                "order": 1
+            }
+        }
+    ]
+}
