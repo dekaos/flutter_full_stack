@@ -2,11 +2,20 @@
     "version": "2.0.0",
     "tasks": [
         {
+            // preLaunchTask for the server configurations in launch.json.
             "label": "docker_compose_up",
             "type": "shell",
-            "command": "docker compose up -d",
+            "command": "docker compose --progress quiet up --detach",
             "options": {
                 "cwd": "${workspaceFolder}/flutter_app_back_server"
+            },
+            // Compose writes its status lines to stderr, so without an empty
+            // matcher VS Code prompts to pick one on every launch.
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "close": true
             }
         }
     ]

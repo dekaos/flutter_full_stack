@@ -160,7 +160,29 @@ Breakpoints in endpoint methods work, and pause the real request.
 **From VS Code — the normal path.** Put a breakpoint in the gutter, then press
 F5 and pick **flutter_app_back_server**. Its `preLaunchTask` starts the
 containers first. The **flutter_app_back (full stack)** compound runs the server
-and the app together, so a breakpoint on each side of the same call both hit.
+and the app together, both under the debugger, so a breakpoint on each side of
+the same call hits in turn; stopping either stops both. The two start in
+parallel, which is safe because nothing in the app reaches the server until you
+press send — `serverpodClientProvider` is read in exactly one place, inside
+`GreetingController.sayHello`.
+
+**Stepping through the client.** Which code the debugger will step into is not
+obvious, and it comes down to one rule in the Dart extension: a library is
+"external" — and skipped — only when its resolved path sits in the pub cache
+(`/hosted/pub.`) or under `third_party/`, plus `package:flutter` itself.
+
+| Package | Resolves to | Steps in by default? |
+|---|---|---|
+| `flutter_app_back_client` | `../flutter_app_back_client` | **yes** — it is a workspace path dependency, not a pub package |
+| `flutter_app_back_server` | `../flutter_app_back_server` | **yes** |
+| `serverpod_client`, `serverpod`, `riverpod`, `flutter` | `~/.pub-cache/hosted/pub.dev/…` | no |
+
+So breakpoints in the *generated client* work with no configuration — useful for
+watching a call turn into `callServerEndpoint(...)` arguments. To follow it
+further, into `package:serverpod_client` where the HTTP request and the
+serialization actually happen, turn on `dart.debugExternalPackageLibraries` in
+settings. Leave it off day to day, or you will step into Flutter framework code
+constantly.
 
 **Attaching to a server you started in a terminal.** `melos run server:start`
 exposes no VM service, so nothing can attach to it. Use the debug variant
