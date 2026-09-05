@@ -193,11 +193,33 @@ the containers, the server and the app together.
 melos run check       # format + analyze + test — run before every commit
 melos run generate    # regenerate client, protocol and *.g.dart files
 melos run test        # tests only (needs `melos run docker:up`)
+melos run test:e2e    # end-to-end: real app → real server → real Postgres
 melos run docker:up   # Postgres + Redis, without starting the server
 melos run server:stop # stop the containers
 ```
 
 `melos run` with no arguments lists every available script.
+
+## Testing layers
+
+| Layer | Where | What it proves |
+|---|---|---|
+| Endpoint tests | `flutter_app_back_server/test/integration/` | an endpoint returns the right thing, calling it as a Dart function via `withServerpod` |
+| Widget tests | `flutter_app_back_flutter/test/` | a screen renders and reacts, with no backend involved |
+| End-to-end | `flutter_app_back_flutter/integration_test/` | the real app, the generated client, HTTP and Postgres actually work together |
+
+Only the last layer catches a stale generated client, a missing migration or a
+changed serialization — so keep it small and about the critical path. It needs a
+server running, and lives outside `melos run check` for that reason:
+
+```bash
+melos run server:start        # one terminal
+melos run test:e2e            # another
+```
+
+`E2E_DEVICE` picks the target (default `macos`; CI uses `linux`) and
+`E2E_SERVER_URL` the backend. Note that `integration_test` cannot run on web
+devices — see [AGENTS.md](AGENTS.md) for that and the other two constraints.
 
 ## Adding a feature
 

@@ -168,6 +168,18 @@ withServerpod('Given Greeting endpoint', (sessionBuilder, endpoints) {
 });
 ```
 
+And a widget test in `flutter_app_back_flutter/test/` for the screen.
+
+For a flow that must never break, add an end-to-end test in
+`flutter_app_back_flutter/integration_test/`, which drives the real app against
+a running server and so catches a stale generated client or a missing
+migration. Keep that suite small — it needs a live backend and a real device:
+
+```bash
+melos run server:start        # one terminal
+melos run test:e2e            # another
+```
+
 Then the gate:
 
 ```bash

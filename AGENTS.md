@@ -33,6 +33,8 @@ melos run format            # format every package
 melos run analyze           # analyze every package (--fatal-infos)
 melos run test              # server + Flutter tests
 melos run check             # format:check + analyze + test — the CI gate
+
+melos run test:e2e          # end-to-end: real app against a running server
 ```
 
 Run `melos run check` before declaring any change finished. It covers CI's
@@ -64,6 +66,31 @@ generator directly leaves the tree unformatted and turns CI red.
 Postgres on port 9090. Start it with `melos run docker:up` first. The test
 runmode binds every server port to `0`, so tests never collide with a running
 dev server.
+
+**End-to-end tests are a separate command with prerequisites.** `melos run
+test:e2e` drives the real app, through the real generated client, against a
+running server — so it needs one:
+
+```bash
+melos run server:start        # one terminal
+melos run test:e2e            # another
+```
+
+It is deliberately outside `test` and `check`, because it needs a live backend
+and a real device. Three constraints worth knowing before extending it:
+
+- **Web is not a valid target.** `flutter test integration_test -d chrome`
+  fails with "Web devices are not supported for integration tests yet".
+  Use a desktop or mobile target: `E2E_DEVICE` selects it (default `macos`,
+  CI uses `linux`). This has nothing to do with the `--wasm` web build.
+- **It runs against the *development* database on 8090, not the test one.**
+  Serverpod restricts `--mode` to `development`, `test`, `staging` and
+  `production`, so a dedicated `e2e` runmode is impossible, and the `test`
+  runmode binds its ports to `0` — unusable when the app needs a fixed URL.
+  Reset the data with `melos run docker:down` when a test dirties it.
+- **`E2E_SERVER_URL` overrides the backend** (default
+  `http://localhost:8080/`). It is passed to the app as
+  `--dart-define=SERVER_URL=`, which wins over `assets/config.json`.
 
 **`config/passwords.yaml` is git-ignored and required.** After cloning:
 
@@ -119,7 +146,11 @@ choose the folder when you create the model, not afterwards.
    under `.../presentation/`. Register the route in `lib/app/router.dart`.
 6. **Test** — an integration test in `flutter_app_back_server/test/integration/`
    using `withServerpod`, and a widget test in `flutter_app_back_flutter/test/`.
-7. `melos run check`.
+   Add an end-to-end test in `flutter_app_back_flutter/integration_test/` only
+   for a critical path: that suite is slow and needs a live server, so it earns
+   its place on the few flows that must never break, not on every feature.
+7. `melos run check`, plus `melos run test:e2e` if you touched step 6's
+   end-to-end suite.
 
 ## Conventions
 
@@ -163,6 +194,11 @@ containers run anyway so enabling it is a one-line change.
 - **codegen** — regenerates everything and fails if the working tree changed,
   catching a commit made without running `melos run generate`
 - **test** — starts the containers and runs `melos run test`
+- **e2e** — builds the app for Linux desktop, starts the server, and runs
+  `melos run test:e2e` under `xvfb`. It mints throwaway auth secrets per run,
+  because `config/passwords.yaml` is git-ignored and the server aborts at
+  start-up without the JWT peppers. The `test` job needs no such secrets:
+  `withServerpod` never executes `lib/server.dart`'s `run()`.
 
 SDK versions are pinned in the workflow `env` block and must stay in sync with
 the `environment:` constraints in the pubspecs.

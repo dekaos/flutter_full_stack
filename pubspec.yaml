@@ -125,6 +125,17 @@ melos:
         melos run test:dart --no-select &&
         melos run test:flutter --no-select
 
+    test:e2e:
+      description: >-
+        End-to-end tests - the real app driven against a running server. Not
+        part of `test` or `check`: it needs the stack up
+        (`melos run server:start`) and a real device. Pick the target with
+        E2E_DEVICE (macos, linux, or a device id, default macos) and the
+        backend with E2E_SERVER_URL. Web is not supported by integration_test.
+      exec: flutter test integration_test -d ${E2E_DEVICE:-macos} --dart-define=SERVER_URL=${E2E_SERVER_URL:-http://localhost:8080/}
+      packageFilters:
+        scope: flutter_app_back_flutter
+
     # ------------------------------------------------------------------ ci --
     check:
       description: Full quality gate - the same checks CI runs.

@@ -99,3 +99,79 @@ jobs:
         if: always()
         working-directory: flutter_app_back_server
         run: docker compose down --volumes
+
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    env:
+      # Not secrets: these must match the passwords declared in
+      # flutter_app_back_server/docker-compose.yaml for the development
+      # containers, which is the database the server runs against here.
+      SERVERPOD_PASSWORD_database: 'zwJn_TdUW1zT7guIGhV9IysOK1jvN7WA'
+      SERVERPOD_PASSWORD_redis: 'SbeYXujuQnkIwuWLJXNgN0Wi0E_PoaVS'
+      E2E_DEVICE: linux
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # integration_test refuses to run on web devices ("Web devices are not
+      # supported for integration tests yet"), so the app is driven as a Linux
+      # desktop build under a virtual display.
+      - name: Install the Linux desktop toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev xvfb
+
+      - run: flutter config --enable-linux-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # config/passwords.yaml is git-ignored, and the server aborts at start-up
+      # without the auth peppers (PasswordNotFoundException). They are
+      # throwaways guarding a throwaway database, so mint fresh ones per run
+      # rather than committing fake secrets.
+      - name: Mint throwaway auth secrets
+        run: |
+          for name in serviceSecret emailSecretHashPepper \
+                      jwtHmacSha512PrivateKey jwtRefreshTokenHashPepper; do
+            echo "SERVERPOD_PASSWORD_$name=$(openssl rand -base64 32)" \
+              >> "$GITHUB_ENV"
+          done
+
+      - name: Start Postgres and Redis
+        working-directory: flutter_app_back_server
+        run: docker compose up --quiet-pull --detach
+
+      - name: Start the Serverpod server
+        working-directory: flutter_app_back_server
+        run: nohup dart bin/main.dart --apply-migrations > /tmp/serverpod.log 2>&1 &
+
+      - name: Wait for the API to answer
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:8080/; then
+              echo "API answered after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::The server did not answer on :8080 within 60s"
+          exit 1
+
+      - name: Run the end-to-end tests
+        run: xvfb-run -a dart run melos:melos run test:e2e --no-select
+
+      # Without this, a failure above shows only the Flutter side of the story.
+      - name: Server log
+        if: failure()
+        run: cat /tmp/serverpod.log
+
+      - name: Stop containers
+        if: always()
+        working-directory: flutter_app_back_server
+        run: docker compose down --volumes
