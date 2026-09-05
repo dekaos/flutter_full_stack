@@ -81,6 +81,27 @@ over the file.
 package files only add their own `analyzer.exclude` entries. Change a rule at
 the root so the packages cannot drift.
 
+**Name every model file `*.spy.yaml`, or the generator ignores it in silence.**
+The discovery rule is not what the folder layout suggests:
+
+| Extension | Where it is recognised |
+|---|---|
+| `.spy.yaml`, `.spy.yml`, `.spy` | anywhere under `lib/` |
+| plain `.yaml`, `.yml` | **only** under `lib/src/models/` or `lib/src/protocol/` |
+
+A valid model saved as `order.yaml` in, say, `lib/src/orders/` is simply not
+seen. `serverpod generate` exits `0` and prints `✅ Done.` — no error, no
+warning, and the class never appears in either package. The `.spy` marker is
+what frees a model from the directory convention, which is why every model here
+uses it.
+
+**The model's folder is mirrored into both generated packages.** A model at
+`lib/src/orders/order.spy.yaml` generates
+`server/lib/src/generated/orders/order.dart` *and*
+`client/lib/src/protocol/orders/order.dart`. So moving a `.spy.yaml` later
+renames generated files in two packages and breaks every import of them —
+choose the folder when you create the model, not afterwards.
+
 ## Adding a feature end to end
 
 1. **Model** — add or edit a `.spy.yaml` under
@@ -102,8 +123,15 @@ the root so the packages cannot drift.
 
 ## Conventions
 
-**Server.** One folder per domain under `lib/src/`. Endpoint classes end in
-`Endpoint`. Session logging via `session.log(...)`, never `print`.
+**Server.** One folder per domain under `lib/src/`, holding that domain's models
+and its endpoint together. Endpoint classes end in `Endpoint`. Session logging
+via `session.log(...)`, never `print`.
+
+Group by domain, never by whether a model is persisted. A domain normally needs
+both — `order.spy.yaml` with `table: order` sits beside `order_summary.spy.yaml`
+with no table at all — and since the folder is mirrored into the generated
+packages, a "persisted models over here" split turns a one-line change
+(adding `table:`) into a cross-package refactor the day a DTO gains storage.
 
 **Flutter.** Feature-first: `lib/features/<feature>/{presentation,providers}/`.
 Cross-feature code goes in `lib/core/`, app-level wiring in `lib/app/`.

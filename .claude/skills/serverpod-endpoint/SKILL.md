@@ -36,6 +36,45 @@ fields:
 - A `?` suffix makes the field nullable.
 - Adding `table:` turns this into a database table and **requires a migration**.
 
+### The filename must end in `.spy.yaml`
+
+This is the trap in this step, because failure is silent:
+
+| Extension | Where the generator looks |
+|---|---|
+| `.spy.yaml`, `.spy.yml`, `.spy` | anywhere under `lib/` |
+| plain `.yaml`, `.yml` | **only** `lib/src/models/` or `lib/src/protocol/` |
+
+Save a perfectly valid model as `order.yaml` under `lib/src/orders/` and nothing
+happens: `serverpod generate` exits `0`, prints `✅ Done.`, emits no warning, and
+the class exists in neither package. The first sign is a compile error somewhere
+unrelated. The `.spy` marker is what lifts the directory restriction — always
+use it.
+
+### Pick the folder now, not later
+
+The model's folder is mirrored into both generated packages:
+
+```
+lib/src/orders/order.spy.yaml
+  ├─→ server/lib/src/generated/orders/order.dart
+  └─→ client/lib/src/protocol/orders/order.dart
+```
+
+Moving the `.spy.yaml` afterwards therefore renames generated files in two
+packages and breaks every import of them.
+
+Group by domain, and keep the endpoint in the same folder. Never split by
+whether a model is persisted — a domain usually needs both kinds side by side:
+
+```
+lib/src/orders/
+├── order.spy.yaml            # table: order
+├── order_item.spy.yaml       # table: order_item
+├── order_summary.spy.yaml    # response DTO, no table
+└── order_endpoint.dart
+```
+
 ## 2. Endpoint
 
 `flutter_app_back_server/lib/src/<feature>/<feature>_endpoint.dart`:
@@ -137,8 +176,11 @@ melos run check
 
 ## Checklist
 
-- [ ] Model `.spy.yaml` and endpoint class in the same feature folder
+- [ ] Model filename ends in `.spy.yaml`, in the same domain folder as the
+      endpoint
 - [ ] `melos run generate` run, generated files never hand-edited
+- [ ] The generated class actually appeared in **both** packages — the generator
+      reports success even when it silently skipped the model file
 - [ ] Migration created and committed, if a `table:` was touched
 - [ ] Controller uses `@riverpod` + `AsyncValue.guard`
 - [ ] Integration test covering the new endpoint
