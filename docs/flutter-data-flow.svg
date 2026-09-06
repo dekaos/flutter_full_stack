@@ -1,144 +1,130 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 880" width="1240" height="880" role="img" aria-label="A single call, beat by beat. The user taps, the widget calls a command on the controller, the controller sets AsyncLoading which rebuilds the screen a first time, it awaits the shared Serverpod client, calls the generated endpoint method over HTTP, wraps the typed result with AsyncValue.guard, and the screen rebuilds a second time. One switch in the widget covers all four states the value can take.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 888" width="1240" height="888" role="img" aria-label="One call, beat by beat, across three lanes. The user taps; the controller sets AsyncLoading, which rebuilds the screen a first time; it awaits the shared Serverpod client, calls the generated endpoint method over HTTP, and wraps the typed result with AsyncValue.guard; the screen rebuilds a second time. Below, the four states a single switch in the widget has to cover.">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#0A0F1E"/>
       <stop offset="1" stop-color="#0F1830"/>
     </linearGradient>
+    <radialGradient id="glowEmerald" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#34D399" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#34D399" stop-opacity="0"/>
+    </radialGradient>
     <radialGradient id="glowCyan" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#56C8F5" stop-opacity="0.14"/>
+      <stop offset="0" stop-color="#56C8F5" stop-opacity="0.13"/>
       <stop offset="1" stop-color="#56C8F5" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="glowViolet" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#A78BFA" stop-opacity="0.14"/>
+      <stop offset="0" stop-color="#A78BFA" stop-opacity="0.13"/>
       <stop offset="1" stop-color="#A78BFA" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="glowEmerald" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#34D399" stop-opacity="0.14"/>
-      <stop offset="1" stop-color="#34D399" stop-opacity="0"/>
-    </radialGradient>
-    <marker id="aMuted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#4A5B7E"/>
-    </marker>
-    <marker id="aGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="aA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#34D399"/>
+    </marker>
+    <marker id="aB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#56C8F5"/>
+    </marker>
+    <marker id="aC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/>
     </marker>
   </defs>
 
-  <rect width="1240" height="880" fill="url(#bg)"/>
-  <ellipse cx="240" cy="380" rx="260" ry="260" fill="url(#glowEmerald)"/>
-  <ellipse cx="615" cy="380" rx="260" ry="260" fill="url(#glowCyan)"/>
-  <ellipse cx="995" cy="380" rx="260" ry="260" fill="url(#glowViolet)"/>
+  <rect width="1240" height="888" fill="url(#bg)"/>
+  <ellipse cx="240" cy="380" rx="250" ry="250" fill="url(#glowEmerald)"/>
+  <ellipse cx="615" cy="380" rx="250" ry="250" fill="url(#glowCyan)"/>
+  <ellipse cx="995" cy="380" rx="250" ry="250" fill="url(#glowViolet)"/>
 
   <text x="44" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="25" font-weight="700" fill="#E6EDF3">From tap to pixel</text>
-  <text x="44" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#8FA0BC">One call, beat by beat. Read it downwards — each step is what actually happens next, and the screen is rebuilt twice.</text>
+  <text x="44" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#8FA0BC">One call, beat by beat. Follow the arrows down — the colour of an arrow is the lane it lands in, and the screen is rebuilt twice.</text>
 
-  <rect x="44" y="104" width="1152" height="536" rx="14" fill="#111A2E" stroke="#1E2A45"/>
+  <rect x="44" y="104" width="1152" height="556" rx="14" fill="#111A2E" stroke="#1E2A45"/>
 
-  <!-- lane headers -->
   <text x="240" y="136" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#6FB89A">WIDGET</text>
   <text x="615" y="136" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#7FB6D8">CONTROLLER</text>
   <text x="995" y="136" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#8B7FB8">CLIENT → SERVER</text>
-  <line x1="428" y1="148" x2="428" y2="620" stroke="#1E2A45" stroke-dasharray="4 5"/>
-  <line x1="808" y1="148" x2="808" y2="620" stroke="#1E2A45" stroke-dasharray="4 5"/>
+  <line x1="428" y1="152" x2="428" y2="632" stroke="#1E2A45" stroke-dasharray="4 6"/>
+  <line x1="808" y1="152" x2="808" y2="632" stroke="#1E2A45" stroke-dasharray="4 6"/>
 
-  <!-- 1 -->
-  <line x1="240" y1="208" x2="615" y2="226" stroke="#4A5B7E" stroke-width="1.4" marker-end="url(#aMuted)"/>
-  <rect x="90" y="168" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
-  <rect x="90" y="168" width="3" height="40" rx="1.5" fill="#34D399"/>
-  <circle cx="72" cy="188" r="11" fill="#17223A" stroke="#34D399"/>
-  <text x="72" y="192" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#34D399">1</text>
-  <text x="106" y="186" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">the user taps send</text>
-  <text x="106" y="201" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#61708C">onPressed / onSubmitted</text>
+<rect x="90" y="172" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="90" y="172" width="3" height="40" rx="1.5" fill="#34D399"/>
+  <circle cx="72" cy="192" r="11" fill="#17223A" stroke="#34D399"/>
+  <text x="72" y="196" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#34D399">1</text>
+  <text x="106" y="190" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">the user taps send</text>
+  <text x="106" y="205" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">onPressed / onSubmitted</text>
 
-  <!-- 2 -->
-  <line x1="615" y1="266" x2="240" y2="284" stroke="#4A5B7E" stroke-width="1.4" marker-end="url(#aMuted)"/>
-  <rect x="465" y="226" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
-  <rect x="465" y="226" width="3" height="40" rx="1.5" fill="#56C8F5"/>
-  <circle cx="447" cy="246" r="11" fill="#17223A" stroke="#56C8F5"/>
-  <text x="447" y="250" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#56C8F5">2</text>
-  <text x="481" y="244" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#E6EDF3">state = const AsyncLoading()</text>
-  <text x="481" y="259" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">set before any awaiting starts</text>
+  <rect x="465" y="240" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="465" y="240" width="3" height="40" rx="1.5" fill="#56C8F5"/>
+  <circle cx="447" cy="260" r="11" fill="#17223A" stroke="#56C8F5"/>
+  <text x="447" y="264" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#56C8F5">2</text>
+  <text x="481" y="258" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">state = const AsyncLoading()</text>
+  <text x="481" y="273" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">set before any await, so the UI reacts at once</text>
 
-  <!-- 3 -->
-  <line x1="240" y1="324" x2="615" y2="342" stroke="#4A5B7E" stroke-width="1.4" marker-end="url(#aMuted)"/>
-  <rect x="90" y="284" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
-  <rect x="90" y="284" width="3" height="40" rx="1.5" fill="#34D399"/>
-  <circle cx="72" cy="304" r="11" fill="#17223A" stroke="#34D399"/>
-  <text x="72" y="308" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#34D399">3</text>
-  <text x="106" y="302" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">rebuild #1 — “Calling server…”</text>
-  <text x="106" y="317" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#61708C">ref.watch saw the state change</text>
+  <rect x="90" y="308" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="90" y="308" width="3" height="40" rx="1.5" fill="#34D399"/>
+  <circle cx="72" cy="328" r="11" fill="#17223A" stroke="#34D399"/>
+  <text x="72" y="332" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#34D399">3</text>
+  <text x="106" y="326" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">rebuild #1 — “Calling server…”</text>
+  <text x="106" y="341" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">ref.watch saw the state change</text>
 
-  <!-- 4 -->
-  <line x1="615" y1="382" x2="995" y2="400" stroke="#4A5B7E" stroke-width="1.4" marker-end="url(#aMuted)"/>
-  <rect x="465" y="342" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
-  <rect x="465" y="342" width="3" height="40" rx="1.5" fill="#56C8F5"/>
-  <circle cx="447" cy="362" r="11" fill="#17223A" stroke="#56C8F5"/>
-  <text x="447" y="366" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#56C8F5">4</text>
-  <text x="481" y="360" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">await serverpodClientProvider.future</text>
-  <text x="481" y="375" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">the one client, already authenticated</text>
+  <rect x="465" y="376" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="465" y="376" width="3" height="40" rx="1.5" fill="#56C8F5"/>
+  <circle cx="447" cy="396" r="11" fill="#17223A" stroke="#56C8F5"/>
+  <text x="447" y="400" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#56C8F5">4</text>
+  <text x="481" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">await serverpodClientProvider.future</text>
+  <text x="481" y="409" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">the one client, already authenticated</text>
 
-  <!-- 5 -->
-  <line x1="995" y1="440" x2="995" y2="458" stroke="#4A5B7E" stroke-width="1.4" marker-end="url(#aMuted)"/>
-  <rect x="845" y="400" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
-  <rect x="845" y="400" width="3" height="40" rx="1.5" fill="#A78BFA"/>
-  <circle cx="827" cy="420" r="11" fill="#17223A" stroke="#A78BFA"/>
-  <text x="827" y="424" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#A78BFA">5</text>
-  <text x="861" y="418" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#E6EDF3">client.greeting.hello('Bob')</text>
-  <text x="861" y="433" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">generated — you never write the HTTP</text>
+  <rect x="845" y="444" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="845" y="444" width="3" height="40" rx="1.5" fill="#A78BFA"/>
+  <circle cx="827" cy="464" r="11" fill="#17223A" stroke="#A78BFA"/>
+  <text x="827" y="468" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#A78BFA">5</text>
+  <text x="861" y="462" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">client.greeting.hello('Bob')</text>
+  <text x="861" y="477" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">generated method → POST /greeting/hello</text>
 
-  <!-- 6 -->
-  <line x1="995" y1="498" x2="615" y2="516" stroke="#4A5B7E" stroke-width="1.4" marker-end="url(#aMuted)"/>
-  <rect x="845" y="458" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
-  <rect x="845" y="458" width="3" height="40" rx="1.5" fill="#A78BFA"/>
-  <circle cx="827" cy="478" r="11" fill="#17223A" stroke="#A78BFA"/>
-  <text x="827" y="482" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#A78BFA">6</text>
-  <text x="861" y="476" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">POST /greeting/hello → JSON</text>
-  <text x="861" y="491" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">decoded back into a typed Greeting</text>
+  <rect x="465" y="512" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="465" y="512" width="3" height="40" rx="1.5" fill="#56C8F5"/>
+  <circle cx="447" cy="532" r="11" fill="#17223A" stroke="#56C8F5"/>
+  <text x="447" y="536" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#56C8F5">6</text>
+  <text x="481" y="530" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">AsyncValue.guard(...)</text>
+  <text x="481" y="545" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">AsyncData, or AsyncError if it threw</text>
 
-  <!-- 7 -->
-  <line x1="615" y1="556" x2="240" y2="574" stroke="#34D399" stroke-width="1.6" marker-end="url(#aGreen)"/>
-  <rect x="465" y="516" width="300" height="40" rx="8" fill="#17223A" stroke="#2A3A5E"/>
-  <rect x="465" y="516" width="3" height="40" rx="1.5" fill="#56C8F5"/>
-  <circle cx="447" cy="536" r="11" fill="#17223A" stroke="#56C8F5"/>
-  <text x="447" y="540" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#56C8F5">7</text>
-  <text x="481" y="534" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#E6EDF3">AsyncValue.guard(...)</text>
-  <text x="481" y="549" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">AsyncData on success, AsyncError if it threw</text>
+  <rect x="90" y="580" width="300" height="40" rx="8" fill="#17223A" stroke="#34D399"/>
+  <rect x="90" y="580" width="3" height="40" rx="1.5" fill="#34D399"/>
+  <circle cx="72" cy="600" r="11" fill="#17223A" stroke="#34D399"/>
+  <text x="72" y="604" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#34D399">7</text>
+  <text x="106" y="598" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">rebuild #2 — the greeting is drawn</text>
+  <text x="106" y="613" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">the switch picks the matching branch</text>
 
-  <!-- 8 -->
-  <rect x="90" y="574" width="300" height="40" rx="8" fill="#17223A" stroke="#34D399"/>
-  <rect x="90" y="574" width="3" height="40" rx="1.5" fill="#34D399"/>
-  <circle cx="72" cy="594" r="11" fill="#17223A" stroke="#34D399"/>
-  <text x="72" y="598" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#34D399">8</text>
-  <text x="106" y="592" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">rebuild #2 — the greeting is drawn</text>
-  <text x="106" y="607" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#61708C">the switch picks the matching branch</text>
+<path d="M240,212 L240,226 L615,226 L615,237" fill="none" stroke="#56C8F5" stroke-width="1.8" stroke-opacity="0.85" marker-end="url(#aB)"/>
+  <path d="M615,280 L615,294 L240,294 L240,305" fill="none" stroke="#34D399" stroke-width="1.8" stroke-opacity="0.85" marker-end="url(#aA)"/>
+  <path d="M240,348 L240,362 L615,362 L615,373" fill="none" stroke="#56C8F5" stroke-width="1.8" stroke-opacity="0.85" marker-end="url(#aB)"/>
+  <path d="M615,416 L615,430 L995,430 L995,441" fill="none" stroke="#A78BFA" stroke-width="1.8" stroke-opacity="0.85" marker-end="url(#aC)"/>
+  <path d="M995,484 L995,498 L615,498 L615,509" fill="none" stroke="#56C8F5" stroke-width="1.8" stroke-opacity="0.85" marker-end="url(#aB)"/>
+  <path d="M615,552 L615,566 L240,566 L240,577" fill="none" stroke="#34D399" stroke-width="1.8" stroke-opacity="0.85" marker-end="url(#aA)"/>
 
-  <text x="470" y="600" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">Nothing here is awaited by the widget. It only ever reacts to a new state.</text>
+  <text x="90" y="646" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">The widget awaits nothing and stores nothing. It is called twice by Riverpod, and each time it just draws whatever the current state is.</text>
 
-  <!-- ══ the four states ═══════════════════════════════════════════ -->
-  <rect x="44" y="664" width="1152" height="176" rx="14" fill="#0E1526" stroke="#1B2540"/>
-  <text x="70" y="692" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#61708C">THE FOUR STATES ONE `switch` HAS TO COVER</text>
+  <rect x="44" y="684" width="1152" height="176" rx="14" fill="#0E1526" stroke="#1B2540"/>
+  <text x="70" y="712" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#61708C">THE FOUR STATES ONE `switch` HAS TO COVER</text>
 
-  <rect x="70" y="706" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
-  <rect x="70" y="706" width="3" height="72" rx="1.5" fill="#4A5B7E"/>
-  <text x="86" y="728" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">AsyncData(null)</text>
-  <text x="86" y="746" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">the initial build — nothing</text>
-  <text x="86" y="762" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">asked for yet</text>
+  <rect x="70" y="726" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
+  <rect x="70" y="726" width="3" height="72" rx="1.5" fill="#4A5B7E"/>
+  <text x="86" y="748" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">AsyncData(null)</text>
+  <text x="86" y="766" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">the first build — nothing</text>
+  <text x="86" y="782" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">asked for yet</text>
 
-  <rect x="352" y="706" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
-  <rect x="352" y="706" width="3" height="72" rx="1.5" fill="#56C8F5"/>
-  <text x="368" y="728" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#7FB6D8">AsyncLoading()</text>
-  <text x="368" y="746" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">in flight — step 3 above</text>
+  <rect x="352" y="726" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
+  <rect x="352" y="726" width="3" height="72" rx="1.5" fill="#56C8F5"/>
+  <text x="368" y="748" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#7FB6D8">AsyncLoading()</text>
+  <text x="368" y="766" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">in flight — beat 3 above</text>
 
-  <rect x="634" y="706" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
-  <rect x="634" y="706" width="3" height="72" rx="1.5" fill="#34D399"/>
-  <text x="650" y="728" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#6FB89A">AsyncData(value)</text>
-  <text x="650" y="746" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">the answer — step 8</text>
+  <rect x="634" y="726" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
+  <rect x="634" y="726" width="3" height="72" rx="1.5" fill="#34D399"/>
+  <text x="650" y="748" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#6FB89A">AsyncData(value)</text>
+  <text x="650" y="766" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">the answer — beat 7</text>
 
-  <rect x="916" y="706" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
-  <rect x="916" y="706" width="3" height="72" rx="1.5" fill="#F87171"/>
-  <text x="932" y="728" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#F0A0A0">AsyncError(error)</text>
-  <text x="932" y="746" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">offline, 500, timeout —</text>
-  <text x="932" y="762" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">guard caught it, nothing threw</text>
+  <rect x="916" y="726" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
+  <rect x="916" y="726" width="3" height="72" rx="1.5" fill="#F87171"/>
+  <text x="932" y="748" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#F0A0A0">AsyncError(error)</text>
+  <text x="932" y="766" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">offline, 500, timeout —</text>
+  <text x="932" y="782" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">guard caught it, nothing threw</text>
 
-  <text x="70" y="810" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">Forgetting one is the usual bug: `AsyncData(value)` without a null check also matches the first state, and the empty screen never appears.</text>
+  <text x="70" y="830" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">Forgetting one is the usual bug: `AsyncData(value)` without a null check also matches the first state, and the empty screen never appears.</text>
 </svg>
