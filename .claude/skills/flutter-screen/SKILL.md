@@ -74,6 +74,52 @@ Four things that are not optional:
 The generated provider name is the class name lower-camel-cased plus `Provider`:
 `GreetingController` → `greetingControllerProvider`.
 
+### When to use `AsyncValue.guard`, and when not to
+
+`guard` runs a callback and turns its outcome into state — `AsyncData` if it
+returned, `AsyncError` with the original stack trace if it threw. It never
+throws itself.
+
+**Use it in a command method that writes the result into `state`.** That is the
+whole normal path. It matters more than it looks, because commands are
+fire-and-forget: the widget calls them inside `unawaited(...)`, so nothing is
+waiting to catch anything. Without `guard`, a dropped connection escapes as an
+unhandled async error — a red line in the console, and a screen stuck on
+`AsyncLoading` forever, because the state after the failed line is never
+assigned.
+
+**Do not use it in `build()`.** Riverpod already turns a throwing `build()` into
+`AsyncError`, stack trace included, so `guard` adds nothing — and it does not
+typecheck anyway, since `build()` returns `FutureOr<T>` while `guard` returns
+`AsyncValue<T>`. Let it throw:
+
+```dart
+@override
+FutureOr<Greeting?> build() async {
+  final client = await ref.read(serverpodClientProvider.future);
+  return client.greeting.hello('world');   // throws → AsyncError, on its own
+}
+```
+
+**Do not let it swallow programming errors.** A `StateError` or a failed cast is
+a bug, not something a user should read as a polite message on a card. The
+second argument decides what still throws:
+
+```dart
+state = await AsyncValue.guard(
+  () => client.greeting.hello(name),
+  (err) => err is! StateError,   // network errors become state, bugs still crash
+);
+```
+
+**Do not wrap synchronous work in it.** It takes a `Future<T> Function()`; on
+sync code it buys an async hop and nothing else.
+
+**Do not use it when the caller has to react to the failure.** `guard` produces
+a method that never throws, so an `await controller.save()` cannot tell success
+from failure. Either the caller reads the state afterwards, or that method
+should not be guarded.
+
 ### keepAlive
 
 Plain `@riverpod` disposes the provider when the last widget stops listening.

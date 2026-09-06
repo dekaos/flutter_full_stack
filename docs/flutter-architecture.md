@@ -99,10 +99,23 @@ class GreetingController extends _$GreetingController {
 }
 ```
 
-`AsyncValue.guard` is what makes the error path boring: it catches whatever the
-call throws and stores it as `AsyncError` instead of letting it escape into an
-unhandled zone. Nothing in the app needs a `try`/`catch` for a failed request,
-and nothing needs an `isLoading` flag — the state *is* the flag.
+`AsyncValue.guard` is what makes the error path boring. It runs the callback and
+returns `AsyncData` if it succeeded or `AsyncError` — carrying the original
+stack trace, not the one from the catch site — if it threw. It never throws
+itself, which is why the line reads as a plain assignment.
+
+That last property is the point rather than a detail. `sayHello` is
+fire-and-forget: the widget calls it inside `unawaited(...)`, so nobody is
+waiting to catch anything. Without `guard`, a dropped connection would escape as
+an unhandled async error, the console would get a red line the user never sees,
+and the screen would sit on `AsyncLoading` forever, because the assignment after
+the failing call would never run. With it, the failure is just the next state.
+
+So nothing in the app needs a `try`/`catch` for a failed request, and nothing
+needs an `isLoading` flag — the state *is* the flag. `guard` is not free of
+judgement, though: it does not belong in `build()`, where Riverpod already turns
+a throw into `AsyncError`, and it should not swallow errors that are bugs. The
+`flutter-screen` skill has the decision rule.
 
 The widget then reacts, and only reacts:
 
