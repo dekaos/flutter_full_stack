@@ -45,6 +45,51 @@ The `<feature>` folder name is yours to choose, but it should match the server's
 domain folder — `lib/src/greetings/` on the server, `lib/features/greetings/`
 here. That symmetry is what makes a change easy to follow across packages.
 
+## Code generation, and the `_$` classes
+
+Every provider in this app is generated, and the first time you write one the
+code does not compile. That is the workflow, not a mistake you made:
+
+```dart
+part 'greeting_controller.g.dart';   // does not exist yet
+
+@riverpod
+class GreetingController extends _$GreetingController {   // neither does this
+```
+
+Write it anyway, run `melos run generate`, and both appear.
+
+**The name is mechanical**: `_$` followed by your class name. There is nothing
+to look up, and nothing to copy out of the generated file.
+
+**It is `part`, not `import`, and it has to be.** The leading `_` makes
+`_$GreetingController` private to its library. `part` / `part of` make the two
+files *the same* library, so the private name is visible. An `import` could
+never see it.
+
+**The generator reads your class, not the other way around.** It finds the
+`@riverpod` annotation and picks the base class from what your `build()`
+returns:
+
+| `build()` returns | generated base | so `state` is |
+|---|---|---|
+| `Greeting?` | `$Notifier<Greeting?>` | `Greeting?` |
+| `FutureOr<Greeting?>` or `Future<…>` | `$AsyncNotifier<Greeting?>` | `AsyncValue<Greeting?>` |
+| `Stream<Greeting>` | `$StreamNotifier<Greeting>` | `AsyncValue<Greeting>` |
+
+That table is also the answer to a question that comes up later: `state` and
+`ref` are not magic, they are inherited from that base class. And choosing
+`FutureOr` over a plain value is what gives you the four states further down —
+it is a decision, not boilerplate.
+
+The generated file also declares `greetingControllerProvider`, which is why
+renaming the class means regenerating before anything compiles again.
+
+**The source is the only truth.** Deleting a `.g.dart` and running
+`melos run generate` reproduces it byte for byte, which is why editing one by
+hand is pointless — see [AGENTS.md](../AGENTS.md) for the full list of files
+that rule covers.
+
 ## The glue: Riverpod and the backend
 
 One provider owns the client for the entire app —

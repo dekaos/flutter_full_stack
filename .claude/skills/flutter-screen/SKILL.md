@@ -74,6 +74,30 @@ Four things that are not optional:
 The generated provider name is the class name lower-camel-cased plus `Provider`:
 `GreetingController` → `greetingControllerProvider`.
 
+### Writing a class that extends a type that does not exist yet
+
+`_$GreetingController` lives in the `.g.dart`, so a new controller does not
+compile until it has been generated once. Write it anyway — the name is
+mechanical, `_$` plus the class name, and there is nothing to read out of the
+generated file first.
+
+It has to be `part`, never `import`: the leading `_` makes the base class
+private to its library, and only `part` / `part of` put both files in the same
+one.
+
+The base class is chosen from what `build()` returns, which is also what decides
+the type of `state`:
+
+| `build()` returns | generated base | `state` |
+|---|---|---|
+| `Greeting?` | `$Notifier<Greeting?>` | `Greeting?` |
+| `FutureOr<Greeting?>` or `Future<…>` | `$AsyncNotifier<Greeting?>` | `AsyncValue<Greeting?>` |
+| `Stream<Greeting>` | `$StreamNotifier<Greeting>` | `AsyncValue<Greeting>` |
+
+So `state` and `ref` are inherited, not magic, and returning a `FutureOr` is
+what buys the loading and error states. Renaming the class also renames the
+generated provider — regenerate before expecting anything to compile.
+
 ### When to use `AsyncValue.guard`, and when not to
 
 `guard` runs a callback and turns its outcome into state — `AsyncData` if it
