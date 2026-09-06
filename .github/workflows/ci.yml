@@ -146,6 +146,13 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # compileSdk is pinned to 37 (see android/app/build.gradle.kts), which is
+      # newer than what the runner image ships. Installing it explicitly beats
+      # relying on Gradle's auto-download, which needs accepted licences and
+      # fails late, in the middle of the build, when they are missing.
+      - name: Install the Android SDK platform the app compiles against
+        run: sdkmanager "platforms;android-37"
+
       - name: Install dependencies
         run: flutter pub get
 

@@ -63,6 +63,21 @@ Both generators emit code that `dart format` rejects on this language version,
 so `melos run generate` runs the generators *and then formats*. Calling a
 generator directly leaves the tree unformatted and turns CI red.
 
+**Android compiles against SDK 37, not Flutter's default.** `flutter_secure_storage`
+11 arrives transitively through `serverpod_auth_idp_flutter` and refuses to link
+against anything below 37, so `android/app/build.gradle.kts` sets `compileSdk`
+explicitly instead of taking `flutter.compileSdkVersion` (36 on Flutter 3.47).
+Without it the build dies in `checkDebugAarMetadata`, which reads like an SDK
+problem rather than a dependency one. AGP 9.1.0 warns that 36 is its highest
+tested level; that warning is expected.
+
+**Gradle needs JVM 17+, and the CLI and the IDE find it differently.** Flutter
+uses the JDK bundled with Android Studio (`flutter doctor -v` prints which), so
+`flutter build apk` works whatever `JAVA_HOME` says. VS Code's Java extension
+follows `JAVA_HOME` instead, so an older one there makes only the IDE's Gradle
+sync fail, with "Gradle requires JVM 17 or later" in the Problems panel while
+every command line build succeeds.
+
 **iOS has no CocoaPods.** Every plugin the app pulls in ships a Swift Package,
 so `ios/` has no `Podfile` and the `Flutter/*.xcconfig` files no longer include
 the `Pods-Runner` configs. Xcode resolves the native dependencies itself and

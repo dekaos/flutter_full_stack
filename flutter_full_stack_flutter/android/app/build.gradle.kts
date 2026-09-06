@@ -6,7 +6,12 @@ plugins {
 
 android {
     namespace = "br.com.stuhler.flutter_full_stack"
-    compileSdk = flutter.compileSdkVersion
+    // Not flutter.compileSdkVersion (36 on Flutter 3.47): flutter_secure_storage
+    // 11, which arrives transitively through serverpod_auth_idp_flutter, refuses
+    // to link against anything below 37. AGP 9.1.0 warns that 36 is its highest
+    // tested level; the warning is expected and the build is fine. Drop this
+    // line once Flutter's default catches up.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
