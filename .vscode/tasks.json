@@ -3,11 +3,16 @@
     "tasks": [
         {
             // preLaunchTask for the server configurations in launch.json.
-            "label": "docker_compose_up",
+            "label": "server_preflight",
             "type": "shell",
-            "command": "docker compose --progress quiet up --detach",
+            // The port check runs first, and its failure aborts the launch.
+            // Serverpod does not exit when it cannot bind - it logs the error,
+            // stays alive and stops answering SIGTERM - so without this an F5
+            // on top of a running server leaves a process behind that only
+            // `kill -9` removes. The melos server scripts run the same check.
+            "command": "dart run tool/require_free_ports.dart 8080 8081 8082 && cd flutter_full_stack_server && docker compose --progress quiet up --detach",
             "options": {
-                "cwd": "${workspaceFolder}/flutter_full_stack_server"
+                "cwd": "${workspaceFolder}"
             },
             // Compose writes its status lines to stderr, so without an empty
             // matcher VS Code prompts to pick one on every launch.

@@ -54,7 +54,11 @@ melos:
     # --------------------------------------------------------------- server --
     server:start:
       description: Start Docker services and the Serverpod server with migrations.
-      exec: docker compose --progress quiet up --detach && dart bin/main.dart --apply-migrations
+      # The port check runs first on purpose. Serverpod does not exit when it
+      # fails to bind - it logs the error, stays alive and stops answering
+      # SIGTERM - so without this a second start silently piles up processes
+      # that have to be killed with -9. See tool/require_free_ports.dart.
+      exec: dart run ../tool/require_free_ports.dart 8080 8081 8082 && docker compose --progress quiet up --detach && dart bin/main.dart --apply-migrations
       packageFilters:
         scope: flutter_full_stack_server
 
@@ -64,7 +68,9 @@ melos:
         a debugger can attach - use the "Attach to the running server" launch
         configuration in VS Code. Local development only: the service is
         unauthenticated, which is why it binds to loopback and never to 0.0.0.0.
-      exec: docker compose --progress quiet up --detach && dart run --observe=8181 --disable-service-auth-codes bin/main.dart --apply-migrations
+      # 8181 is checked too: the VM service is served by a separate DDS
+      # process which outlives a failed server and keeps holding the port.
+      exec: dart run ../tool/require_free_ports.dart 8080 8081 8082 8181 && docker compose --progress quiet up --detach && dart run --observe=8181 --disable-service-auth-codes bin/main.dart --apply-migrations
       packageFilters:
         scope: flutter_full_stack_server
 

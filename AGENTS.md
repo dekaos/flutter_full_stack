@@ -63,6 +63,21 @@ Both generators emit code that `dart format` rejects on this language version,
 so `melos run generate` runs the generators *and then formats*. Calling a
 generator directly leaves the tree unformatted and turns CI red.
 
+**A Serverpod server that cannot bind its ports does not exit.** It logs
+`Failed to start the Serverpod servers`, then stays alive serving nothing, and
+in that state it ignores SIGTERM as well — `kill -9` is the only way out. So
+starting a second server on top of a running one used to leave a process
+behind, and the next start collided with that one too, quietly piling them up.
+
+`server:start`, `server:debug` and the VS Code `server_preflight` task now run
+`tool/require_free_ports.dart` first, which tries to bind 8080/8081/8082 (plus
+8181 for `server:debug`, where the VM service is served by a separate DDS
+process that outlives a failed server) and refuses to start, naming the owning
+pid, when one is taken. It is a guard, not a lock — a port can still be taken
+between the check and the bind — and it only covers those entry points. A bare
+`dart bin/main.dart` bypasses it and can still hang, so if you find a server
+that answers nothing and ignores SIGTERM, that is what it is.
+
 **Tests need the containers running.** `melos run test` talks to the `*_test`
 Postgres on port 9090. Start it with `melos run docker:up` first. The test
 runmode binds every server port to `0`, so tests never collide with a running

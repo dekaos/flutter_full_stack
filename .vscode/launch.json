@@ -13,7 +13,7 @@
             "cwd": "${workspaceFolder}/flutter_full_stack_server",
             "request": "launch",
             "type": "dart",
-            "preLaunchTask": "docker_compose_up",
+            "preLaunchTask": "server_preflight",
             "program": "bin/main.dart",
             // Passwords come from config/passwords.yaml. Do not add
             // SERVERPOD_PASSWORD_* here: environment variables take precedence
