@@ -17,6 +17,10 @@ A Melos monorepo backed by a native Dart workspace. Three packages, one
 Data flows one way: you write server models and endpoints, run the generator,
 and the client package plus the app's typed API appear from that.
 
+The app's own shape — MVVM, which folder holds which role, and how a controller
+reaches the backend — is drawn out in
+[docs/flutter-architecture.md](docs/flutter-architecture.md).
+
 ## Commands
 
 Every task has a Melos script. Use them instead of ad-hoc commands — CI invokes

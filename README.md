@@ -267,7 +267,10 @@ The short version:
 5. Controller and screen under `flutter_full_stack_flutter/lib/features/<feature>/`
 6. Tests, then `melos run check`
 
-The long version, with the traps, is in **[AGENTS.md](AGENTS.md)**.
+The long version, with the traps, is in **[AGENTS.md](AGENTS.md)**. For the app
+side specifically — which folder a file belongs in, how a controller reaches the
+backend, and what happens between a tap and a repainted screen — see
+**[docs/flutter-architecture.md](docs/flutter-architecture.md)**.
 
 ## Ports
 
@@ -292,5 +295,7 @@ it produces — a dirty `git status` afterwards means the pipeline will fail.
 ## Learn more
 
 - Conventions and the rules around generated code: **[AGENTS.md](AGENTS.md)**
+- How the Flutter layer is put together, with diagrams:
+  **[docs/flutter-architecture.md](docs/flutter-architecture.md)**
 - [Serverpod documentation](https://docs.serverpod.dev)
 - [Riverpod documentation](https://riverpod.dev)

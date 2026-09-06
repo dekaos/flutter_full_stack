@@ -1,0 +1,161 @@
+# The Flutter layer
+
+How the app is organised, what the architecture is called, and what actually
+happens between a tap and a repainted screen.
+
+Read the two diagrams first. Everything below them is detail.
+
+- **New here?** The diagrams plus *Where code goes* is enough to place your
+  first file correctly.
+- **Reviewing the design?** *Why there is no repository* is the part with a
+  trade-off in it.
+
+## In one sentence
+
+**MVVM.** The widget is the View, a Riverpod controller is the ViewModel, and
+the Model is the generated `flutter_full_stack_client` package. There is no
+repository layer and no domain-entity layer, and that is deliberate — see the
+last section.
+
+What it is *not*: Clean Architecture. There are no use-case classes, no
+repository interfaces and no mapping between DTOs and entities. If you arrive
+expecting those folders, you will not find them.
+
+![The Flutter layer, folder by folder](flutter-layers.svg)
+
+## Where code goes
+
+| Path | Role | Who writes it |
+|---|---|---|
+| `lib/features/<feature>/presentation/` | **View** — widgets that render state | you |
+| `lib/features/<feature>/providers/` | **ViewModel** — `@riverpod` controllers | you (`.g.dart` generated) |
+| `lib/app/` | Composition root — `MaterialApp.router`, every route | you |
+| `lib/core/providers/` | Shared plumbing — the one Serverpod client | you (`.g.dart` generated) |
+| `flutter_full_stack_client` | **Model** — typed API models and the client | the generator, never you |
+
+Two rules keep this honest:
+
+1. **A feature owns exactly two folders.** If you are about to add a third,
+   what you have is either shared plumbing (`lib/core/`) or a second feature.
+2. **Widgets decide nothing.** No `setState` for server data, no stored
+   `Future`, no business rules. A widget that needs to decide something is a
+   controller that has not been written yet.
+
+The `<feature>` folder name is yours to choose, but it should match the server's
+domain folder — `lib/src/greetings/` on the server, `lib/features/greetings/`
+here. That symmetry is what makes a change easy to follow across packages.
+
+## The glue: Riverpod and the backend
+
+One provider owns the client for the entire app —
+[`serverpod_client.dart`](../flutter_full_stack_flutter/lib/core/providers/serverpod_client.dart):
+
+```dart
+@Riverpod(keepAlive: true)
+Future<Client> serverpodClient(Ref ref) async {
+  final client = Client(await getServerUrl())
+    ..connectivityMonitor = FlutterConnectivityMonitor()
+    ..authSessionManager = FlutterAuthSessionManager();
+  await client.auth.initialize();
+  return client;
+}
+```
+
+Three properties of that provider explain most of the code around it:
+
+- **It is a `Future`.** Before it can yield a usable client it resolves the
+  server URL, restores the saved auth session and attaches the connectivity
+  monitor. So controllers write `await ref.read(serverpodClientProvider.future)`.
+  Reading it without `.future` gives you an `AsyncValue`, not a `Client`.
+- **It is `keepAlive`.** Rebuilding it would drop the authenticated session and
+  re-resolve the URL on every screen. Feature controllers are *not* keepAlive —
+  they should die with their screen.
+- **It is the only place that knows the server exists.** Nothing else in the app
+  constructs a `Client`.
+
+`getServerUrl()` resolves the address in order: a `--dart-define=SERVER_URL`,
+then `assets/config.json`, then `http://localhost:8080/`.
+
+## From tap to pixel
+
+![From tap to pixel](flutter-data-flow.svg)
+
+The controller is the whole of it —
+[`greeting_controller.dart`](../flutter_full_stack_flutter/lib/features/greetings/providers/greeting_controller.dart):
+
+```dart
+@riverpod
+class GreetingController extends _$GreetingController {
+  @override
+  FutureOr<Greeting?> build() => null;          // the empty state
+
+  Future<void> sayHello(String name) async {
+    state = const AsyncLoading();               // rebuild #1
+    state = await AsyncValue.guard(() async {   // rebuild #2
+      final client = await ref.read(serverpodClientProvider.future);
+      return client.greeting.hello(name);
+    });
+  }
+}
+```
+
+`AsyncValue.guard` is what makes the error path boring: it catches whatever the
+call throws and stores it as `AsyncError` instead of letting it escape into an
+unhandled zone. Nothing in the app needs a `try`/`catch` for a failed request,
+and nothing needs an `isLoading` flag — the state *is* the flag.
+
+The widget then reacts, and only reacts:
+
+```dart
+final state = ref.watch(greetingControllerProvider);            // the state
+unawaited(
+  ref.read(greetingControllerProvider.notifier).sayHello(name), // the command
+);
+```
+
+That pair is the single most common source of confusion: the provider gives you
+the **state**, `.notifier` gives you the **controller**. Reading the provider and
+calling a method on it fails with a member-not-found on `AsyncValue`, which says
+nothing about what you actually got wrong.
+
+Rendering switches over the four states — see
+[`greetings_screen.dart`](../flutter_full_stack_flutter/lib/features/greetings/presentation/greetings_screen.dart).
+The `AsyncData(:final value) when value != null` guard matters: without it, the
+branch also swallows the initial `AsyncData(null)` and the empty state never
+shows.
+
+## Why there is no repository
+
+The usual layered advice puts a repository between the ViewModel and the
+network, to hide the transport and to map wire types onto domain types. Here
+both jobs are already done:
+
+- The transport is hidden — `client.greeting.hello('Bob')` is a generated Dart
+  method. There is no HTTP, no JSON and no URL to abstract away.
+- There is nothing to map — `Greeting` is generated from the same `.spy.yaml`
+  the server uses. A DTO-to-entity mapping would copy a class onto an identical
+  class.
+
+A repository here would be a file that forwards calls and adds a name. So the
+controller talks to the client directly, and the seam for tests is the
+controller itself, which a widget test overrides.
+
+**When that stops being true**, add the layer — do not force this shape:
+
+- a screen needs data from more than one endpoint combined
+- results must be cached, or served offline from a local database
+- the same query is issued from several features and the policy must live in
+  one place
+
+At that point the repository earns its keep, and it goes in
+`lib/features/<feature>/data/` — or `lib/core/` if genuinely shared.
+
+## Where to go next
+
+| You want to | Go to |
+|---|---|
+| Add a screen, controller or route | the `flutter-screen` skill |
+| Write a widget or end-to-end test | the `flutter-testing` skill |
+| Add or change an endpoint | the `serverpod-endpoint` skill |
+| See the whole round trip across packages | [`architecture.svg`](architecture.svg) |
+| Know which commands to run | [AGENTS.md](../AGENTS.md) |
