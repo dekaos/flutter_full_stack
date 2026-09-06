@@ -78,12 +78,20 @@ melos run test:e2e            # another
 ```
 
 It is deliberately outside `test` and `check`, because it needs a live backend
-and a real device. Three constraints worth knowing before extending it:
+and a real device. Four constraints worth knowing before extending it:
 
-- **Web is not a valid target.** `flutter test integration_test -d chrome`
-  fails with "Web devices are not supported for integration tests yet".
-  Use a desktop or mobile target: `E2E_DEVICE` selects it (default `macos`,
-  CI uses `linux`). This has nothing to do with the `--wasm` web build.
+- **Web is a build target but not a test one.** `flutter test integration_test
+  -d chrome` fails with "Web devices are not supported for integration tests
+  yet", and the desktop targets are gone, so the only options are an Android
+  emulator or an iOS simulator. `E2E_DEVICE` selects one by device id when
+  several are attached; left unset, Flutter takes the only device it finds.
+  None of this affects the `--wasm` web build, which is still supported and
+  still what `flutter_build` produces for the server.
+- **On an Android emulator the backend is not `localhost`.** Inside the
+  emulator that name is the emulator itself; `10.0.2.2` is the alias for the
+  host loopback, so point `E2E_SERVER_URL` there. Android also blocks plain
+  HTTP from targetSdk 28 on, which the debug and profile manifests lift with
+  `usesCleartextTraffic` — debug and profile only, never release.
 - **It runs against the *development* database on 8090, not the test one.**
   Serverpod restricts `--mode` to `development`, `test`, `staging` and
   `production`, so a dedicated `e2e` runmode is impossible, and the `test`
@@ -258,8 +266,9 @@ endpoint tests get the separate one on 9090.
 - **codegen** — regenerates everything and fails if the working tree changed,
   catching a commit made without running `melos run generate`
 - **test** — starts the containers and runs `melos run test`
-- **e2e** — builds the app for Linux desktop, starts the server, and runs
-  `melos run test:e2e` under `xvfb`. It mints throwaway auth secrets per run,
+- **e2e** — starts the server, boots an Android emulator via
+  `reactivecircus/android-emulator-runner` and runs `melos run test:e2e`
+  against it. It mints throwaway auth secrets per run,
   because `config/passwords.yaml` is git-ignored and the server aborts at
   start-up without the JWT peppers. The `test` job needs no such secrets:
   `withServerpod` never executes `lib/server.dart`'s `run()`.

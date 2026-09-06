@@ -222,9 +222,12 @@ melos run server:start        # one terminal
 melos run test:e2e            # another
 ```
 
-`E2E_DEVICE` picks the target (default `macos`; CI uses `linux`) and
-`E2E_SERVER_URL` the backend. Note that `integration_test` cannot run on web
-devices — see [AGENTS.md](AGENTS.md) for that and the other two constraints.
+The target is an Android emulator or an iOS simulator: `integration_test` does
+not run on web devices, and the app no longer has desktop targets. `E2E_DEVICE`
+picks one by device id when several are attached, and `E2E_SERVER_URL` picks
+the backend — on an Android emulator that has to be `http://10.0.2.2:8080/`,
+since `localhost` there means the emulator itself. See [AGENTS.md](AGENTS.md)
+for that and the other constraints.
 
 ## Debugging
 

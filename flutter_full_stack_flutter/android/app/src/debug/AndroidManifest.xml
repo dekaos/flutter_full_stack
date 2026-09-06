@@ -4,4 +4,11 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- The Serverpod dev server is plain HTTP, which Android blocks by
+         default from targetSdk 28 on. Permitted here only: this manifest is
+         merged into debug and profile builds, never release. The end-to-end
+         suite runs as a debug build, so without this the app cannot reach
+         the server at all. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
