@@ -1,0 +1,25 @@
+{
+    // This is a Flutter workspace, and Flutter owns the Android build. The Java
+    // extension does not know that: it finds android/*.gradle.kts, tries to
+    // import it through the Gradle tooling API, and fails with
+    //
+    //     Could not run phased build action using connection to Gradle
+    //     distribution ... Gradle requires JVM 17 or later to run. Your build
+    //     is currently configured to use JVM 11.
+    //
+    // The failure is real but the conclusion is not: the extension runs Gradle
+    // under JAVA_HOME, which is commonly an older JDK, while Flutter uses the
+    // JDK bundled with Android Studio (`flutter doctor -v` prints which one).
+    // So `flutter build apk` succeeds while the Problems panel claims the build
+    // is broken.
+    //
+    // Nothing here needs the importer. The only Java file under android/ is the
+    // generated plugin registrant, and MainActivity.kt is Kotlin, which this
+    // extension does not handle anyway. Turning the importer off removes the
+    // false error for everyone instead of pinning a JDK path that would only be
+    // valid on one machine.
+    //
+    // If you do want Java tooling on android/, drop this setting and point
+    // JAVA_HOME - or java.import.gradle.java.home - at a JDK 17 or newer.
+    "java.import.gradle.enabled": false
+}
