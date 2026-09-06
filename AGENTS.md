@@ -63,6 +63,14 @@ Both generators emit code that `dart format` rejects on this language version,
 so `melos run generate` runs the generators *and then formats*. Calling a
 generator directly leaves the tree unformatted and turns CI red.
 
+**iOS has no CocoaPods.** Every plugin the app pulls in ships a Swift Package,
+so `ios/` has no `Podfile` and the `Flutter/*.xcconfig` files no longer include
+the `Pods-Runner` configs. Xcode resolves the native dependencies itself and
+the versions are pinned in the two `swiftpm/Package.resolved` files. If you add
+a plugin that has no Swift Package, the iOS build will fail asking for
+CocoaPods: restore it with `pod init` in `ios/` plus the two `#include?` lines,
+or pick a plugin that supports SwiftPM.
+
 **A Serverpod server that cannot bind its ports does not exit.** It logs
 `Failed to start the Serverpod servers`, then stays alive serving nothing, and
 in that state it ignores SIGTERM as well — `kill -9` is the only way out. So
