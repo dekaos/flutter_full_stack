@@ -39,8 +39,10 @@ Future<void> main(List<String> args) async {
   stderr
     ..writeln()
     ..writeln(
-      'Stop that server before starting another one. A stale one that failed '
-      'to bind ignores SIGTERM, so it needs `kill -9 <pid>`.',
+      'Stop that server before starting another one, or debug against the one '
+      'already running instead of launching a second: in VS Code that is the '
+      '"Attach to the running server" configuration. A stale server that '
+      'failed to bind ignores SIGTERM, so it needs `kill -9 <pid>`.',
     );
   exit(1);
 }

@@ -101,12 +101,13 @@ between the check and the bind — and it only covers those entry points. A bare
 `dart bin/main.dart` bypasses it and can still hang, so if you find a server
 that answers nothing and ignores SIGTERM, that is what it is.
 
-In VS Code the refusal is terse: the task's panel has to close for the launch
-to finish, so an aborted F5 reports only `terminated with exit code 1`. Run
-`melos run server:start` to see which port and which pid. Do not "fix" that by
-dropping `"close": true` from the task — the terminal then lingers waiting for
-a keypress, the dedicated panel is never released, and the next launch waits on
-`Waiting for preLaunchTask 'server_preflight'...` forever.
+In VS Code a refused launch looks alarming and is not: a `preLaunchTask` that
+exits non-zero makes VS Code ask what to do — **Debug Anyway**, **Configure
+Task** or **Abort** — and the status bar reads `Waiting for preLaunchTask
+'server_preflight'...` until you answer. It is a prompt, not a hang. Press
+Abort, then either stop the running server or debug against it with the
+**Attach to the running server** configuration. The reason is in the task's
+panel, which is why that panel must not be given `"close": true`.
 
 **Tests need the containers running.** `melos run test` talks to the `*_test`
 Postgres on port 9090. Start it with `melos run docker:up` first. The test
