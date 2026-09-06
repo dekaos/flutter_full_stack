@@ -15,7 +15,7 @@ env:
   # Keep in sync with the `environment:` constraints in the pubspecs.
   FLUTTER_VERSION: '3.47.2'
   # Keep in sync with the serverpod dependency versions in the pubspecs.
-  SERVERPOD_VERSION: '3.4.13'
+  SERVERPOD_VERSION: '4.0.0-rc.2'
 
 jobs:
   static:

@@ -22,10 +22,11 @@ linter:
 
     # Would rewrite `class Foo extends Bar {}` as `class Foo extends Bar;`.
     # That is valid Dart 3.13, but the analyzer bundled with serverpod_cli
-    # 3.4.13 cannot parse it: `serverpod generate` reports "Endpoint analysis
-    # skipped due to invalid Dart syntax" and silently drops the endpoint from
-    # the generated client. Our empty endpoint subclasses in lib/src/auth/ hit
-    # exactly this. Revisit when the Serverpod CLI ships a newer analyzer.
+    # 4.0.0-rc.2 still cannot parse it: `serverpod generate` fails with
+    # "Endpoint analysis skipped due to invalid Dart syntax" and asks for the
+    # experimental 'primary-constructors' feature. Our empty endpoint
+    # subclasses in lib/src/auth/ hit exactly this. Re-verified on 4.0.0-rc.2;
+    # revisit when the Serverpod CLI ships a newer analyzer.
     empty_container_bodies: false
 
 formatter:

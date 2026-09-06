@@ -162,7 +162,7 @@ It is a native Dart workspace: a single `pubspec.lock` at the root, and one
 
 - Flutter **3.47.2** (bundles Dart 3.13.2) — the version CI runs
 - Docker, for Postgres and Redis
-- Serverpod CLI: `dart pub global activate serverpod_cli 3.4.13`
+- Serverpod CLI: `dart pub global activate serverpod_cli 4.0.0-rc.2`
 
 ## Getting started
 

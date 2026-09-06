@@ -10,7 +10,7 @@ A Melos monorepo backed by a native Dart workspace. Three packages, one
 
 | Package | Kind | Role |
 |---|---|---|
-| `flutter_full_stack_server` | Dart | Serverpod 3.4.13 backend: endpoints, models, migrations, web routes |
+| `flutter_full_stack_server` | Dart | Serverpod 4.0.0-rc.2 backend: endpoints, models, migrations, web routes |
 | `flutter_full_stack_client` | Dart | **Fully generated** client. Never hand-edit. |
 | `flutter_full_stack_flutter` | Flutter | The app. Riverpod + go_router, both code-generated. |
 
