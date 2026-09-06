@@ -101,6 +101,13 @@ between the check and the bind — and it only covers those entry points. A bare
 `dart bin/main.dart` bypasses it and can still hang, so if you find a server
 that answers nothing and ignores SIGTERM, that is what it is.
 
+In VS Code the refusal is terse: the task's panel has to close for the launch
+to finish, so an aborted F5 reports only `terminated with exit code 1`. Run
+`melos run server:start` to see which port and which pid. Do not "fix" that by
+dropping `"close": true` from the task — the terminal then lingers waiting for
+a keypress, the dedicated panel is never released, and the next launch waits on
+`Waiting for preLaunchTask 'server_preflight'...` forever.
+
 **Tests need the containers running.** `melos run test` talks to the `*_test`
 Postgres on port 9090. Start it with `melos run docker:up` first. The test
 runmode binds every server port to `0`, so tests never collide with a running

@@ -18,13 +18,15 @@
             // matcher VS Code prompts to pick one on every launch.
             "problemMatcher": [],
             "presentation": {
-                // "silent" keeps the panel hidden on success and reveals it on
-                // failure. It must not also close: with "close": true the panel
-                // disappears before it can be read, and a refused launch shows
-                // only "terminated with exit code 1" - never the port and pid
-                // that explain it.
                 "reveal": "silent",
-                "panel": "dedicated"
+                "panel": "dedicated",
+                // "close" is load-bearing, not cosmetic: without it the
+                // terminal lingers waiting for a keypress, the dedicated panel
+                // is never released, and the next launch hangs on "Waiting for
+                // preLaunchTask 'server_preflight'..." forever. The cost is
+                // that a refused launch shows only "terminated with exit code
+                // 1"; run `melos run server:start` to see which port and pid.
+                "close": true
             }
         }
     ]
