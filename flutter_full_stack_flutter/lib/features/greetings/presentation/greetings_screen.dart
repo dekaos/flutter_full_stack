@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_full_stack_flutter/core/text/stray_dead_key.dart';
 import 'package:flutter_full_stack_flutter/features/greetings/providers/greeting_controller.dart';
 import 'package:flutter_full_stack_flutter/theme/app_tokens.dart';
 import 'package:flutter_full_stack_flutter/theme/aurora_backdrop.dart';
@@ -147,6 +148,9 @@ class _NameField extends StatelessWidget {
             controller: controller,
             onSubmitted: (_) => onSubmit(),
             textInputAction: TextInputAction.send,
+            // Shim for a Flutter engine bug; delete with the helper once the
+            // pinned Flutter carries the fix.
+            inputFormatters: const [StrayDeadKeyFormatter()],
             decoration: const InputDecoration(
               labelText: 'Your name',
             ),
