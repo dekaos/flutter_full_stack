@@ -51,6 +51,29 @@ clean afterwards.
 `melos run` with no arguments opens a picker listing every script and its
 description.
 
+## MCP
+
+`.mcp.json` is committed and declares one server:
+
+```json
+{ "mcpServers": { "dart": { "command": "dart", "args": ["mcp-server"] } } }
+```
+
+That is the Dart SDK's own server, so it needs no install beyond the SDK the
+project already requires. It supplies analysis, `pub`, hot reload and restart,
+runtime errors, the widget inspector and DTD access — all of it independent of
+how the stack is being run.
+
+**`serverpod mcp-server` is deliberately not configured.** Its nine tools are a
+bridge to the `serverpod start` runner, and every one of them fails here with
+"The server is not running with `serverpod start` for this project", because
+this repo runs the stack through the Melos scripts and the VS Code launch
+configurations instead. Adopting `serverpod start` to make them work would also
+start a second `build_runner` — it generates code with `--watch` on by default —
+which fights the editor's watcher over build_runner's one-process-per-package
+rule. The tools it offers are covered by `melos run generate`, `melos run
+server:start` and the `serverpod-migration` skill.
+
 ## Rules that are easy to get wrong
 
 **Never hand-edit generated code.** It is overwritten on the next generate run:
