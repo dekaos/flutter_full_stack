@@ -244,6 +244,12 @@ is already handled by the script — do not add it back.
 Anything that adds or renames a `@riverpod` provider needs this before the code
 will compile.
 
+While writing controllers, leave `melos run generate:watch` running instead: it
+rebuilds the app's `*.g.dart` on save, incrementally and without a restart when
+a file is new, so the `_$Foo` undefined errors clear on their own. It covers the
+Flutter package only — `melos run generate` is still the full pass before
+committing.
+
 ## 5. Check
 
 ```bash

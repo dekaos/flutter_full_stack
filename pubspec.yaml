@@ -36,7 +36,21 @@ melos:
 
     generate:flutter:
       description: Run build_runner for the Flutter app (Riverpod, go_router).
-      exec: dart run build_runner build --delete-conflicting-outputs
+      # No --delete-conflicting-outputs: this build_runner prints
+      # "These options have been removed and were ignored" for it on every run.
+      exec: dart run build_runner build
+      packageFilters:
+        scope: flutter_full_stack_flutter
+
+    generate:watch:
+      description: >-
+        Regenerate the app's *.g.dart files on every save. A new @riverpod class
+        cannot compile before its .g.dart exists, so the analyzer reports
+        `_$Foo` undefined until then; leave this running while writing
+        controllers and it clears itself a second after each save. Ctrl-C to
+        stop. It only covers the Flutter package - use `melos run generate` for
+        a full pass, including the Serverpod generator and formatting.
+      exec: dart run build_runner watch
       packageFilters:
         scope: flutter_full_stack_flutter
 

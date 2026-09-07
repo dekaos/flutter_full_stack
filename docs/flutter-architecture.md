@@ -90,6 +90,25 @@ renaming the class means regenerating before anything compiles again.
 hand is pointless — see [AGENTS.md](../AGENTS.md) for the full list of files
 that rule covers.
 
+### Living with the gap
+
+The analyzer is right to complain while the `.g.dart` is missing — `_$Foo` and
+`state` really are undefined — and the errors only clear once you generate.
+Rather than generating by hand after every edit, leave the watcher running:
+
+```bash
+melos run generate:watch
+```
+
+It rebuilds on save, incrementally, in well under a second, and it picks up a
+brand-new file without being restarted. The first start is slower, because
+build_runner compiles its builders once. Note that it reacts to *content*: an
+editor that saves without changing anything triggers nothing.
+
+It covers the Flutter package only. `melos run generate` is still the full pass,
+and the one to run before committing, since it also runs the Serverpod
+generator and formats.
+
 ## The glue: Riverpod and the backend
 
 One provider owns the client for the entire app —
