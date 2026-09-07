@@ -31,12 +31,14 @@ expecting those folders, you will not find them.
 | `lib/features/<feature>/providers/` | **ViewModel** — `@riverpod` controllers | you (`.g.dart` generated) |
 | `lib/app/` | Composition root — `MaterialApp.router`, every route | you |
 | `lib/core/providers/` | Shared plumbing — the one Serverpod client | you (`.g.dart` generated) |
+| `lib/theme/` | The design system — tokens, themes, glass surfaces | you (`.tailor.dart` generated) |
 | `flutter_full_stack_client` | **Model** — typed API models and the client | the generator, never you |
 
 Two rules keep this honest:
 
 1. **A feature owns exactly two folders.** If you are about to add a third,
-   what you have is either shared plumbing (`lib/core/`) or a second feature.
+   what you have is either shared plumbing (`lib/core/`), something styling
+   (`lib/theme/`, see [theming.md](theming.md)) or a second feature.
 2. **Widgets decide nothing.** No `setState` for server data, no stored
    `Future`, no business rules. A widget that needs to decide something is a
    controller that has not been written yet.
@@ -252,6 +254,7 @@ At that point the repository earns its keep, and it goes in
 
 | You want to | Go to |
 |---|---|
+| Change colours, fonts or the glass | [theming.md](theming.md) |
 | Add a screen, controller or route | the `flutter-screen` skill |
 | Write a widget or end-to-end test | the `flutter-testing` skill |
 | Add or change an endpoint | the `serverpod-endpoint` skill |

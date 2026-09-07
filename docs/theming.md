@@ -6,6 +6,44 @@ from them.
 
 ![Two knobs, four themes](theming-flow.svg)
 
+## What a token is
+
+A *design token* is a named value at the bottom of a design system: not
+`Color(0x66FFFFFF)` and `blur: 10` spread across the widgets that happen to
+need them, but a name for the intent — `glassTint`, `glassBlur` — that screens
+quote instead.
+
+The reason to bother is the direction changes travel. With literals, changing
+how the glass looks means finding every call site that passes a number, and
+staying consistent depends on everyone typing the same one. With tokens it is
+one file, and consistency is the default rather than an act of discipline.
+
+`ThemeData` is already a token system in this sense — `colorScheme.primary` and
+`textTheme.bodyMedium` are tokens. What it lacks is a slot for anything
+Material does not have a concept of: there is no `ThemeData.glassBlur`. A
+`ThemeExtension` is Flutter's own answer to that, which is why the file is
+called `app_tokens`: these are *this app's* tokens, the complement to the ones
+Material already provides.
+
+Three properties are what make the name honest here:
+
+- **Named for intent, not value.** `glassHighlight` says what the colour is
+  for. `Colors.white.withValues(alpha: 0.35)` says how it is currently
+  achieved, and stops being true the moment dark mode wants something else.
+- **One origin.** Every token is derived from the `ColorScheme`, which comes
+  from the seed. They are not a second palette that can drift from the first.
+- **Coherent variants.** The same `glassBlur` is 14 in light, 18 in dark and 0
+  in high contrast. A widget asks for the token and gets the value for
+  whichever theme is live.
+
+That last one is why no screen in this app contains an `if (isDark)`. The
+widget declares *what it wants*; the theme decides *how much it is*.
+
+The word is industry vocabulary rather than a Flutter term — it is what
+designers and developers can both say, and Material 3 describes its own palette
+that way. `AppStyle` or `AppSurfaces` would mean nearly the same thing if the
+team prefers plainer names.
+
 ## Where it lives
 
 | File | Role |
