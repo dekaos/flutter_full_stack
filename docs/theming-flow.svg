@@ -28,8 +28,8 @@
   <ellipse cx="620" cy="230" rx="250" ry="200" fill="url(#glowCyan)"/>
   <ellipse cx="1040" cy="230" rx="250" ry="200" fill="url(#glowViolet)"/>
 
-  <text x="44" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="25" font-weight="700" fill="#E6EDF3">Two knobs, four themes</text>
-  <text x="44" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#8FA0BC">One seed colour and one font call produce every theme. The device decides which of the four is live; nothing in a widget asks.</text>
+  <text x="44" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="25" font-weight="700" fill="#E6EDF3">Where the look comes from</text>
+  <text x="44" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#8FA0BC">A seed, a font and two translucency dials produce every theme. The device decides which of the four is live; nothing in a widget asks.</text>
 
   <!-- SOURCE -->
   <rect x="44" y="104" width="292" height="176" rx="14" fill="#111A2E" stroke="#1E2A45"/>
@@ -37,16 +37,21 @@
   <text x="68" y="130" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#61708C">YOU EDIT THIS</text>
   <text x="68" y="150" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#6FB89A">theme/app_theme.dart</text>
 
-  <rect x="68" y="164" width="244" height="42" rx="8" fill="#17223A" stroke="#2A3A5E"/>
-  <rect x="68" y="164" width="3" height="42" rx="1.5" fill="#34D399"/>
-  <circle cx="94" cy="185" r="9" fill="#6C5CE7"/>
-  <text x="112" y="182" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">static const seed</text>
-  <text x="112" y="197" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">one colour, whole palette</text>
+  <rect x="68" y="162" width="244" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="68" y="162" width="3" height="34" rx="1.5" fill="#34D399"/>
+  <circle cx="94" cy="179" r="8" fill="#6C5CE7"/>
+  <text x="110" y="176" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">static const seed</text>
+  <text x="110" y="190" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">one colour, whole palette</text>
 
-  <rect x="68" y="216" width="244" height="42" rx="8" fill="#17223A" stroke="#2A3A5E"/>
-  <rect x="68" y="216" width="3" height="42" rx="1.5" fill="#34D399"/>
-  <text x="88" y="234" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">_font(base)</text>
-  <text x="88" y="249" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">any GoogleFonts.*TextTheme</text>
+  <rect x="68" y="202" width="244" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="68" y="202" width="3" height="34" rx="1.5" fill="#34D399"/>
+  <text x="86" y="216" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">_font(base)</text>
+  <text x="86" y="230" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">any GoogleFonts.*TextTheme</text>
+
+  <rect x="68" y="242" width="244" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="68" y="242" width="3" height="34" rx="1.5" fill="#34D399"/>
+  <text x="86" y="256" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">pane/wellTranslucency</text>
+  <text x="86" y="270" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">0 = solid, 1 = full glass</text>
 
   <line x1="336" y1="192" x2="384" y2="192" stroke="#56C8F5" stroke-width="1.8" marker-end="url(#aC)"/>
 
@@ -62,7 +67,7 @@
 
   <rect x="416" y="194" width="348" height="38" rx="8" fill="#17223A" stroke="#2A3A5E"/>
   <rect x="416" y="194" width="3" height="38" rx="1.5" fill="#56C8F5"/>
-  <text x="434" y="211" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">AppTokens.of(scheme, highContrast:)</text>
+  <text x="434" y="211" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">AppTokens.of(scheme, highContrast:, dials)</text>
   <text x="434" y="225" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">glass tint, border, sheen, blur, radii</text>
 
   <text x="416" y="256" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">The tokens read the scheme, so a new seed moves the glass too.</text>

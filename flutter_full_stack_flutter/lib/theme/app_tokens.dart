@@ -26,14 +26,27 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
     required this.auroraOne,
     required this.auroraTwo,
     required this.auroraThree,
+    required this.wellFill,
+    required this.wellBorder,
   });
 
   /// Derives the tokens for [scheme].
   ///
-  /// With [highContrast] the glass stops being glass: the blur goes to zero
-  /// and the fill becomes opaque, because a translucent surface cannot honour
-  /// a contrast request. Callers do not branch on it — they read the tokens.
-  factory AppTokens.of(ColorScheme scheme, {required bool highContrast}) {
+  /// [paneTranslucency] and [wellTranslucency] are how see-through each
+  /// material is, from `0` (fully opaque) to `1` (as glassy as the design
+  /// goes). They are separate because the two materials want different
+  /// answers: a card can afford to be barely there, while a field holds text
+  /// the user is reading back as they type.
+  ///
+  /// With [highContrast] both are forced to zero: the glass stops being glass,
+  /// because a translucent surface cannot honour a contrast request. Callers
+  /// do not branch on any of this — they read the tokens.
+  factory AppTokens.of(
+    ColorScheme scheme, {
+    required bool highContrast,
+    required double paneTranslucency,
+    required double wellTranslucency,
+  }) {
     if (highContrast) {
       return AppTokens(
         backdropTop: scheme.surface,
@@ -49,24 +62,43 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
         auroraOne: Colors.transparent,
         auroraTwo: Colors.transparent,
         auroraThree: Colors.transparent,
+        wellFill: scheme.surface,
+        wellBorder: scheme.outline,
       );
     }
 
     final isDark = scheme.brightness == Brightness.dark;
+    final pane = paneTranslucency.clamp(0.0, 1.0);
+    final well = wellTranslucency.clamp(0.0, 1.0);
+
     return AppTokens(
       backdropTop: scheme.primaryContainer,
       backdropBottom: scheme.surface,
-      glassTint: scheme.surface.withValues(alpha: isDark ? 0.18 : 0.55),
+      glassTint: scheme.surface.withValues(
+        alpha: _translucent(isDark ? 0.18 : 0.55, pane),
+      ),
       glassBorder: scheme.onSurface.withValues(alpha: isDark ? 0.16 : 0.22),
-      glassHighlight: Colors.white.withValues(alpha: isDark ? 0.06 : 0.35),
-      glassBlur: isDark ? 18 : 14,
+      glassHighlight: Colors.white.withValues(
+        alpha: (isDark ? 0.06 : 0.35) * pane,
+      ),
+      // Blur follows translucency: a frost nothing shows through is a
+      // BackdropFilter paying for an effect no one can see.
+      glassBlur: (isDark ? 18 : 14) * pane,
       radiusLarge: _radiusLarge,
       radiusMedium: _radiusMedium,
       auroraOne: scheme.primary.withValues(alpha: isDark ? 0.38 : 0.30),
       auroraTwo: scheme.tertiary.withValues(alpha: isDark ? 0.32 : 0.26),
       auroraThree: scheme.secondary.withValues(alpha: isDark ? 0.26 : 0.20),
+      wellFill: scheme.surfaceContainerLowest.withValues(
+        alpha: _translucent(isDark ? 0.55 : 0.82, well),
+      ),
+      wellBorder: scheme.outlineVariant,
     );
   }
+
+  /// Interpolates between opaque and [glassy] by [t], so `0` always means
+  /// solid regardless of what the glassy end of the scale happens to be.
+  static double _translucent(double glassy, double t) => 1 - t * (1 - glassy);
 
   static const _radiusLarge = 24.0;
   static const _radiusMedium = 16.0;
@@ -119,4 +151,18 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
   /// Third aurora pool.
   @override
   final Color auroraThree;
+
+  /// Fill for a control the user types into.
+  ///
+  /// Deliberately not [glassTint]. A glass pane is *raised* — outer shadow,
+  /// sheen along the top — and a field has to read as *recessed*, or it looks
+  /// like a decorative tile that happens to contain a placeholder. Denser and
+  /// darker than the surface around it is what says "this is a well".
+  @override
+  final Color wellFill;
+
+  /// Edge of a well. Crisper than [glassBorder], because a field needs a
+  /// boundary the eye can find without hunting.
+  @override
+  final Color wellBorder;
 }

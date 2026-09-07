@@ -21,6 +21,8 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
   Color get auroraOne;
   Color get auroraTwo;
   Color get auroraThree;
+  Color get wellFill;
+  Color get wellBorder;
 
   @override
   AppTokens copyWith({
@@ -35,6 +37,8 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
     Color? auroraOne,
     Color? auroraTwo,
     Color? auroraThree,
+    Color? wellFill,
+    Color? wellBorder,
   }) {
     return AppTokens(
       backdropTop: backdropTop ?? this.backdropTop,
@@ -48,6 +52,8 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       auroraOne: auroraOne ?? this.auroraOne,
       auroraTwo: auroraTwo ?? this.auroraTwo,
       auroraThree: auroraThree ?? this.auroraThree,
+      wellFill: wellFill ?? this.wellFill,
+      wellBorder: wellBorder ?? this.wellBorder,
     );
   }
 
@@ -66,6 +72,8 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       auroraOne: Color.lerp(auroraOne, other.auroraOne, t)!,
       auroraTwo: Color.lerp(auroraTwo, other.auroraTwo, t)!,
       auroraThree: Color.lerp(auroraThree, other.auroraThree, t)!,
+      wellFill: Color.lerp(wellFill, other.wellFill, t)!,
+      wellBorder: Color.lerp(wellBorder, other.wellBorder, t)!,
     );
   }
 
@@ -105,6 +113,11 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
             const DeepCollectionEquality().equals(
               auroraThree,
               other.auroraThree,
+            ) &&
+            const DeepCollectionEquality().equals(wellFill, other.wellFill) &&
+            const DeepCollectionEquality().equals(
+              wellBorder,
+              other.wellBorder,
             ));
   }
 
@@ -123,6 +136,8 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       const DeepCollectionEquality().hash(auroraOne),
       const DeepCollectionEquality().hash(auroraTwo),
       const DeepCollectionEquality().hash(auroraThree),
+      const DeepCollectionEquality().hash(wellFill),
+      const DeepCollectionEquality().hash(wellBorder),
     );
   }
 }

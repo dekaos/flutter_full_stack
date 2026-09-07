@@ -86,6 +86,28 @@ static TextTheme _font(TextTheme base) => GoogleFonts.interTextTheme(base);
 Any `GoogleFonts.*TextTheme` works — but the faces are bundled, so a new
 family also means new files in `assets/fonts/`. See *Adding a font weight*.
 
+**How see-through the surfaces are.** Two knobs, because the two materials
+want different answers:
+
+```dart
+static const paneTranslucency = 1.0;  // cards
+static const wellTranslucency = 1.0;  // fields
+```
+
+`0` is fully opaque, `1` is as glassy as the design goes. Lowering
+`paneTranslucency` also lowers the blur proportionally — a frost that nothing
+shows through is a `BackdropFilter` paying for an effect no one can see, and at
+`0` none is inserted at all. Measured on the light scheme:
+
+| knob | 1.0 | 0.5 | 0.0 |
+|---|---|---|---|
+| pane fill alpha | 0.55 | 0.78 | 1.00 |
+| well fill alpha | 0.82 | 0.91 | 1.00 |
+| blur sigma | 14 | 7 | 0 |
+
+Reach for `wellTranslucency` first if typed text is hard to read against a busy
+backdrop. A field is about legibility before it is about looking good.
+
 **A new token.** Add the field, run the generator:
 
 ```dart
@@ -134,6 +156,24 @@ That is the reason the tokens are a `ThemeExtension` rather than global
 constants behind an `if (isDark)`. When the device flips at sunset, Flutter
 animates between the two `ThemeData`, and the generated `lerp` carries the glass
 tint and blur along with the colours. Constants would snap mid-transition.
+
+## Two materials
+
+The design system has two surface treatments, and which one to use is not a
+style choice — it says what the surface does.
+
+| | **Well** — `wellFill`, `wellBorder` | **Pane** — `GlassSurface` |
+|---|---|---|
+| Reads as | recessed | raised |
+| Cues | denser fill, crisp border, no sheen | outer shadow, sheen along the top |
+| Radius | `radiusMedium` | `radiusLarge` |
+| For | anything the user types into | anything that displays |
+
+Getting this backwards is a specific, recognisable mistake: an input wrapped in
+a `GlassSurface` gets an outer shadow and a highlight running across exactly
+where the text sits, so it reads as a decorative tile that happens to contain a
+placeholder rather than as something to type in. Fields carry the theme's own
+`inputDecorationTheme`, which is the well, and are not wrapped in a pane.
 
 ## Using the glass
 

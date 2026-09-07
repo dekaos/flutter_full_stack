@@ -137,34 +137,31 @@ class _NameField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassSurface(
-      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onSubmitted: (_) => onSubmit(),
-              textInputAction: TextInputAction.send,
-              decoration: const InputDecoration(
-                hintText: 'Your name',
-                filled: false,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
-              ),
+    // No GlassSurface here on purpose. The field carries the theme's own well
+    // treatment, which reads as something to type into; the pane treatment is
+    // reserved for surfaces that display rather than accept.
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            onSubmitted: (_) => onSubmit(),
+            textInputAction: TextInputAction.send,
+            decoration: const InputDecoration(
+              labelText: 'Your name',
             ),
           ),
-          const SizedBox(width: 12),
-          IconButton.filled(
-            onPressed: onSubmit,
-            icon: const Icon(Icons.arrow_upward_rounded),
-            tooltip: 'Send',
+        ),
+        const SizedBox(width: 12),
+        IconButton.filled(
+          onPressed: onSubmit,
+          icon: const Icon(Icons.arrow_upward_rounded),
+          tooltip: 'Send',
+          style: IconButton.styleFrom(
+            minimumSize: const Size.square(56),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
