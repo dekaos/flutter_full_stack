@@ -109,6 +109,11 @@ It covers the Flutter package only. `melos run generate` is still the full pass,
 and the one to run before committing, since it also runs the Serverpod
 generator and formats.
 
+A deleted `.g.dart` needs no special treatment either. build_runner notices the
+missing output and rewrites it — the watcher logs it as `1 fixed`, and so does
+the one-shot build behind F5, which is why launching the app is enough to
+recover from having thrown one away.
+
 ## The glue: Riverpod and the backend
 
 One provider owns the client for the entire app —
