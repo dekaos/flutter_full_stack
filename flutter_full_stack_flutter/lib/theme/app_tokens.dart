@@ -90,7 +90,7 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
       auroraTwo: scheme.tertiary.withValues(alpha: isDark ? 0.32 : 0.26),
       auroraThree: scheme.secondary.withValues(alpha: isDark ? 0.26 : 0.20),
       wellFill: scheme.surfaceContainerLowest.withValues(
-        alpha: _translucent(isDark ? 0.55 : 0.82, well),
+        alpha: _translucent(isDark ? 0.34 : 0.58, well),
       ),
       wellBorder: scheme.outlineVariant,
     );

@@ -111,6 +111,18 @@ return a `Completer`'s future that the test never completes.
 A screen that takes no overrides at all — no controller, no network — needs
 nothing but `ProviderScope` and `MaterialApp`, as `test/widget_test.dart` shows.
 
+## The contrast guard
+
+`test/theme_contrast_test.dart` is not about a widget. It composites the glass
+and field fills over the backdrop for all four themes and asserts WCAG AA
+against `onSurface`, because a translucent surface has no contrast ratio until
+you know what is behind it — so lowering a translucency dial can make text
+illegible with nothing else failing.
+
+If it fails, the fix is a token, not the test: raise the fill alpha in
+`AppTokens.of`, or lower the dial in `AppTheme`. See
+[docs/theming.md](../../../docs/theming.md).
+
 ## End-to-end tests
 
 `integration_test/` runs the real app, through the real generated client,

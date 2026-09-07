@@ -108,6 +108,15 @@ shows through is a `BackdropFilter` paying for an effect no one can see, and at
 Reach for `wellTranslucency` first if typed text is hard to read against a busy
 backdrop. A field is about legibility before it is about looking good.
 
+**There is a guard on this.** A translucent surface has no contrast ratio of
+its own — what the reader sees is the fill composited over whatever is behind
+it — so dialling either knob too far can quietly push text below WCAG AA with
+nothing failing to say so. `test/theme_contrast_test.dart` composites both
+materials over the strongest aurora pool, in all four themes, and asserts at
+least 4.5:1 against `onSurface`. At the defaults it measures 13.0:1 on a light
+field and 6.0:1 on a dark one; if a change takes it under 4.5, `melos run
+check` fails.
+
 **A new token.** Add the field, run the generator:
 
 ```dart
