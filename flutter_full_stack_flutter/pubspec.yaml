@@ -71,6 +71,10 @@ flutter:
   # https://flutter.dev/assets-and-images/#from-packages
   assets:
     - assets/config.json
+    # Inter, bundled so the app never fetches a font at runtime. The files are
+    # named the way the Google Fonts API names them, which is how google_fonts
+    # finds them - do not rename them. See docs/theming.md.
+    - assets/fonts/
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

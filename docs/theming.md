@@ -16,6 +16,7 @@ from them.
 | `lib/theme/glass_surface.dart` | the translucent pane |
 | `lib/theme/app_backdrop.dart` | the gradient a screen sits on |
 | `lib/theme/theme_mode_controller.dart` | lets a user override the device |
+| `assets/fonts/` | Inter, bundled, plus its OFL licence |
 
 ## Changing the look
 
@@ -35,7 +36,8 @@ and the backdrop gradient move with it too. There is no second place to update.
 static TextTheme _font(TextTheme base) => GoogleFonts.interTextTheme(base);
 ```
 
-Any `GoogleFonts.*TextTheme` works.
+Any `GoogleFonts.*TextTheme` works — but the faces are bundled, so a new
+family also means new files in `assets/fonts/`. See *Adding a font weight*.
 
 **A new token.** Add the field, run the generator:
 
@@ -110,6 +112,31 @@ multiplied by the number of panes on it. With `onTap` it gets an ink ripple and
 a small press scale, and that scale is skipped when the device asks for reduced
 motion.
 
+## Adding a font weight
+
+The filenames are not arbitrary. `google_fonts` finds a bundled face by
+matching the end of the asset path against `Family-Variant`, using its own
+variant names — `Regular`, `Medium`, `SemiBold`, `Bold`, and so on. Rename a
+file and it stops being found.
+
+The safe way to get one is the URL the package itself would fetch, which lets
+you verify what you downloaded:
+
+```bash
+# hash and size come from google_fonts' own descriptor for the family
+curl -sL -o assets/fonts/Inter-ExtraBold.ttf \
+  https://fonts.gstatic.com/s/a/<hash>.ttf
+shasum -a 256 assets/fonts/Inter-ExtraBold.ttf   # must equal <hash>
+```
+
+`assets/fonts/` is declared as a folder in `pubspec.yaml`, so a new file needs
+no pubspec change — only `flutter pub get` to pick it up. `OFL.txt` lives
+beside the fonts because Inter is licensed under the SIL Open Font License, and
+redistributing it means shipping that licence.
+
+Changing family entirely means changing `_font` in `app_theme.dart` *and*
+replacing the files, since the bundled faces are family-specific.
+
 ## Three things that will bite
 
 **A widget test must supply a theme.** The generated getter ends in `!`, so a
@@ -122,11 +149,16 @@ MaterialApp(theme: AppTheme.light(), home: const GreetingsScreen())
 `test/widget_test.dart` shows it. This is the failure you get if you forget:
 `_TypeError` while building `AppBackdrop`.
 
-**`google_fonts` fetches the family at runtime** on first use and caches it,
-which means a first run needs network and shows a fallback face until it lands.
-To avoid that, bundle the `.ttf` files as assets and set
-`GoogleFonts.config.allowRuntimeFetching = false`. That decision is still open
-here.
+**A font weight that is not bundled throws.** Inter ships in
+`assets/fonts/`, and `main.dart` sets
+`GoogleFonts.config.allowRuntimeFetching = false`, so nothing reaches the
+network for a typeface — no first-run download, no flash of a fallback face.
+The cost is that `google_fonts` does *not* fall back to the nearest bundled
+weight: ask for one that is missing and it throws, naming the file it wanted.
+
+Four weights are bundled: Regular (400), Medium (500), SemiBold (600) and Bold
+(700). 400 and 500 are what Material's own text theme uses; the other two are
+there for emphasis. To add one, download it and drop it in — see below.
 
 **The generator writes `*.tailor.dart`, not `*.g.dart`.** It is a second
 generated suffix, and the analyzer excludes in
