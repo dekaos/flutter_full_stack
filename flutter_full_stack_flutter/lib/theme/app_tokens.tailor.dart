@@ -18,6 +18,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
   double get glassBlur;
   double get radiusLarge;
   double get radiusMedium;
+  Color get auroraOne;
+  Color get auroraTwo;
+  Color get auroraThree;
 
   @override
   AppTokens copyWith({
@@ -29,6 +32,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
     double? glassBlur,
     double? radiusLarge,
     double? radiusMedium,
+    Color? auroraOne,
+    Color? auroraTwo,
+    Color? auroraThree,
   }) {
     return AppTokens(
       backdropTop: backdropTop ?? this.backdropTop,
@@ -39,6 +45,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       glassBlur: glassBlur ?? this.glassBlur,
       radiusLarge: radiusLarge ?? this.radiusLarge,
       radiusMedium: radiusMedium ?? this.radiusMedium,
+      auroraOne: auroraOne ?? this.auroraOne,
+      auroraTwo: auroraTwo ?? this.auroraTwo,
+      auroraThree: auroraThree ?? this.auroraThree,
     );
   }
 
@@ -54,6 +63,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       glassBlur: t < 0.5 ? glassBlur : other.glassBlur,
       radiusLarge: t < 0.5 ? radiusLarge : other.radiusLarge,
       radiusMedium: t < 0.5 ? radiusMedium : other.radiusMedium,
+      auroraOne: Color.lerp(auroraOne, other.auroraOne, t)!,
+      auroraTwo: Color.lerp(auroraTwo, other.auroraTwo, t)!,
+      auroraThree: Color.lerp(auroraThree, other.auroraThree, t)!,
     );
   }
 
@@ -87,6 +99,12 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
             const DeepCollectionEquality().equals(
               radiusMedium,
               other.radiusMedium,
+            ) &&
+            const DeepCollectionEquality().equals(auroraOne, other.auroraOne) &&
+            const DeepCollectionEquality().equals(auroraTwo, other.auroraTwo) &&
+            const DeepCollectionEquality().equals(
+              auroraThree,
+              other.auroraThree,
             ));
   }
 
@@ -102,6 +120,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       const DeepCollectionEquality().hash(glassBlur),
       const DeepCollectionEquality().hash(radiusLarge),
       const DeepCollectionEquality().hash(radiusMedium),
+      const DeepCollectionEquality().hash(auroraOne),
+      const DeepCollectionEquality().hash(auroraTwo),
+      const DeepCollectionEquality().hash(auroraThree),
     );
   }
 }

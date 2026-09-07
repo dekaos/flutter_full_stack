@@ -66,7 +66,7 @@ final class ThemeModeControllerProvider
 }
 
 String _$themeModeControllerHash() =>
-    r'b37775bede8d325eb6284ce7309caccd2c72715b';
+    r'e700a451604b4939ebebc7ad66a40190ffe977ca';
 
 /// Whether the app follows the device or is pinned to one brightness.
 ///

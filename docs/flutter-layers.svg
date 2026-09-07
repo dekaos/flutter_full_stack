@@ -158,7 +158,7 @@
 
   <rect x="850" y="698" width="320" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
   <rect x="850" y="698" width="3" height="34" rx="1.5" fill="#FBBF24"/>
-  <text x="866" y="720" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#E6EDF3">glass_surface, app_backdrop</text>
+  <text x="866" y="720" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">glass_surface, aurora, rise_in</text>
 
   <text x="70" y="756" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">Not a feature and not plumbing: it is what the View reads instead of hardcoding a colour, a radius or a blur.</text>
   <text x="70" y="778" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">One seed and one font call produce all four themes. See theming.md.</text>

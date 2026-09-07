@@ -52,7 +52,8 @@ team prefers plainer names.
 | `lib/theme/app_tokens.dart` | the tokens Material has no slot for |
 | `lib/theme/app_tokens.tailor.dart` | generated — `copyWith`, `lerp`, equality |
 | `lib/theme/glass_surface.dart` | the translucent pane |
-| `lib/theme/app_backdrop.dart` | the gradient a screen sits on |
+| `lib/theme/aurora_backdrop.dart` | the surface a screen sits on |
+| `lib/theme/rise_in.dart` | the staggered entrance |
 | `lib/theme/theme_mode_controller.dart` | lets a user override the device |
 | `assets/fonts/` | Inter, bundled, plus its OFL licence |
 
@@ -66,7 +67,15 @@ static const seed = Color(0xFF6C5CE7);
 
 Every Material colour comes from `ColorScheme.fromSeed` on that seed, and every
 token in `AppTokens.of` is derived from the resulting scheme — so the glass tint
-and the backdrop gradient move with it too. There is no second place to update.
+and the aurora move with it too. There is no second place to update.
+
+One thing to know before treating the seed as a brand colour: the scheme is
+built with `DynamicSchemeVariant.expressive`, which pushes the secondary and
+tertiary tones apart so the aurora reads as three colours instead of one. It
+also rotates hue, sometimes a long way — the seed in the screenshots below is
+violet and the palette that comes out is teal. That is the variant doing its
+job, not a bug. If the seed has to survive literally, use
+`DynamicSchemeVariant.fidelity` and accept a flatter scheme.
 
 **Font.** One line, same file:
 
@@ -132,16 +141,16 @@ tint and blur along with the colours. Constants would snap mid-transition.
 Scaffold(
   extendBodyBehindAppBar: true,   // so the backdrop runs under the bar
   appBar: AppBar(title: const Text('...')),
-  body: AppBackdrop(
+  body: AuroraBackdrop(
     child: GlassSurface(child: ...),
   ),
 )
 ```
 
-`AppBackdrop` is not decoration. `GlassSurface` blurs what is behind it, so over
-a flat background it reads as flat translucent paint rather than glass. The
-backdrop is what gives it something to refract, which is why it is part of the
-design system.
+`AuroraBackdrop` is not decoration. `GlassSurface` blurs what is behind it, so
+over a flat background it reads as flat translucent paint rather than glass. The
+backdrop is three overlapping pools of colour rather than one linear wash,
+because that is what gives the blur something with structure to refract.
 
 `GlassSurface` takes an `onTap`. Without it there is no gesture handling and no
 animation controller at all — the pane has no idle animation on purpose, because
@@ -174,6 +183,34 @@ redistributing it means shipping that licence.
 
 Changing family entirely means changing `_font` in `app_theme.dart` *and*
 replacing the files, since the bundled faces are family-specific.
+
+## Motion
+
+The rule is that motion has to mean something. Three places qualify, and
+nothing else moves:
+
+| Moment | What happens |
+|---|---|
+| Arrival | `RiseIn` fades and lifts the headline, the field and the response, staggered ~90ms apart |
+| Arrival | `AuroraBackdrop` drifts its three colour pools into place over 2.2s, then stops |
+| State change | `AnimatedSwitcher` slides a new response over the old one instead of blinking it into place |
+| Press | `GlassSurface` scales to 0.97 while held, when it has an `onTap` |
+
+**Nothing animates at rest**, and that is a decision rather than an omission. A
+`BackdropFilter` re-rasterises whatever moves behind it, so a backdrop that
+drifts forever costs a blur every frame for the life of the screen — multiplied
+by every pane on it. Motion on arrival is paid once.
+
+Every one of those checks `MediaQuery.disableAnimationsOf(context)` first.
+Reduced motion is an accessibility setting, not a preference: with it on, the
+aurora is already settled, `RiseIn` children are simply there, and the press
+scale does not move. Nothing is lost — the states still change, they just do
+not travel.
+
+The composition matters as much as the motion. A screen made of equally sized
+rounded rectangles at equal spacing reads as generated no matter what it does
+on entry, which is why the response is not a permanent box: when there is
+nothing to show, it is absent rather than a card saying so.
 
 ## Three things that will bite
 

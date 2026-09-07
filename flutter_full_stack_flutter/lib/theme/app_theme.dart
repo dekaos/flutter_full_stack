@@ -45,6 +45,10 @@ abstract final class AppTheme {
     final scheme = ColorScheme.fromSeed(
       seedColor: seed,
       brightness: brightness,
+      // `tonalSpot`, the default, is what makes an M3 app look like every
+      // other M3 app. `expressive` pushes the secondary and tertiary tones
+      // apart, which the aurora needs to read as three colours and not one.
+      dynamicSchemeVariant: DynamicSchemeVariant.expressive,
       // Material's own answer to a contrast request. It moves the palette;
       // AppTokens.of moves the glass.
       contrastLevel: highContrast ? 1 : 0,
@@ -55,8 +59,8 @@ abstract final class AppTheme {
     return base.copyWith(
       textTheme: _font(base.textTheme),
       extensions: [tokens],
-      // The backdrop gradient is painted by AppBackdrop, so the bars sit on
-      // top of it rather than covering it with their own surface colour.
+      // AuroraBackdrop paints behind everything, so the bars sit on top of it
+      // rather than covering it with their own surface colour.
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,

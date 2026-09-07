@@ -23,6 +23,9 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
     required this.glassBlur,
     required this.radiusLarge,
     required this.radiusMedium,
+    required this.auroraOne,
+    required this.auroraTwo,
+    required this.auroraThree,
   });
 
   /// Derives the tokens for [scheme].
@@ -41,6 +44,11 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
         glassBlur: 0,
         radiusLarge: _radiusLarge,
         radiusMedium: _radiusMedium,
+        // Flat: an aurora behind an opaque pane is invisible anyway, and
+        // colour wash is the first thing to go when contrast is requested.
+        auroraOne: Colors.transparent,
+        auroraTwo: Colors.transparent,
+        auroraThree: Colors.transparent,
       );
     }
 
@@ -54,6 +62,9 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
       glassBlur: isDark ? 18 : 14,
       radiusLarge: _radiusLarge,
       radiusMedium: _radiusMedium,
+      auroraOne: scheme.primary.withValues(alpha: isDark ? 0.38 : 0.30),
+      auroraTwo: scheme.tertiary.withValues(alpha: isDark ? 0.32 : 0.26),
+      auroraThree: scheme.secondary.withValues(alpha: isDark ? 0.26 : 0.20),
     );
   }
 
@@ -92,4 +103,20 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
   /// Corner radius for controls inside a pane.
   @override
   final double radiusMedium;
+
+  /// The three colour pools the backdrop is built from.
+  ///
+  /// A single linear wash reads as a flat gradient. Three overlapping radial
+  /// pools read as light, and give the glass something with structure to
+  /// refract instead of one even field of colour.
+  @override
+  final Color auroraOne;
+
+  /// Second aurora pool.
+  @override
+  final Color auroraTwo;
+
+  /// Third aurora pool.
+  @override
+  final Color auroraThree;
 }
