@@ -22,6 +22,15 @@
             // matcher is what the other tasks here use to stop VS Code asking
             // which matcher to apply. It must also never get "close": true - a
             // watcher that closes is a watcher that stopped.
+            //
+            // This is the ONLY build_runner entry point wired into the editor,
+            // and it has to stay that way. build_runner allows one process per
+            // package: a second one does not queue behind this, it asks this
+            // one to exit ("Exiting as requested by another build_runner
+            // process") and takes over. A one-shot pass on preLaunchTask
+            // therefore silently kills the watcher on the first F5, leaving
+            // nothing watching for the rest of the session. Use
+            // `melos run generate` from a terminal for a full pass instead.
             "label": "flutter_codegen_watch",
             "type": "shell",
             "command": "dart run melos:melos run generate:watch --no-select",
@@ -36,37 +45,6 @@
             "presentation": {
                 "reveal": "silent",
                 "panel": "dedicated"
-            }
-        },
-        {
-            // preLaunchTask for the app in launch.json. A @riverpod class does
-            // not compile until its *.g.dart exists, so launching straight
-            // after adding one would fail on generated code that was never
-            // written. One build_runner pass costs a few seconds warm and
-            // removes that whole class of confusing launch failure.
-            //
-            // Only the Flutter package: `melos run generate` would also run
-            // the Serverpod generator, which is the server's business and much
-            // slower.
-            //
-            // Kept even though flutter_codegen_watch covers the same ground:
-            // that one only runs if automatic tasks were allowed, and this is
-            // the guarantee at the moment that actually matters, the launch.
-            // The two do not fight over the build_runner lock - the second one
-            // prints "Waiting for already-running build_runner" and returns 0
-            // once the watcher is idle, which also makes it near-instant when
-            // the watcher has already done the work.
-            "label": "flutter_codegen",
-            "type": "shell",
-            "command": "dart run melos:melos run generate:flutter --no-select",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "silent",
-                "panel": "dedicated",
-                "close": true
             }
         },
         {

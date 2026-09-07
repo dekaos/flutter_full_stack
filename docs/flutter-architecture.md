@@ -113,18 +113,22 @@ In VS Code you get this for free: the `flutter_codegen_watch` task carries
 `runOn: folderOpen`, so the watcher starts with the workspace and keeps running
 whether or not you are debugging. VS Code asks once per workspace to allow
 automatic tasks — until that is accepted the task silently does not run, which
-is the first thing to check if generated code stops keeping up. Pressing F5
-additionally runs a one-shot pass, so a launch is never the thing that
-discovers generation is stale; the two do not fight over build_runner's lock.
+is the first thing to check if generated code stops keeping up.
+
+It is deliberately the only build_runner wired into the editor. build_runner
+allows one process per package, and a second one does not wait its turn: it
+asks the first to exit — `Exiting as requested by another build_runner
+process` — and takes over. So a one-shot pass on `preLaunchTask` would kill the
+watcher on the first F5 and leave nothing watching for the rest of the session.
+Run `melos run generate` from a terminal when you want a full pass.
 
 Leaving it running is cheap: about 0.03% of one core over a minute idle, since
 it sleeps on filesystem events rather than polling, and roughly 90 MB resident
 once the analyzer drops its caches after a build.
 
-A deleted `.g.dart` needs no special treatment either. build_runner notices the
-missing output and rewrites it — the watcher logs it as `1 fixed`, and so does
-the one-shot build behind F5, which is why launching the app is enough to
-recover from having thrown one away.
+A deleted `.g.dart` needs no special treatment either. build_runner tracks its
+outputs, so a missing one is rewritten on the next build — the watcher logs it
+as `1 fixed`, within a second and without being restarted.
 
 ## The glue: Riverpod and the backend
 
