@@ -190,13 +190,14 @@ the containers, the server and the app together.
 ## Everyday commands
 
 ```bash
-melos run check       # format + analyze + test — run before every commit
-melos run generate    # regenerate client, protocol and *.g.dart files
-melos run test        # tests only (needs `melos run docker:up`)
-melos run test:e2e    # end-to-end: real app → real server → real Postgres
-melos run server:debug # like server:start, with the VM service open
-melos run docker:up   # Postgres + Redis, without starting the server
-melos run server:stop # stop the containers
+melos run check          # format + analyze + test — run before every commit
+melos run generate       # regenerate client, protocol and *.g.dart files
+melos run generate:watch # rebuild the app's *.g.dart on save, while coding
+melos run test           # tests only (needs `melos run docker:up`)
+melos run test:e2e       # end-to-end: real app → real server → real Postgres
+melos run server:debug   # like server:start, with the VM service open
+melos run docker:up      # Postgres + Redis, without starting the server
+melos run server:stop    # stop the containers
 ```
 
 `melos run` with no arguments lists every available script.

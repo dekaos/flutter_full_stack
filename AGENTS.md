@@ -34,6 +34,7 @@ melos run server:debug      # same, with the VM service open for a debugger
 melos run server:stop       # stop the containers
 
 melos run generate          # regenerate ALL generated code (see below)
+melos run generate:watch    # rebuild the app's *.g.dart on save, while coding
 melos run format            # format every package
 melos run analyze           # analyze every package (--fatal-infos)
 melos run test              # server + Flutter tests
