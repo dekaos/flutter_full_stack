@@ -298,5 +298,7 @@ it produces — a dirty `git status` afterwards means the pipeline will fail.
 - Conventions and the rules around generated code: **[AGENTS.md](AGENTS.md)**
 - How the Flutter layer is put together, with diagrams:
   **[docs/flutter-architecture.md](docs/flutter-architecture.md)**
+- What caching is available, and the `global`-without-Redis trap:
+  **[docs/caching.md](docs/caching.md)**
 - [Serverpod documentation](https://docs.serverpod.dev)
 - [Riverpod documentation](https://riverpod.dev)

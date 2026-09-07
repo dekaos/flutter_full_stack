@@ -74,6 +74,10 @@ which fights the editor's watcher over build_runner's one-process-per-package
 rule. The tools it offers are covered by `melos run generate`, `melos run
 server:start` and the `serverpod-migration` skill.
 
+**`session.caches.global` is not distributed here.** Redis is `enabled: false`
+in every config, production included, and with it off that cache silently falls
+back to per-process in every run mode. See [docs/caching.md](docs/caching.md).
+
 ## Rules that are easy to get wrong
 
 **Never hand-edit generated code.** It is overwritten on the next generate run:
