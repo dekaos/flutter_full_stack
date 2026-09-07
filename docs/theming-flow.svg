@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 760" width="1240" height="760" role="img" aria-label="One seed colour and one font call feed ColorScheme.fromSeed and AppTokens.of, which together build four ThemeData objects: light, dark, and a high-contrast variant of each. MaterialApp holds a slot for each, and the device chooses which is active from its brightness and its increase-contrast setting. Widgets read the tokens through Theme.of(context).appTokens, and because AppTokens is a ThemeExtension the values interpolate when the active theme changes.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A0F1E"/><stop offset="1" stop-color="#0F1830"/>
+    </linearGradient>
+    <radialGradient id="glowEmerald" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#34D399" stop-opacity="0.14"/><stop offset="1" stop-color="#34D399" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowCyan" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#56C8F5" stop-opacity="0.14"/><stop offset="1" stop-color="#56C8F5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowViolet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#A78BFA" stop-opacity="0.14"/><stop offset="1" stop-color="#A78BFA" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="aC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#56C8F5"/>
+    </marker>
+    <marker id="aV" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/>
+    </marker>
+    <marker id="aE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#34D399"/>
+    </marker>
+  </defs>
+
+  <rect width="1240" height="760" fill="url(#bg)"/>
+  <ellipse cx="200" cy="230" rx="250" ry="200" fill="url(#glowEmerald)"/>
+  <ellipse cx="620" cy="230" rx="250" ry="200" fill="url(#glowCyan)"/>
+  <ellipse cx="1040" cy="230" rx="250" ry="200" fill="url(#glowViolet)"/>
+
+  <text x="44" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="25" font-weight="700" fill="#E6EDF3">Two knobs, four themes</text>
+  <text x="44" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#8FA0BC">One seed colour and one font call produce every theme. The device decides which of the four is live; nothing in a widget asks.</text>
+
+  <!-- SOURCE -->
+  <rect x="44" y="104" width="292" height="176" rx="14" fill="#111A2E" stroke="#1E2A45"/>
+  <rect x="44" y="104" width="4" height="176" rx="2" fill="#34D399"/>
+  <text x="68" y="130" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#61708C">YOU EDIT THIS</text>
+  <text x="68" y="150" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#6FB89A">theme/app_theme.dart</text>
+
+  <rect x="68" y="164" width="244" height="42" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="68" y="164" width="3" height="42" rx="1.5" fill="#34D399"/>
+  <circle cx="94" cy="185" r="9" fill="#6C5CE7"/>
+  <text x="112" y="182" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">static const seed</text>
+  <text x="112" y="197" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">one colour, whole palette</text>
+
+  <rect x="68" y="216" width="244" height="42" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="68" y="216" width="3" height="42" rx="1.5" fill="#34D399"/>
+  <text x="88" y="234" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">_font(base)</text>
+  <text x="88" y="249" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">any GoogleFonts.*TextTheme</text>
+
+  <line x1="336" y1="192" x2="384" y2="192" stroke="#56C8F5" stroke-width="1.8" marker-end="url(#aC)"/>
+
+  <!-- BUILD -->
+  <rect x="392" y="104" width="396" height="176" rx="14" fill="#111A2E" stroke="#1E2A45"/>
+  <rect x="392" y="104" width="4" height="176" rx="2" fill="#56C8F5"/>
+  <text x="416" y="130" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#61708C">DERIVED, NOT WRITTEN TWICE</text>
+
+  <rect x="416" y="146" width="348" height="38" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="416" y="146" width="3" height="38" rx="1.5" fill="#56C8F5"/>
+  <text x="434" y="163" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">ColorScheme.fromSeed(seed, brightness,</text>
+  <text x="434" y="177" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">                     contrastLevel)</text>
+
+  <rect x="416" y="194" width="348" height="38" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="416" y="194" width="3" height="38" rx="1.5" fill="#56C8F5"/>
+  <text x="434" y="211" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">AppTokens.of(scheme, highContrast:)</text>
+  <text x="434" y="225" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">glass tint, border, sheen, blur, radii</text>
+
+  <text x="416" y="256" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">The tokens read the scheme, so a new seed moves the glass too.</text>
+  <text x="416" y="272" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">High contrast sets blur to 0 and makes the fill opaque.</text>
+
+  <line x1="788" y1="192" x2="836" y2="192" stroke="#A78BFA" stroke-width="1.8" marker-end="url(#aV)"/>
+
+  <!-- FOUR THEMES -->
+  <rect x="844" y="104" width="352" height="176" rx="14" fill="#111A2E" stroke="#1E2A45"/>
+  <rect x="844" y="104" width="4" height="176" rx="2" fill="#A78BFA"/>
+  <text x="868" y="130" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#61708C">MATERIALAPP SLOTS</text>
+
+  <rect x="868" y="144" width="304" height="28" rx="7" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="884" y="163" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">theme</text>
+  <rect x="868" y="176" width="304" height="28" rx="7" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="884" y="195" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">darkTheme</text>
+  <rect x="868" y="208" width="304" height="28" rx="7" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="884" y="227" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">highContrastTheme</text>
+  <rect x="868" y="240" width="304" height="28" rx="7" fill="#17223A" stroke="#2A3A5E"/>
+  <text x="884" y="259" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#E6EDF3">highContrastDarkTheme</text>
+
+  <!-- WHO CHOOSES -->
+  <rect x="44" y="316" width="1152" height="164" rx="14" fill="#111A2E" stroke="#1E2A45"/>
+  <text x="68" y="342" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#61708C">WHICH ONE IS LIVE — THE DEVICE DECIDES</text>
+
+  <rect x="68" y="358" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
+  <rect x="68" y="358" width="3" height="72" rx="1.5" fill="#34D399"/>
+  <text x="86" y="380" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">brightness: light</text>
+  <text x="86" y="399" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">contrast: normal</text>
+  <text x="86" y="418" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#6FB89A">→ theme</text>
+
+  <rect x="350" y="358" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
+  <rect x="350" y="358" width="3" height="72" rx="1.5" fill="#56C8F5"/>
+  <text x="368" y="380" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">brightness: dark</text>
+  <text x="368" y="399" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">contrast: normal</text>
+  <text x="368" y="418" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#7FB6D8">→ darkTheme</text>
+
+  <rect x="632" y="358" width="264" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
+  <rect x="632" y="358" width="3" height="72" rx="1.5" fill="#FBBF24"/>
+  <text x="650" y="380" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">brightness: light</text>
+  <text x="650" y="399" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">contrast: increased</text>
+  <text x="650" y="418" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#D9A62E">→ highContrastTheme</text>
+
+  <rect x="914" y="358" width="258" height="72" rx="10" fill="#141D33" stroke="#252F4D"/>
+  <rect x="914" y="358" width="3" height="72" rx="1.5" fill="#A78BFA"/>
+  <text x="932" y="380" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#E6EDF3">brightness: dark</text>
+  <text x="932" y="399" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" fill="#61708C">contrast: increased</text>
+  <text x="932" y="418" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="#8B7FB8">→ highContrastDark</text>
+
+  <text x="68" y="458" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">`themeMode` defaults to `ThemeMode.system`, so this happens with no code. The ThemeModeController only exists to override it.</text>
+
+  <!-- HOW A WIDGET READS IT -->
+  <rect x="44" y="516" width="1152" height="200" rx="14" fill="#0E1526" stroke="#1B2540"/>
+  <rect x="44" y="516" width="4" height="200" rx="2" fill="#34D399"/>
+  <text x="68" y="542" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#61708C">HOW A WIDGET READS IT</text>
+
+  <rect x="68" y="558" width="520" height="38" rx="8" fill="#17223A" stroke="#2A3A5E"/>
+  <rect x="68" y="558" width="3" height="38" rx="1.5" fill="#34D399"/>
+  <text x="86" y="582" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">Theme.of(context).appTokens.glassBlur</text>
+
+  <text x="612" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#9FB2CE">One getter, generated by theme_tailor. It ends in `!`,</text>
+  <text x="612" y="591" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#9FB2CE">so a widget test must supply a theme or it throws.</text>
+
+  <text x="68" y="628" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">No widget asks whether it is light or dark. It reads a token and gets the value for whichever theme is live.</text>
+  <text x="68" y="650" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">Because AppTokens is a ThemeExtension with a generated `lerp`, a brightness change animates the tint and the blur</text>
+  <text x="68" y="672" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">alongside the colours. Global constants read behind an `if (isDark)` would snap instead.</text>
+  <text x="68" y="698" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">Adding a token is one field plus `melos run generate` — the copyWith, lerp and equality are generated.</text>
+</svg>

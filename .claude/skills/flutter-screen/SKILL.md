@@ -206,6 +206,19 @@ Take colours from `Theme.of(context).colorScheme`, never literals — the app
 ships a light and a dark theme built from one seed in `app.dart`, and hardcoded
 colours break one of them.
 
+### Styling it
+
+Never hardcode a colour, radius or blur. Material values come from
+`Theme.of(context).colorScheme` and `.textTheme`; everything Material has no
+slot for — glass tint, sheen, blur, corner radii, the backdrop gradient — comes
+from `Theme.of(context).appTokens`.
+
+A screen that wants the app's look is `AppBackdrop` wrapping `GlassSurface`,
+with `extendBodyBehindAppBar: true` on the `Scaffold`. Adding a token means one
+`@override` field in `lib/theme/app_tokens.dart` plus `melos run generate`.
+[docs/theming.md](../../../docs/theming.md) has the whole picture, including why
+the glass turns opaque when the device asks for high contrast.
+
 ## 3. Route
 
 Every route lives in `lib/app/router.dart`:

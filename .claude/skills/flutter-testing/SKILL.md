@@ -100,6 +100,10 @@ Three details that are easy to get wrong:
   while a real request is in flight.
 - **`ProviderScope` is required**, even with no overrides. Without it any
   `ref.watch` throws.
+- **So is a theme.** Widgets read design tokens through
+  `Theme.of(context).appTokens`, whose generated getter ends in `!`, so
+  `MaterialApp(home: ...)` with no `theme:` throws a `_TypeError` while
+  building. Pass `theme: AppTheme.light()`.
 
 To assert the error state, have the stub's `build()` throw. To assert loading,
 return a `Completer`'s future that the test never completes.

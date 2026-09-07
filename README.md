@@ -300,5 +300,7 @@ it produces — a dirty `git status` afterwards means the pipeline will fail.
   **[docs/flutter-architecture.md](docs/flutter-architecture.md)**
 - What caching is available, and the `global`-without-Redis trap:
   **[docs/caching.md](docs/caching.md)**
+- How theming works, and how to change colours, fonts and the glass:
+  **[docs/theming.md](docs/theming.md)**
 - [Serverpod documentation](https://docs.serverpod.dev)
 - [Riverpod documentation](https://riverpod.dev)

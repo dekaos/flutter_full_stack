@@ -8,3 +8,5 @@ analyzer:
     - ios/**
     - web/**
     - "**/*.g.dart"
+    # theme_tailor emits *.tailor.dart, a second generated suffix.
+    - "**/*.tailor.dart"
