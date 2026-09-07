@@ -2,6 +2,43 @@
     "version": "2.0.0",
     "tasks": [
         {
+            // Starts with the workspace, not with a launch, which is the whole
+            // point: a *.g.dart edited or deleted after the app is already
+            // running is still regenerated. The preLaunchTask below only ever
+            // fires once, at F5, so on its own it leaves that gap open.
+            //
+            // Cheap to leave running: measured at 0.03% of one core over a
+            // minute idle - it sleeps on filesystem events rather than polling
+            // - and around 90 MB resident once the analyzer drops its caches
+            // after a build. A rebuild after a save lands in roughly 1.4s.
+            //
+            // VS Code asks once per workspace to allow automatic tasks. Until
+            // that is accepted this silently does not run, so if generated code
+            // stops keeping up, check that first: Command Palette →
+            // "Tasks: Manage Automatic Tasks".
+            //
+            // No background problemMatcher on purpose. Nothing waits on this
+            // task, so there is nothing to signal readiness to, and an empty
+            // matcher is what the other tasks here use to stop VS Code asking
+            // which matcher to apply. It must also never get "close": true - a
+            // watcher that closes is a watcher that stopped.
+            "label": "flutter_codegen_watch",
+            "type": "shell",
+            "command": "dart run melos:melos run generate:watch --no-select",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated"
+            }
+        },
+        {
             // preLaunchTask for the app in launch.json. A @riverpod class does
             // not compile until its *.g.dart exists, so launching straight
             // after adding one would fail on generated code that was never
@@ -12,10 +49,13 @@
             // the Serverpod generator, which is the server's business and much
             // slower.
             //
-            // Safe to combine with `melos run generate:watch`: a second
-            // build_runner does not fail on the lock, it prints "Waiting for
-            // already-running build_runner" and returns once the watcher is
-            // idle.
+            // Kept even though flutter_codegen_watch covers the same ground:
+            // that one only runs if automatic tasks were allowed, and this is
+            // the guarantee at the moment that actually matters, the launch.
+            // The two do not fight over the build_runner lock - the second one
+            // prints "Waiting for already-running build_runner" and returns 0
+            // once the watcher is idle, which also makes it near-instant when
+            // the watcher has already done the work.
             "label": "flutter_codegen",
             "type": "shell",
             "command": "dart run melos:melos run generate:flutter --no-select",
