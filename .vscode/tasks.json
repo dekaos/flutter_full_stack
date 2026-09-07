@@ -2,6 +2,34 @@
     "version": "2.0.0",
     "tasks": [
         {
+            // preLaunchTask for the app in launch.json. A @riverpod class does
+            // not compile until its *.g.dart exists, so launching straight
+            // after adding one would fail on generated code that was never
+            // written. One build_runner pass costs a few seconds warm and
+            // removes that whole class of confusing launch failure.
+            //
+            // Only the Flutter package: `melos run generate` would also run
+            // the Serverpod generator, which is the server's business and much
+            // slower.
+            //
+            // Safe to combine with `melos run generate:watch`: a second
+            // build_runner does not fail on the lock, it prints "Waiting for
+            // already-running build_runner" and returns once the watcher is
+            // idle.
+            "label": "flutter_codegen",
+            "type": "shell",
+            "command": "dart run melos:melos run generate:flutter --no-select",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "close": true
+            }
+        },
+        {
             // preLaunchTask for the server configurations in launch.json.
             "label": "server_preflight",
             "type": "shell",

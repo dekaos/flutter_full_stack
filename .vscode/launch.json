@@ -6,6 +6,9 @@
             "cwd": "${workspaceFolder}/flutter_full_stack_flutter",
             "request": "launch",
             "type": "dart",
+            // Regenerates the app's *.g.dart first, so F5 never runs against a
+            // @riverpod class whose generated half does not exist yet.
+            "preLaunchTask": "flutter_codegen",
             "program": "lib/main.dart"
         },
         {
