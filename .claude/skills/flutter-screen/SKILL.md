@@ -191,11 +191,12 @@ Match on the `AsyncValue` rather than testing booleans. The `_` case is the
 initial `AsyncData(null)`:
 
 ```dart
+final l10n = AppLocalizations.of(context)!;
 final (text, background) = switch (state) {
   AsyncError(:final error) => ('$error', colors.errorContainer),
   AsyncData(:final value) when value != null => (value.toString(), colors.primaryContainer),
-  AsyncLoading() => ('Calling server...', colors.surfaceContainerHighest),
-  _ => ('No server response yet.', colors.surfaceContainerHighest),
+  AsyncLoading() => (l10n.callingServer, colors.surfaceContainerHighest),
+  _ => (l10n.noResponseYet, colors.surfaceContainerHighest),
 };
 ```
 
@@ -222,7 +223,7 @@ Never hardcode a colour, radius or blur. Material values come from
 slot for — glass tint, sheen, blur, corner radii, the backdrop gradient — comes
 from `Theme.of(context).appTokens`.
 
-A screen that wants the app's look is `AppBackdrop` wrapping `GlassSurface`,
+A screen that wants the app's look is `AuroraBackdrop` wrapping `GlassSurface`,
 with `extendBodyBehindAppBar: true` on the `Scaffold`. Adding a token means one
 `@override` field in `lib/theme/app_tokens.dart` plus `melos run generate`.
 [docs/theming.md](../../../docs/theming.md) has the whole picture, including why
