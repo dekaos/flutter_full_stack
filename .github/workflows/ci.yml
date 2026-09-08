@@ -115,6 +115,14 @@ jobs:
       - name: Run tests
         run: dart run melos:melos run test --no-select
 
+      # A ratchet, not a target: the floor only moves up, and only in a commit
+      # someone writes. It also fails when a hand-written library never
+      # reached lcov, because an unimported file is absent from the report
+      # rather than counted as uncovered - which would push the percentage up.
+      # See docs/performance.md.
+      - name: Coverage ratchet
+        run: dart run melos:melos run coverage --no-select
+
       - name: Stop containers
         if: always()
         working-directory: flutter_full_stack_server
@@ -241,3 +249,80 @@ jobs:
         if: always()
         working-directory: flutter_full_stack_server
         run: docker compose down --volumes
+
+  perf:
+    name: Frame timings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - uses: android-actions/setup-android@v4
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # A job of its own rather than a step in `e2e`, because the perf suite
+      # touches no network: no Postgres, no server, no secrets. Keeping them
+      # apart also means a frame-time regression is reported as one, instead
+      # of appearing as an end-to-end failure.
+      #
+      # Profile mode is the whole point - a debug build inflates frame build
+      # time by roughly an order of magnitude. The build mode is written into
+      # the report by the test itself and baselines are keyed by it, so a
+      # debug run can never be compared against a profile baseline.
+      - name: Measure and gate frame timings
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          PERF_MODE: profile
+          PERF_TAG: ci-android-emulator
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          script: |
+            dart run melos:melos run perf:measure --no-select
+            dart run tool/perf_budget.dart --tag ci-android-emulator
+
+      # The numbers are worth keeping even when the gate passes: drift is only
+      # visible across runs, and until a baseline exists this artifact is the
+      # only record of where the app started.
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-report
+          path: flutter_full_stack_flutter/build/perf_report.json
+          if-no-files-found: warn
+
+  size:
+    name: Binary size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - uses: android-actions/setup-android@v4
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # The cheapest honest gate here: same source, same bytes, no device and
+      # no noise, so a failure is always a real change.
+      - name: Build and gate the release APK
+        run: dart run melos:melos run size --no-select

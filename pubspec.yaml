@@ -168,6 +168,83 @@ melos:
       packageFilters:
         scope: flutter_full_stack_flutter
 
+    # ----------------------------------------------------------------- size --
+    size:measure:
+      description: Build the release APK whose size the budget gates.
+      exec: flutter build apk --release --target-platform android-arm64
+      packageFilters:
+        scope: flutter_full_stack_flutter
+
+    size:
+      description: >-
+        Build and fail if the APK grew past tool/size_budget.json. The one
+        performance-adjacent number with no noise in it: same source, same
+        bytes, on any runner.
+      run: |
+        dart run melos:melos run size:measure --no-select &&
+        dart run tool/size_budget.dart
+
+    size:budget:
+      description: Build, then record the current size as the budget.
+      run: |
+        dart run melos:melos run size:measure --no-select &&
+        dart run tool/size_budget.dart --update
+
+    # ------------------------------------------------------------- coverage --
+    coverage:measure:
+      description: Run the Flutter tests with coverage, writing coverage/lcov.info.
+      exec: flutter test --coverage
+      packageFilters:
+        scope: flutter_full_stack_flutter
+
+    coverage:
+      description: >-
+        Measure line coverage and fail if it dropped below the ratchet in
+        tool/coverage_floor.json. Generated code is excluded: counting it
+        measures the generators, not this repo.
+      run: |
+        dart run melos:melos run coverage:measure --no-select &&
+        dart run tool/coverage_floor.dart
+
+    coverage:floor:
+      description: >-
+        Measure, then raise the ratchet to what was measured. It refuses to
+        lower it - a ratchet that can be loosened is a suggestion.
+      run: |
+        dart run melos:melos run coverage:measure --no-select &&
+        dart run tool/coverage_floor.dart --update
+
+    # ----------------------------------------------------------------- perf --
+    perf:measure:
+      description: >-
+        Drive the app and record frame timings to
+        flutter_full_stack_flutter/build/perf_report.json. Needs a device.
+        PERF_DEVICE picks it when more than one is attached; PERF_MODE
+        defaults to profile, which is the only mode whose numbers mean
+        anything - and which the iOS simulator does not support, so measuring
+        there needs PERF_MODE=debug and gives numbers comparable only to other
+        debug runs.
+      exec: flutter drive --driver=test_driver/perf_driver.dart --target=integration_test/perf_test.dart --${PERF_MODE:-profile} ${PERF_DEVICE:+-d $PERF_DEVICE}
+      packageFilters:
+        scope: flutter_full_stack_flutter
+
+    perf:
+      description: >-
+        Measure, then fail if any frame metric drifted past the baseline in
+        tool/perf_baseline.json. PERF_TAG names the baseline entry, so an
+        emulator's numbers are never compared against a phone's.
+      run: |
+        dart run melos:melos run perf:measure --no-select &&
+        dart run tool/perf_budget.dart --tag ${PERF_TAG:-local}
+
+    perf:baseline:
+      description: >-
+        Measure, then record the result as the baseline for this device and
+        build mode. Commit the diff, and say what moved the numbers.
+      run: |
+        dart run melos:melos run perf:measure --no-select &&
+        dart run tool/perf_budget.dart --update --tag ${PERF_TAG:-local}
+
     # ---------------------------------------------------------------- evals --
     eval:claims:
       description: >-

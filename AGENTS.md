@@ -43,6 +43,10 @@ melos run check             # format:check + analyze + eval:claims + test
 melos run test:e2e          # end-to-end: real app against a running server
 melos run eval:claims       # the skills still describe this repo (in `check`)
 melos run eval:skills       # run each skill for real — minutes, and money
+
+melos run size              # release APK against its byte budget
+melos run coverage          # line coverage against its ratchet
+melos run perf              # frame timings against their baseline — needs a device
 ```
 
 Run `melos run check` before declaring any change finished. It covers CI's
@@ -55,6 +59,15 @@ The skills in `.claude/skills/` are verified too, in two layers:
 `eval:claims` is deterministic and part of `check`, and `eval:skills` hands a
 real prompt to an agent in a throwaway worktree. See
 [docs/evals.md](docs/evals.md).
+
+Three more gates sit outside `check` because each needs a build or a device:
+`size` (release APK bytes), `coverage` (a ratchet that only moves up) and
+`perf` (frame build and raster times, in profile mode, against a baseline
+keyed by device). They run as their own CI jobs. What each number is worth —
+and what none of them covers — is in
+[docs/performance.md](docs/performance.md); the short version is that they
+catch *drift*, which is how an app actually gets slow, and that emulator
+numbers are only comparable to other emulator numbers.
 
 `melos run` with no arguments opens a picker listing every script and its
 description.
