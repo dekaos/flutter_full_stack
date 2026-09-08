@@ -138,8 +138,11 @@ melos run test:e2e            # another
   desktop targets, and `integration_test` refuses to run on web. `E2E_DEVICE`
   picks a device id when several are attached; unset, Flutter takes the only
   one it finds.
-- **On an Android emulator `localhost` is the emulator itself.** The host is
-  `10.0.2.2`, so pass `E2E_SERVER_URL=http://10.0.2.2:8080/`. Cleartext HTTP is
+- **On an Android emulator `localhost` is the emulator itself.** Run
+  `adb reverse tcp:8080 tcp:8080` before the suite and the default URL reaches
+  the host. Do not reach for the `10.0.2.2` alias: on current images traffic
+  goes over the emulated Wi-Fi stack, where it is not routable, and the symptom
+  is a test that builds and runs but never gets a response. Cleartext HTTP is
   already permitted in the debug and profile manifests; release still refuses it.
 - **It runs against the development database on 8090**, not the test one, so a
   test that writes dirties real dev data. Reset with `melos run docker:down`.

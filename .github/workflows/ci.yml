@@ -122,11 +122,16 @@ jobs:
       # containers, which is the database the server runs against here.
       SERVERPOD_PASSWORD_database: 'zwJn_TdUW1zT7guIGhV9IysOK1jvN7WA'
       SERVERPOD_PASSWORD_redis: 'SbeYXujuQnkIwuWLJXNgN0Wi0E_PoaVS'
-      # Inside the emulator, localhost is the emulator. 10.0.2.2 is the alias
-      # its network stack maps to the host loopback, which is where the server
-      # started below is listening. The curl health check further down runs on
-      # the host itself, so that one stays on localhost.
-      E2E_SERVER_URL: 'http://10.0.2.2:8080/'
+      # `adb reverse` (see the emulator step) forwards the device's own
+      # localhost:8080 to the host's, so the app uses the same URL here as it
+      # does on a developer machine.
+      #
+      # Not 10.0.2.2, which is the documented alias for the host loopback: on
+      # current emulator images traffic goes over the emulated Wi-Fi stack
+      # ("Netsim Wifi" in the emulator log) and that alias belongs to the radio
+      # NIC, so it is frequently unroutable. `adb reverse` does not care which
+      # interface is up.
+      E2E_SERVER_URL: 'http://localhost:8080/'
     steps:
       - uses: actions/checkout@v4
 
@@ -203,13 +208,20 @@ jobs:
       # The action boots the emulator, waits for it to come up, runs `script`
       # against it and tears it down. E2E_DEVICE is left unset on purpose: the
       # emulator is the only attached device, so Flutter selects it.
+      #
+      # `adb reverse` has to happen after the emulator is up, which is why it
+      # lives in the script rather than in a step of its own. The --list is
+      # there so a future failure says whether the tunnel was actually open.
       - name: Run the end-to-end tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           arch: x86_64
           target: google_apis
-          script: dart run melos:melos run test:e2e --no-select
+          script: |
+            adb reverse tcp:8080 tcp:8080
+            adb reverse --list
+            dart run melos:melos run test:e2e --no-select
 
       # Without this, a failure above shows only the Flutter side of the story.
       # Tolerant of the log not existing: when the job fails before the server

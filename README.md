@@ -225,10 +225,11 @@ melos run test:e2e            # another
 
 The target is an Android emulator or an iOS simulator: `integration_test` does
 not run on web devices, and the app no longer has desktop targets. `E2E_DEVICE`
-picks one by device id when several are attached, and `E2E_SERVER_URL` picks
-the backend — on an Android emulator that has to be `http://10.0.2.2:8080/`,
-since `localhost` there means the emulator itself. See [AGENTS.md](AGENTS.md)
-for that and the other constraints.
+picks one by device id when several are attached, and `E2E_SERVER_URL` picks the
+backend. On an Android emulator `localhost` means the emulator, so open a
+tunnel to the host first — `adb reverse tcp:8080 tcp:8080` — and the default
+URL works unchanged. See [AGENTS.md](AGENTS.md) for that and the other
+constraints.
 
 ## Debugging
 

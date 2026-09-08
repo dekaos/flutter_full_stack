@@ -171,11 +171,16 @@ and a real device. Four constraints worth knowing before extending it:
   several are attached; left unset, Flutter takes the only device it finds.
   None of this affects the `--wasm` web build, which is still supported and
   still what `flutter_build` produces for the server.
-- **On an Android emulator the backend is not `localhost`.** Inside the
-  emulator that name is the emulator itself; `10.0.2.2` is the alias for the
-  host loopback, so point `E2E_SERVER_URL` there. Android also blocks plain
-  HTTP from targetSdk 28 on, which the debug and profile manifests lift with
-  `usesCleartextTraffic` — debug and profile only, never release.
+- **On an Android emulator, open a tunnel to the host first.**
+  `adb reverse tcp:8080 tcp:8080` forwards the device's own `localhost:8080` to
+  the host's, so `E2E_SERVER_URL` needs nothing special. The documented
+  alternative, the `10.0.2.2` host-loopback alias, is unreliable on current
+  emulator images: traffic goes over the emulated Wi-Fi stack and that alias
+  belongs to the radio NIC. CI learned this the hard way — the app built,
+  installed and ran, and the request simply never reached the server.
+  Android also blocks plain HTTP from targetSdk 28 on, which the debug and
+  profile manifests lift with `usesCleartextTraffic` — debug and profile only,
+  never release.
 - **It runs against the *development* database on 8090, not the test one.**
   Serverpod restricts `--mode` to `development`, `test`, `staging` and
   `production`, so a dedicated `e2e` runmode is impossible, and the `test`
