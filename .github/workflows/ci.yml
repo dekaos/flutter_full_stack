@@ -154,11 +154,16 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       # compileSdk is pinned to 37 (see android/app/build.gradle.kts), which is
-      # newer than what the runner image ships. Installing it explicitly beats
-      # relying on Gradle's auto-download, which needs accepted licences and
-      # fails late, in the middle of the build, when they are missing.
-      - name: Install the Android SDK platform the app compiles against
-        run: sdkmanager "platforms;android-37"
+      # newer than what the runner image ships, so the platform has to be
+      # fetched. This action is what makes that possible: it accepts the SDK
+      # licences and puts cmdline-tools on PATH.
+      #
+      # It deliberately does not install the platform itself. `sdkmanager
+      # "platforms;android-37"` would need the exact package id, and Android's
+      # move to minor-versioned platforms (android-37.0, 37.1, …) makes that a
+      # guess. Gradle knows precisely what `compileSdk = 37` requires, and with
+      # the licences accepted it downloads it without being told.
+      - uses: android-actions/setup-android@v4
 
       - name: Install dependencies
         run: flutter pub get
@@ -207,9 +212,11 @@ jobs:
           script: dart run melos:melos run test:e2e --no-select
 
       # Without this, a failure above shows only the Flutter side of the story.
+      # Tolerant of the log not existing: when the job fails before the server
+      # starts, this step would otherwise add a second, meaningless red X.
       - name: Server log
         if: failure()
-        run: cat /tmp/serverpod.log
+        run: cat /tmp/serverpod.log || echo 'The server never started.'
 
       - name: Stop containers
         if: always()
