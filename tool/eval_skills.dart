@@ -63,7 +63,12 @@ a server or a device: analysis and widget tests are the whole verification.
         contains: 'AppLocalizations',
         absent: RegExp(r"""Text\(\s*['"][A-Za-z]"""),
       ),
-      _Assert.fileMatching('a widget test', RegExp(r'^test/.+_test\.dart$')),
+      _Assert.fileMatching(
+        'a widget test',
+        // Unanchored: `git status` reports paths from the repo root, so this
+        // is `flutter_full_stack_flutter/test/...`, never `test/...`.
+        RegExp(r'/test/.+_test\.dart$'),
+      ),
       _Assert.grep(
         'the route is registered with a name',
         'flutter_full_stack_flutter/lib/app/router.dart',
@@ -109,13 +114,16 @@ Future<void> main(List<String> args) async {
   final only = <String>[];
   for (var i = 0; i < args.length; i++) {
     if (args[i].startsWith('-')) {
-      if (args[i] == '--budget-usd') i++;
+      if (args[i] == '--budget-usd' || args[i] == '--assert-only') i++;
       continue;
     }
     only.add(args[i]);
   }
 
   final repo = Directory.current.absolute.path;
+  // Re-check the assertions of a worktree left behind by `--keep`. Iterating
+  // on an assertion should not cost another agent run.
+  final assertOnly = _flag(args, '--assert-only');
   final selected = only.isEmpty
       ? _cases
       : _cases.where((c) => only.any((o) => c.skill.contains(o))).toList();
@@ -126,7 +134,9 @@ Future<void> main(List<String> args) async {
 
   var failed = 0;
   for (final c in selected) {
-    final ok = await _run(c, repo: repo, budget: budget, keep: keep);
+    final ok = assertOnly != null
+        ? await _assertAll(c, assertOnly)
+        : await _run(c, repo: repo, budget: budget, keep: keep);
     if (!ok) failed++;
   }
 
@@ -135,6 +145,20 @@ Future<void> main(List<String> args) async {
     'passed.',
   );
   if (failed > 0) exit(1);
+}
+
+Future<bool> _assertAll(_Case c, String tree) async {
+  var passed = 0;
+  for (final a in c.assertions) {
+    final result = await a.check(tree);
+    stdout.writeln('    ${result.ok ? 'pass' : 'FAIL'}  ${a.label}');
+    if (!result.ok && result.detail.isNotEmpty) {
+      stdout.writeln(_indent(result.detail, '          '));
+    }
+    if (result.ok) passed++;
+  }
+  stdout.writeln('    $passed/${c.assertions.length} assertions passed');
+  return passed == c.assertions.length;
 }
 
 String? _flag(List<String> args, String name) {
@@ -194,17 +218,10 @@ Future<bool> _run(
       return false;
     }
 
-    var passed = 0;
-    for (final a in c.assertions) {
-      final result = await a.check(tree);
-      stdout.writeln('    ${result.ok ? 'pass' : 'FAIL'}  ${a.label}');
-      if (!result.ok && result.detail.isNotEmpty) {
-        stdout.writeln(_indent(result.detail, '          '));
-      }
-      if (result.ok) passed++;
-    }
-    stdout.writeln('    $passed/${c.assertions.length} assertions passed');
-    return passed == c.assertions.length;
+    // Awaited, not returned: the `finally` below removes the worktree, and
+    // without the await it would do so while the assertions were still
+    // reading it.
+    return await _assertAll(c, tree);
   } finally {
     if (keep) {
       stdout.writeln('    kept: $tree');
@@ -331,6 +348,24 @@ class _Assert {
 
       case _Kind.command:
         final cwd = workingSubdir == null ? tree : '$tree/$workingSubdir';
+        if (thenTreeIsClean) {
+          // The agent's own new files make the tree dirty, so comparing
+          // against HEAD answers "is everything committed?" - not the
+          // question. Commit what it wrote first, and a dirty tree
+          // afterwards can only mean regenerating changed something. This is
+          // the same distinction `melos run check` gets wrong today.
+          await _sh('git', ['add', '-A'], cwd: tree);
+          await _sh('git', [
+            '-c',
+            'user.email=eval@local',
+            '-c',
+            'user.name=eval',
+            'commit',
+            '-q',
+            '-m',
+            'eval: what the agent wrote',
+          ], cwd: tree);
+        }
         final r = await _sh(
           command!.first,
           command!.skip(1).toList(),
