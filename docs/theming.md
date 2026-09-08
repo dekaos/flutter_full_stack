@@ -140,6 +140,18 @@ costs nothing — no provider, no listener. `ThemeModeController` exists only so
 user can *override* it, and the choice is deliberately not persisted; that would
 need a storage dependency the app does not have yet.
 
+The one-button cycle is ordered against the device, not written down as a fixed
+sequence: `cycle` takes the device's brightness and leaves `system` by flipping
+*away* from it. On a light device that is system → dark → light → system, and
+on a dark one system → light → dark → system. The reason is worth keeping: a
+fixed system → light step changes the state and nothing on screen when the
+device is already light, and a tap that changes nothing reads as a tap that was
+missed — users press again. Every tap now flips the brightness except the last,
+which returns to following the device and is reported by the icon
+(`brightness_auto`). `test/follow_the_device_test.dart` pins this from both
+device settings. The language button in `LocaleController` is ordered the same
+way, for the same reason.
+
 These are real screenshots of the app, taken by flipping the simulator's own
 appearance and "Increase Contrast" settings:
 

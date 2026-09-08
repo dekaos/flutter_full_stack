@@ -17,16 +17,42 @@ class LocaleController extends _$LocaleController {
   @override
   Locale? build() => null;
 
-  /// Cycles device → English → Portuguese → device, which is enough for one
-  /// button while there are two languages.
-  void cycle() {
-    const supported = AppLocalizations.supportedLocales;
+  /// Cycles through every supported language and back to following the
+  /// device, starting with a language the device is *not* asking for.
+  ///
+  /// The order depends on [deviceLocale] for a reason. Stepping from "follow
+  /// the device" to a fixed `supportedLocales.first` changes nothing on screen
+  /// when the device is already English: the state moves, the copy does not,
+  /// and the tap reads as one the app missed. Starting with a different
+  /// language makes the first tap always visible.
+  void cycle(Locale deviceLocale) {
+    final ordered = _cycleOrder(deviceLocale);
     final current = state;
     if (current == null) {
-      state = supported.first;
+      state = ordered.first;
       return;
     }
-    final next = supported.indexOf(current) + 1;
-    state = next < supported.length ? supported[next] : null;
+    final next = ordered.indexOf(current) + 1;
+    state = next < ordered.length ? ordered[next] : null;
   }
+
+  /// The supported languages with the device's own last, so that the step
+  /// which renders the same copy as "follow the device" is the one right
+  /// before returning to it.
+  static List<Locale> _cycleOrder(Locale deviceLocale) => [
+    ...AppLocalizations.supportedLocales.where((l) => l != deviceLocale),
+    ...AppLocalizations.supportedLocales.where((l) => l == deviceLocale),
+  ];
 }
+
+/// The language the device is asking for, narrowed to one the app has.
+///
+/// This is the resolution `MaterialApp` performs for itself when `locale` is
+/// `null`, so while the user has overridden nothing it is exactly what is on
+/// screen. [LocaleController.cycle] needs the *device's* language and not the
+/// effective one — once a language is pinned, `Localizations.localeOf` returns
+/// the pin and no longer says anything about the device.
+Locale deviceLocaleOf(BuildContext context) => basicLocaleListResolution(
+  View.of(context).platformDispatcher.locales,
+  AppLocalizations.supportedLocales,
+);

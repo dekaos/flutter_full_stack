@@ -49,12 +49,17 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
         actions: [
           IconButton(
             key: const Key('greeting-language'),
-            onPressed: ref.read(localeControllerProvider.notifier).cycle,
-            icon: const Icon(Icons.translate_outlined),
+            onPressed: () => ref
+                .read(localeControllerProvider.notifier)
+                .cycle(deviceLocaleOf(context)),
+            icon: Icon(_localeIconFor(locale)),
             tooltip: l10n.languageTooltip(_languageName(l10n, locale)),
           ),
           IconButton(
-            onPressed: ref.read(themeModeControllerProvider.notifier).cycle,
+            key: const Key('greeting-theme'),
+            onPressed: () => ref
+                .read(themeModeControllerProvider.notifier)
+                .cycle(MediaQuery.platformBrightnessOf(context)),
             icon: Icon(_iconFor(mode)),
             tooltip: l10n.themeTooltip(_themeName(l10n, mode)),
           ),
@@ -94,6 +99,13 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
       ),
     );
   }
+
+  /// A globe for "whatever the device speaks", a translate mark for a language
+  /// the user picked — the same distinction [_iconFor] draws for the theme.
+  /// Pinning the language the device already speaks renders identical copy, so
+  /// the icon is the only thing that can report the change.
+  IconData _localeIconFor(Locale? locale) =>
+      locale == null ? Icons.language_outlined : Icons.translate_outlined;
 
   IconData _iconFor(ThemeMode mode) => switch (mode) {
     ThemeMode.system => Icons.brightness_auto_outlined,

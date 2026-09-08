@@ -65,7 +65,7 @@ final class LocaleControllerProvider
   }
 }
 
-String _$localeControllerHash() => r'b9aa7fd381da6fa8fa76bdf80fe03704935b7d52';
+String _$localeControllerHash() => r'f40ad22fa2be6839e4db50d5ac938f0405bd3244';
 
 /// Whether the app follows the device's language or is pinned to one.
 ///
