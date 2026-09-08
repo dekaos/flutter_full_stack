@@ -168,12 +168,33 @@ melos:
       packageFilters:
         scope: flutter_full_stack_flutter
 
+    # ---------------------------------------------------------------- evals --
+    eval:claims:
+      description: >-
+        Fails if a SKILL.md names a file, symbol or melos script that no longer
+        exists. Deterministic and about a second warm, so it is part of
+        `check`: a skill is read literally by an agent, so a renamed class in
+        one is not stale prose, it is code that cannot compile.
+      run: dart run tool/eval_skill_claims.dart
+
+    eval:skills:
+      description: >-
+        Runs each skill end to end: a real prompt to `claude -p` in a
+        throwaway git worktree, then assertions on what it produced - the
+        controller, the route, the translations, regenerated code, analyze and
+        the widget tests. Costs minutes and real money, so it is NOT part of
+        `check`. Run it after editing a skill. `--budget-usd N` caps the
+        spend, `--keep` leaves the worktree to inspect, and a bare argument
+        selects one skill by name.
+      run: dart run tool/eval_skills.dart
+
     # ------------------------------------------------------------------ ci --
     check:
       description: Full quality gate - the same checks CI runs.
       run: |
         dart run melos:melos run format:check --no-select &&
         dart run melos:melos run analyze --no-select &&
+        dart run melos:melos run eval:claims --no-select &&
         dart run melos:melos run test --no-select
 
     # ---------------------------------------------------------------- clean --

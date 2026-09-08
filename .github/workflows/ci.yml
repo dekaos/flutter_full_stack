@@ -39,6 +39,13 @@ jobs:
       - name: Analyze
         run: dart run melos:melos run analyze --no-select
 
+      # A skill is read literally by an agent, so a class it names that has
+      # been renamed does not read as stale prose - it produces code that
+      # cannot compile. This job is the cheap half; `melos run eval:skills`
+      # is the half that needs a model and is not run here.
+      - name: Check that the skills still describe this repo
+        run: dart run melos:melos run eval:claims --no-select
+
   codegen:
     name: Generated code is up to date
     runs-on: ubuntu-latest
