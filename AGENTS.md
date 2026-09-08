@@ -38,15 +38,23 @@ melos run generate:watch    # rebuild the app's *.g.dart on save, while coding
 melos run format            # format every package
 melos run analyze           # analyze every package (--fatal-infos)
 melos run test              # server + Flutter tests
-melos run check             # format:check + analyze + test — the CI gate
+melos run check             # format:check + analyze + eval:claims + test
 
 melos run test:e2e          # end-to-end: real app against a running server
+melos run eval:claims       # the skills still describe this repo (in `check`)
+melos run eval:skills       # run each skill for real — minutes, and money
 ```
 
 Run `melos run check` before declaring any change finished. It covers CI's
 `static` and `test` jobs. CI's third job, `codegen`, has no local equivalent:
 reproduce it by running `melos run generate` and confirming `git status` is
-clean afterwards.
+clean afterwards. That gap is not theoretical — it is how stale `.g.dart`
+reached CI after the theme and language buttons were fixed.
+
+The skills in `.claude/skills/` are verified too, in two layers:
+`eval:claims` is deterministic and part of `check`, and `eval:skills` hands a
+real prompt to an agent in a throwaway worktree. See
+[docs/evals.md](docs/evals.md).
 
 `melos run` with no arguments opens a picker listing every script and its
 description.
