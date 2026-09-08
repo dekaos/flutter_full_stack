@@ -110,12 +110,20 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
   /// A locale's own name, never translated: a language picker that renders
   /// every option in the language you are already reading is useless to
   /// someone who cannot read it.
-  String _languageName(AppLocalizations l10n, Locale? locale) =>
-      switch (locale?.languageCode) {
-        'en' => l10n.languageEnglish,
-        'pt' => l10n.languagePortuguese,
-        _ => l10n.languageSystem,
-      };
+  String _languageName(AppLocalizations l10n, Locale? locale) {
+    if (locale == null) return l10n.languageSystem;
+
+    return switch (locale.languageCode) {
+      'en' => l10n.languageEnglish,
+      'pt' => l10n.languagePortuguese,
+      // A supported locale with no name here is an unfinished change, not a
+      // state to handle: dropping an .arb file into lib/l10n puts the locale
+      // into the cycle on its own, and this switch has to keep up. Showing
+      // the raw code makes that visible instead of mislabelling the new
+      // language as "following the device".
+      _ => locale.languageCode.toUpperCase(),
+    };
+  }
 }
 
 class _Headline extends StatelessWidget {
