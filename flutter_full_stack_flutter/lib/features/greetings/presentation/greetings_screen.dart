@@ -145,6 +145,7 @@ class _NameField extends StatelessWidget {
       children: [
         Expanded(
           child: TextField(
+            key: const Key('greeting-name-field'),
             controller: controller,
             onSubmitted: (_) => onSubmit(),
             textInputAction: TextInputAction.send,
@@ -158,6 +159,7 @@ class _NameField extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         IconButton.filled(
+          key: const Key('greeting-send'),
           onPressed: onSubmit,
           icon: const Icon(Icons.arrow_upward_rounded),
           tooltip: 'Send',

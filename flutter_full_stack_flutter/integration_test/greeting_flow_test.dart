@@ -31,15 +31,20 @@ void main() {
     // before the first usable frame.
     await tester.pumpAndSettle();
 
+    // The empty state is the absence of a response card, not a card saying
+    // the response is absent.
     expect(
-      find.text('No server response yet.'),
-      findsOneWidget,
-      reason: 'the app should open in its empty state',
+      find.text('FROM THE SERVER'),
+      findsNothing,
+      reason: 'the app should open with no response card',
     );
 
-    await tester.enterText(find.byType(TextField), 'Bob');
+    // Found by key rather than by icon or label: this suite runs outside
+    // `melos run check`, so anything it asserts on that the design is free to
+    // change breaks here silently, days later.
+    await tester.enterText(find.byKey(const Key('greeting-name-field')), 'Bob');
     await tester.pump();
-    await tester.tap(find.byIcon(Icons.send));
+    await tester.tap(find.byKey(const Key('greeting-send')));
 
     await _pumpUntilFound(
       tester,

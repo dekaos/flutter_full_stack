@@ -13,27 +13,40 @@ import 'package:flutter_test/flutter_test.dart';
 /// surfaces quietly stops meeting WCAG AA, with nothing failing to say so.
 /// This is that something.
 void main() {
-  for (final theme in [
-    (name: 'light', data: AppTheme.light()),
-    (name: 'dark', data: AppTheme.dark()),
-    (name: 'high contrast light', data: AppTheme.highContrastLight()),
-    (name: 'high contrast dark', data: AppTheme.highContrastDark()),
+  // Building a theme reaches for the font, which needs a binding. Without
+  // this, google_fonts floods the log with "Binding has not yet been
+  // initialized" and falls back to a default face.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final variant in [
+    (name: 'light', build: AppTheme.light),
+    (name: 'dark', build: AppTheme.dark),
+    (name: 'high contrast light', build: AppTheme.highContrastLight),
+    (name: 'high contrast dark', build: AppTheme.highContrastDark),
   ]) {
-    final scheme = theme.data.colorScheme;
-    final tokens = theme.data.extension<AppTokens>()!;
+    /// Worst case for both materials: the strongest aurora pool sits directly
+    /// behind the surface, which is the least the fill has to work with.
+    ({Color field, Color pane, Color text}) surfaces() {
+      final theme = variant.build();
+      final tokens = theme.extension<AppTokens>()!;
+      final backdrop = _over(tokens.auroraOne, tokens.backdropTop);
+      return (
+        field: _over(tokens.wellFill, backdrop),
+        pane: _over(tokens.glassTint, backdrop),
+        text: theme.colorScheme.onSurface,
+      );
+    }
 
-    // Worst case for both materials: the strongest aurora pool sits directly
-    // behind the surface, which is the least the fill has to work with.
-    final backdrop = _over(tokens.auroraOne, tokens.backdropTop);
-
-    test('text on a field is legible — ${theme.name}', () {
-      final ratio = _ratio(scheme.onSurface, _over(tokens.wellFill, backdrop));
+    test('text on a field is legible — ${variant.name}', () {
+      final s = surfaces();
+      final ratio = _ratio(s.text, s.field);
       printOnFailure('measured ${ratio.toStringAsFixed(2)}:1');
       expect(ratio, greaterThanOrEqualTo(4.5));
     });
 
-    test('text on a pane is legible — ${theme.name}', () {
-      final ratio = _ratio(scheme.onSurface, _over(tokens.glassTint, backdrop));
+    test('text on a pane is legible — ${variant.name}', () {
+      final s = surfaces();
+      final ratio = _ratio(s.text, s.pane);
       printOnFailure('measured ${ratio.toStringAsFixed(2)}:1');
       expect(ratio, greaterThanOrEqualTo(4.5));
     });
