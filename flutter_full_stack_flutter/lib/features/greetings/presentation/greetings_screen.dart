@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_full_stack_flutter/app/locale_controller.dart';
 import 'package:flutter_full_stack_flutter/core/text/stray_dead_key.dart';
 import 'package:flutter_full_stack_flutter/features/greetings/providers/greeting_controller.dart';
+import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
 import 'package:flutter_full_stack_flutter/theme/app_tokens.dart';
 import 'package:flutter_full_stack_flutter/theme/aurora_backdrop.dart';
 import 'package:flutter_full_stack_flutter/theme/glass_surface.dart';
@@ -36,17 +38,25 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(greetingControllerProvider);
     final mode = ref.watch(themeModeControllerProvider);
+    final locale = ref.watch(localeControllerProvider);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         actions: [
           IconButton(
+            key: const Key('greeting-language'),
+            onPressed: ref.read(localeControllerProvider.notifier).cycle,
+            icon: const Icon(Icons.translate_outlined),
+            tooltip: l10n.languageTooltip(_languageName(l10n, locale)),
+          ),
+          IconButton(
             onPressed: ref.read(themeModeControllerProvider.notifier).cycle,
             icon: Icon(_iconFor(mode)),
-            tooltip: 'Theme: ${_labelFor(mode)}',
+            tooltip: l10n.themeTooltip(_themeName(l10n, mode)),
           ),
         ],
       ),
@@ -91,11 +101,21 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
     ThemeMode.dark => Icons.dark_mode_outlined,
   };
 
-  String _labelFor(ThemeMode mode) => switch (mode) {
-    ThemeMode.system => 'following the device',
-    ThemeMode.light => 'light',
-    ThemeMode.dark => 'dark',
+  String _themeName(AppLocalizations l10n, ThemeMode mode) => switch (mode) {
+    ThemeMode.system => l10n.themeModeSystem,
+    ThemeMode.light => l10n.themeModeLight,
+    ThemeMode.dark => l10n.themeModeDark,
   };
+
+  /// A locale's own name, never translated: a language picker that renders
+  /// every option in the language you are already reading is useless to
+  /// someone who cannot read it.
+  String _languageName(AppLocalizations l10n, Locale? locale) =>
+      switch (locale?.languageCode) {
+        'en' => l10n.languageEnglish,
+        'pt' => l10n.languagePortuguese,
+        _ => l10n.languageSystem,
+      };
 }
 
 class _Headline extends StatelessWidget {
@@ -104,12 +124,13 @@ class _Headline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Say hello.',
+          l10n.headline,
           style: theme.textTheme.displaySmall?.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: -1.5,
@@ -118,8 +139,7 @@ class _Headline extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          'Your name travels to the Serverpod endpoint and comes back '
-          'as a typed model.',
+          l10n.tagline,
           style: theme.textTheme.bodyLarge?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             height: 1.4,
@@ -152,8 +172,8 @@ class _NameField extends StatelessWidget {
             // Shim for a Flutter engine bug; delete with the helper once the
             // pinned Flutter carries the fix.
             inputFormatters: const [StrayDeadKeyFormatter()],
-            decoration: const InputDecoration(
-              labelText: 'Your name',
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.nameFieldLabel,
             ),
           ),
         ),
@@ -162,7 +182,7 @@ class _NameField extends StatelessWidget {
           key: const Key('greeting-send'),
           onPressed: onSubmit,
           icon: const Icon(Icons.arrow_upward_rounded),
-          tooltip: 'Send',
+          tooltip: AppLocalizations.of(context)!.sendTooltip,
           style: IconButton.styleFrom(
             minimumSize: const Size.square(56),
           ),
@@ -201,13 +221,13 @@ class _Response extends StatelessWidget {
         AsyncLoading() => const _Waiting(key: ValueKey('loading')),
         AsyncError(:final error) => _Card(
           key: const ValueKey('error'),
-          label: 'The call failed',
+          label: AppLocalizations.of(context)!.errorLabel,
           body: '$error',
           tint: theme.colorScheme.error,
         ),
         AsyncData(:final value) when value != null => _Card(
           key: const ValueKey('data'),
-          label: 'From the server',
+          label: AppLocalizations.of(context)!.responseLabel,
           body: value.toString(),
           tint: theme.colorScheme.primary,
         ),
@@ -236,7 +256,7 @@ class _Waiting extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Text(
-          'Calling the server',
+          AppLocalizations.of(context)!.callingServer,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

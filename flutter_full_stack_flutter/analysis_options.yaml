@@ -10,3 +10,6 @@ analyzer:
     - "**/*.g.dart"
     # theme_tailor emits *.tailor.dart, a second generated suffix.
     - "**/*.tailor.dart"
+    # flutter gen-l10n writes these; a third generated shape, and the
+    # only one the Flutter tool schedules rather than build_runner.
+    - "lib/l10n/app_localizations*.dart"

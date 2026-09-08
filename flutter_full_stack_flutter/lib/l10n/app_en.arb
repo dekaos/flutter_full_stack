@@ -1,0 +1,78 @@
+{
+  "@@locale": "en",
+
+  "headline": "Say hello.",
+  "@headline": {
+    "description": "Main heading on the greetings screen."
+  },
+
+  "tagline": "Your name travels to the Serverpod endpoint and comes back as a typed model.",
+  "@tagline": {
+    "description": "Sentence under the heading explaining what the screen does."
+  },
+
+  "nameFieldLabel": "Your name",
+  "@nameFieldLabel": {
+    "description": "Label of the text field the user types a name into."
+  },
+
+  "sendTooltip": "Send",
+  "@sendTooltip": {
+    "description": "Tooltip on the button that sends the name to the server."
+  },
+
+  "responseLabel": "From the server",
+  "@responseLabel": {
+    "description": "Caption above a successful response. Shown upper-cased."
+  },
+
+  "errorLabel": "The call failed",
+  "@errorLabel": {
+    "description": "Caption above an error response. Shown upper-cased."
+  },
+
+  "callingServer": "Calling the server",
+  "@callingServer": {
+    "description": "Shown while the request is in flight."
+  },
+
+  "themeTooltip": "Theme: {mode}",
+  "@themeTooltip": {
+    "description": "Tooltip on the theme switch button.",
+    "placeholders": {
+      "mode": { "type": "String", "example": "dark" }
+    }
+  },
+
+  "themeModeSystem": "following the device",
+  "@themeModeSystem": {
+    "description": "Theme is whatever the device asks for."
+  },
+
+  "themeModeLight": "light",
+  "@themeModeLight": { "description": "Theme is pinned to light." },
+
+  "themeModeDark": "dark",
+  "@themeModeDark": { "description": "Theme is pinned to dark." },
+
+  "languageTooltip": "Language: {name}",
+  "@languageTooltip": {
+    "description": "Tooltip on the language switch button.",
+    "placeholders": {
+      "name": { "type": "String", "example": "English" }
+    }
+  },
+
+  "languageSystem": "following the device",
+  "@languageSystem": {
+    "description": "Language is whatever the device asks for."
+  },
+
+  "languageEnglish": "English",
+  "@languageEnglish": { "description": "Name of the English locale." },
+
+  "languagePortuguese": "Português",
+  "@languagePortuguese": {
+    "description": "Name of the Portuguese locale, in that language."
+  }
+}

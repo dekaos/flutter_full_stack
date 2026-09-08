@@ -32,9 +32,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // The empty state is the absence of a response card, not a card saying
-    // the response is absent.
+    // the response is absent. Asserted by key rather than by copy, which is
+    // now translated and would make this suite depend on the device language.
     expect(
-      find.text('FROM THE SERVER'),
+      find.byKey(const ValueKey('data')),
       findsNothing,
       reason: 'the app should open with no response card',
     );

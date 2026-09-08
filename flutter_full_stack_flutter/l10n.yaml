@@ -1,0 +1,11 @@
+# Configuration for `flutter gen-l10n`, which the Flutter tool runs on
+# `flutter pub get` because `generate: true` is set in pubspec.yaml. No
+# build_runner involvement: this is the one generator in the repo that is not
+# ours to schedule.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+# Fail the build on a message that exists in the template but not in a
+# translation, instead of silently falling back to English at runtime.
+required-resource-attributes: true

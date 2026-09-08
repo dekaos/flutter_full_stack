@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_full_stack_flutter/app/locale_controller.dart';
 import 'package:flutter_full_stack_flutter/app/router.dart';
+import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
 import 'package:flutter_full_stack_flutter/theme/app_theme.dart';
 import 'package:flutter_full_stack_flutter/theme/theme_mode_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +24,12 @@ class App extends ConsumerWidget {
       // Defaults to ThemeMode.system, so leaving this alone already follows
       // the device. The provider is here to let a user override it.
       themeMode: ref.watch(themeModeControllerProvider),
+      // Same shape as themeMode: null means resolve from the platform, so
+      // following the device's language needs no code. The controller is only
+      // there so a user can override it.
+      locale: ref.watch(localeControllerProvider),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: router,
     );
   }

@@ -95,11 +95,14 @@ Both generators emit code that `dart format` rejects on this language version,
 so `melos run generate` runs the generators *and then formats*. Calling a
 generator directly leaves the tree unformatted and turns CI red.
 
-**Generated code has two suffixes, not one.** `*.g.dart` comes from
-riverpod_generator, and `*.tailor.dart` from theme_tailor, which builds the
-`ThemeExtension` boilerplate for `lib/theme/app_tokens.dart`. Both are written
-by `melos run generate`, both are excluded from analysis, and neither is ever
-hand-edited. See [docs/theming.md](docs/theming.md).
+**Generated code has three shapes, and one of them is not ours to schedule.**
+`*.g.dart` comes from riverpod_generator and `*.tailor.dart` from theme_tailor;
+both are written by `melos run generate` and both are excluded from analysis.
+The third is `lib/l10n/app_localizations*.dart`, produced by the Flutter tool
+from the `.arb` files — it runs on `flutter pub get` because `generate: true`
+is set in the app's pubspec, so `melos run generate` does not drive it and does
+not need to. None of the three is ever hand-edited. See
+[docs/theming.md](docs/theming.md) and [docs/i18n.md](docs/i18n.md).
 
 **Android compiles against SDK 37, not Flutter's default.** `flutter_secure_storage`
 11 arrives transitively through `serverpod_auth_idp_flutter` and refuses to link

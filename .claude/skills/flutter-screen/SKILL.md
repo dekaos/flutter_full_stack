@@ -206,6 +206,15 @@ Take colours from `Theme.of(context).colorScheme`, never literals — the app
 ships a light and a dark theme built from one seed in `app.dart`, and hardcoded
 colours break one of them.
 
+### Its copy
+
+No user-visible string is written in a widget. Add the key to
+`lib/l10n/app_en.arb` with a `description`, add it to `app_pt.arb`, and
+`flutter pub get` regenerates — there is no build_runner step for this one.
+Read it with `AppLocalizations.of(context)!.myKey`.
+[docs/i18n.md](../../../docs/i18n.md) has the rest, including why a missing
+translation fails the build rather than falling back.
+
 ### Styling it
 
 Never hardcode a colour, radius or blur. Material values come from

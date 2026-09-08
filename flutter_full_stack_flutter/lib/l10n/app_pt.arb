@@ -1,0 +1,19 @@
+{
+  "@@locale": "pt",
+
+  "headline": "Diga olá.",
+  "tagline": "Seu nome viaja até o endpoint do Serverpod e volta como um modelo tipado.",
+  "nameFieldLabel": "Seu nome",
+  "sendTooltip": "Enviar",
+  "responseLabel": "Do servidor",
+  "errorLabel": "A chamada falhou",
+  "callingServer": "Chamando o servidor",
+  "themeTooltip": "Tema: {mode}",
+  "themeModeSystem": "seguindo o aparelho",
+  "themeModeLight": "claro",
+  "themeModeDark": "escuro",
+  "languageTooltip": "Idioma: {name}",
+  "languageSystem": "seguindo o aparelho",
+  "languageEnglish": "English",
+  "languagePortuguese": "Português"
+}

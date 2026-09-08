@@ -303,5 +303,7 @@ it produces — a dirty `git status` afterwards means the pipeline will fail.
   **[docs/caching.md](docs/caching.md)**
 - How theming works, and how to change colours, fonts and the glass:
   **[docs/theming.md](docs/theming.md)**
+- How translation works, and how to add a string or a language:
+  **[docs/i18n.md](docs/i18n.md)**
 - [Serverpod documentation](https://docs.serverpod.dev)
 - [Riverpod documentation](https://riverpod.dev)
