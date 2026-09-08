@@ -56,6 +56,13 @@ jobs:
       - name: Install Serverpod CLI
         run: dart pub global activate serverpod_cli ${{ env.SERVERPOD_VERSION }}
 
+      # `dart pub global activate` installs into ~/.pub-cache/bin, which is not
+      # on the runner's PATH. The generate:server script calls `serverpod`
+      # directly, so without this it fails with "serverpod: not found" - the
+      # same way the composite scripts used to fail on `melos`.
+      - name: Put globally activated executables on PATH
+        run: echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
       - name: Regenerate everything
         run: dart run melos:melos run generate --no-select
 

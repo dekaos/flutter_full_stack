@@ -61,9 +61,9 @@ melos:
       # step. Always use this script instead of calling the generators directly,
       # otherwise `melos run format:check` will fail in CI.
       run: |
-        melos run generate:server --no-select &&
-        melos run generate:flutter --no-select &&
-        melos run format --no-select
+        dart run melos:melos run generate:server --no-select &&
+        dart run melos:melos run generate:flutter --no-select &&
+        dart run melos:melos run format --no-select
 
     # --------------------------------------------------------------- server --
     server:start:
@@ -131,8 +131,8 @@ melos:
     analyze:
       description: Analyze every package in the monorepo.
       run: |
-        melos run analyze:dart --no-select &&
-        melos run analyze:flutter --no-select
+        dart run melos:melos run analyze:dart --no-select &&
+        dart run melos:melos run analyze:flutter --no-select
 
     # ----------------------------------------------------------------- test --
     test:dart:
@@ -152,8 +152,8 @@ melos:
     test:
       description: Run every test in the monorepo.
       run: |
-        melos run test:dart --no-select &&
-        melos run test:flutter --no-select
+        dart run melos:melos run test:dart --no-select &&
+        dart run melos:melos run test:flutter --no-select
 
     test:e2e:
       description: >-
@@ -172,9 +172,9 @@ melos:
     check:
       description: Full quality gate - the same checks CI runs.
       run: |
-        melos run format:check --no-select &&
-        melos run analyze --no-select &&
-        melos run test --no-select
+        dart run melos:melos run format:check --no-select &&
+        dart run melos:melos run analyze --no-select &&
+        dart run melos:melos run test --no-select
 
     # ---------------------------------------------------------------- clean --
     clean:
