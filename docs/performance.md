@@ -54,13 +54,19 @@ melos run perf            # measure, then gate
 melos run perf:baseline   # record what it found
 ```
 
-`integration_test/perf_test.dart` drives the app through the frames that cost
+`perf/frame_timings_test.dart` drives the app through the frames that cost
 the most — launch with the aurora drifting in and the staggered rise-in, two
 theme flips (four `ThemeData` rebuilt from one seed, every glass surface
 repainted), two language flips, then typing into the translucent well — and
 `watchPerformance` records the timeline. `test_driver/perf_driver.dart` writes
 it to `build/perf_report.json`, and `tool/perf_budget.dart` compares it against
 `tool/perf_baseline.json`.
+
+It sits in `perf/` and not in `integration_test/` for a mechanical reason:
+the e2e script runs `flutter test integration_test`, which collects every
+`*_test.dart` in that directory. A perf suite living there gets run without its
+driver, fails, and reports itself as an end-to-end failure - which is exactly
+what happened once.
 
 **No server is involved.** The behavioural e2e needs Postgres, a migration and
 a running backend; this suite touches no network, which is what makes it cheap

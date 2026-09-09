@@ -291,9 +291,10 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
-          script: |
-            dart run melos:melos run perf:measure --no-select &&
-            dart run tool/perf_budget.dart --tag ci-android-emulator
+          # One line, and the `&&` stays on it: this action runs each line
+          # of `script` in a separate `sh -c`, so a trailing `&&` is an
+          # unterminated command rather than a chain.
+          script: dart run melos:melos run perf:measure --no-select && dart run tool/perf_budget.dart --tag ci-android-emulator
 
       # The numbers are worth keeping even when the gate passes: drift is only
       # visible across runs, and until a baseline exists this artifact is the
