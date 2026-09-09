@@ -224,7 +224,12 @@ melos:
         anything - and which the iOS simulator does not support, so measuring
         there needs PERF_MODE=debug and gives numbers comparable only to other
         debug runs.
-      exec: flutter drive --driver=test_driver/perf_driver.dart --target=integration_test/perf_test.dart --${PERF_MODE:-profile} ${PERF_DEVICE:+-d $PERF_DEVICE}
+        --no-dds is not optional: `watchPerformance` connects to the VM
+        service from inside the app, and with the Dart Development Service in
+        front of it the app dials a port that is not forwarded. It fails only
+        where the app and the host are different machines, so an iOS
+        simulator hides it and an Android emulator does not.
+      exec: flutter drive --no-dds --driver=test_driver/perf_driver.dart --target=integration_test/perf_test.dart --${PERF_MODE:-profile} ${PERF_DEVICE:+-d $PERF_DEVICE}
       packageFilters:
         scope: flutter_full_stack_flutter
 
