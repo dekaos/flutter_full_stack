@@ -44,3 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# CocoaPods, back because `record` ships no Swift Package. The Podfile and,
+# once an iOS build runs, Podfile.lock are versioned; the installed pods are
+# not.
+/ios/Pods/
+/ios/.symlinks/

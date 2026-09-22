@@ -140,13 +140,23 @@ follows `JAVA_HOME` instead, so an older one there makes only the IDE's Gradle
 sync fail, with "Gradle requires JVM 17 or later" in the Problems panel while
 every command line build succeeds.
 
-**iOS has no CocoaPods.** Every plugin the app pulls in ships a Swift Package,
-so `ios/` has no `Podfile` and the `Flutter/*.xcconfig` files no longer include
-the `Pods-Runner` configs. Xcode resolves the native dependencies itself and
-the versions are pinned in the two `swiftpm/Package.resolved` files. If you add
-a plugin that has no Swift Package, the iOS build will fail asking for
-CocoaPods: restore it with `pod init` in `ios/` plus the two `#include?` lines,
-or pick a plugin that supports SwiftPM.
+**iOS is back on CocoaPods, and that was a trade.** The repo used to have no
+`Podfile` at all: every plugin shipped a Swift Package, Xcode resolved the
+native dependencies itself, and the versions were pinned in the two
+`swiftpm/Package.resolved` files. Pronunciation practice needs microphone
+capture, `record` has no Swift Package, and the iOS build fails asking for
+CocoaPods — so `ios/` has a `Podfile` again and the `Flutter/*.xcconfig` files
+carry the two `#include?` lines back.
+
+What that costs: `pod install` is part of an iOS build again, and plugin
+versions are pinned in `Podfile.lock` as well as in `Package.resolved`. Prefer
+a SwiftPM-capable plugin where one exists — `flutter_onnxruntime`, which runs
+the acoustic model, was chosen partly for that — and revisit this if `record`
+ever ships a Swift Package.
+
+**iOS deploys to 16.0 or later.** `flutter_onnxruntime` links ONNX Runtime
+statically and requires it. Below that the build fails in Xcode rather than at
+runtime.
 
 **A Serverpod server that cannot bind its ports does not exit.** It logs
 `Failed to start the Serverpod servers`, then stays alive serving nothing, and
