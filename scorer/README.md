@@ -162,6 +162,57 @@ score ordena as duas corretamente em 79% das vezes.
 - Correlação no nível de palavra parece catastrófica (0,13 de Spearman) e não
   é: é o efeito dos 90% em 10.
 
+## Cabeça de regressão
+
+A curva calibrada trata cada fonema isoladamente e depois tira média. Ela não
+tem como saber que um /θ/ ruim pesa mais que um /ə/ ruim, que duração curta é
+sinal, que importa quem ficou em segundo lugar, ou que o fonema anterior
+condiciona o seguinte. Uma cabeça que lê a **sequência** sabe.
+
+```bash
+python tool/dump_features.py train --device mps    # ~40 min por split
+python tool/dump_features.py test  --device mps
+python tool/train_head.py --dropout 0.5 --dim 32 --weight-decay 1e-4
+```
+
+Segue a forma do GOPT (ICASSP 2022): 60 features por fonema — log-posterior do
+canônico, margem, duração e a razão contra cada um dos 57 fonemas do
+inventário — projetadas para 32 dimensões, somadas à embedding do fonema e à
+posicional, três camadas de encoder.
+
+| | fala (PCC) | fonema (PCC) |
+|---|---|---|
+| GOP + curva calibrada | 0,546 | — |
+| **GOP + cabeça** | **0,675** | **0,555** |
+| GOPT publicado | 0,742 | 0,612 |
+
+**33,6 mil parâmetros, 131 KB.** O sistema que fecha dois terços da distância
+para o estado da arte é menor que o léxico dos exercícios. Isso é o ponto: o
+custo nunca foi runtime, foi dado rotulado.
+
+### Método, porque aqui é fácil mentir
+
+- **Split oficial do corpus**, separado por falante. Treino nas 2500 de
+  treino, teste nas 2500 de teste.
+- **Validação tirada do treino**, nunca do teste. A primeira rodada escolhia a
+  época olhando o teste e reportou 0,670; com validação honesta o mesmo
+  modelo dá 0,658.
+- **Hiperparâmetros escolhidos pela validação**, com o teste medido uma vez no
+  ponto escolhido.
+- Validação 0,787 contra teste 0,675 não é bug: a validação compartilha
+  falantes com o treino e o teste não. Avaliação com voz inédita é mais
+  difícil, e é a que conta.
+
+### O que falta para os 0,742
+
+A diferença provável está nas features, não na cabeça: o GOPT parte de um
+alinhador Kaldi com 84 dimensões de GOP, e as nossas 60 vêm de um CTC. E 8%
+dos rótulos por fonema se perdem no pareamento posicional entre IPA e ARPAbet.
+
+**Nada disto foi integrado ao app ainda.** A cabeça é treinada em falantes de
+mandarim; vale como prova de que a arquitetura fecha a distância, não como o
+modelo que deve pontuar um brasileiro.
+
 ### Dois experimentos que não pagaram
 
 Registrados porque saber onde *não* investir vale tanto quanto o contrário.

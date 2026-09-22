@@ -10,3 +10,7 @@ corpus/
 .venv/
 __pycache__/
 *.pyc
+
+# Features extraidas e pesos treinados: reproduzidos por tool/dump_features.py
+# e tool/train_head.py, ~20 MB, nao pertencem ao historico.
+features/
