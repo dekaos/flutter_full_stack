@@ -39,6 +39,14 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // AGP 9 turns minification on by default for release, which is why
+            // this is needed here and nowhere in the debug build. See
+            // proguard-rules.pro: ONNX Runtime's JNI layer finds its Java
+            // classes by name, and R8 renames what it cannot see being used.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
