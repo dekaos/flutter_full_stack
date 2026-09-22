@@ -45,6 +45,21 @@ case "$LANG_CODE" in
     echo "pronto: use --manifest $DEST/es/manifest.tsv"
     wc -l < "$DEST/es/manifest.tsv" | xargs echo "falas:"
     ;;
+  speechocean762)
+    # O unico corpus publico com nota de pronuncia dada por especialista
+    # humano: 5000 falas, 250 falantes nao nativos, 5 avaliadores, nota por
+    # fonema, palavra e frase. CC BY 4.0, uso comercial liberado. E contra
+    # ele que da para saber se o nosso numero concorda com o de um professor.
+    if [ ! -d "$DEST/speechocean762" ]; then
+      echo "baixando speechocean762 (521 MB)..."
+      curl -sS -L --fail -o "$DEST/so762.tar.gz" \
+        https://www.openslr.org/resources/101/speechocean762.tar.gz
+      mkdir -p "$DEST/speechocean762"
+      tar -xzf "$DEST/so762.tar.gz" -C "$DEST/speechocean762" --strip-components=1
+      rm -f "$DEST/so762.tar.gz"
+    fi
+    echo "pronto: $DEST/speechocean762"
+    ;;
   *)
     echo "idioma desconhecido: $LANG_CODE" >&2
     exit 1

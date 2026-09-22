@@ -123,14 +123,49 @@ As curvas por fonema saem com a forma certa. Fonema confusável fica apertado
 que são exatamente os pares que o brasileiro erra) e fonema distintivo ganha
 folga (`/ɔɪ/` −10,9, `/ʝ/` −11,7).
 
-### O que ainda falta
+## Concordância com avaliador humano
 
-- **Validação contra humano.** Nada disso diz que o número concorda com um
-  professor. Para isso existe o speechocean762 (CC BY 4.0, uso comercial, nota
-  por fonema dada por 5 especialistas) — só inglês, e L1 mandarim.
+A única medida de acurácia que este projeto tem. Tudo o mais compara o modelo
+com ele mesmo; isto compara com professor.
+
+```bash
+./tool/fetch_corpus.sh speechocean762      # 521 MB, CC BY 4.0
+.venv/bin/python tool/evaluate.py --limit 800 --device mps
+```
+
+| | nosso | referência |
+|---|---|---|
+| fala, Pearson | **0,541** | ~0,72 estado da arte · 0,45–0,60 baselines GOP |
+| fala, Spearman | 0,496 | |
+| palavra, Pearson | 0,293 | |
+| palavra imperfeita, AUC | **0,792** | 0,5 = moeda |
+
+800 falas sorteadas do split de teste, n grande o bastante para um intervalo de
+±0,06 no Pearson.
+
+Ler com três ressalvas, todas contra nós: os falantes têm **mandarim** como L1
+e a nossa calibração foi ajustada com confusões de **brasileiro**; o modelo
+acústico nunca viu falante não nativo; e nada foi treinado neste corpus — é
+zero-shot, enquanto os números publicados treinam nele.
+
+No nível de palavra, 90% recebem nota 10 do humano. Correlação sobre variável
+quase constante é ruído, e por isso a métrica que importa ali é detecção: o
+AUC de 0,792 diz que, sorteando uma palavra imperfeita e uma perfeita, o nosso
+score ordena as duas corretamente em 79% das vezes.
+
+**Duas armadilhas de método que custaram uma leitura errada:**
+
+- Tomar as primeiras N falas do arquivo amostra poucos falantes: o corpus vem
+  agrupado por falante. As primeiras 40 tinham média humana 8,7 e desvio 0,8
+  contra 7,7 e 1,54 do conjunto. Correlação sobre faixa comprimida deu 0,254,
+  menos da metade do valor real. A amostra é sorteada com semente.
+- Correlação no nível de palavra parece catastrófica (0,13 de Spearman) e não
+  é: é o efeito dos 90% em 10.
+
+### O que ainda falta
 - **Aluno brasileiro real.** As curvas foram ajustadas contra erro *simulado*
   em voz nativa. Erro simulado é limpo; aluno de verdade tem hesitação, ruído
-  e prosódia própria.
+  e prosódia própria. O speechocean762 mede a régua, não o nosso aluno.
 - **Onde fica o "bom o suficiente".** Que 70 signifique "pode seguir" é
   pedagogia, e nenhum corpus responde.
 
