@@ -162,6 +162,47 @@ score ordena as duas corretamente em 79% das vezes.
 - Correlação no nível de palavra parece catastrófica (0,13 de Spearman) e não
   é: é o efeito dos 90% em 10.
 
+### Dois experimentos que não pagaram
+
+Registrados porque saber onde *não* investir vale tanto quanto o contrário.
+`tool/tune.py` trabalha sobre o GOP cru cacheado por `evaluate.py --dump`, sem
+reprocessar áudio.
+
+**Agregação.** A hipótese era que a média dos fonemas dilui os poucos ruins,
+enquanto o avaliador humano pesa o erro saliente. Falsa:
+
+| agregador | Pearson |
+|---|---|
+| percentil 25 | 0,549 |
+| **média (atual)** | **0,546** |
+| média dos 40% piores | 0,545 |
+| percentil 10 | 0,529 |
+| mínimo | 0,381 |
+
+Tudo que é razoável fica entre 0,51 e 0,55; só os extremos pioram. A
+informação não está em como combinar os fonemas.
+
+**Calibração supervisionada.** Reajustar as curvas contra o erro humano real
+em vez do erro simulado dá +0,014 (0,546 → 0,560), e +0,021 somando percentil
+25. Real, mas pequeno — e não escala: com 800 falas apenas 1 fonema junta
+amostra de erro suficiente, com 1500 são 14, e o ganho não se move. O gargalo
+não é volume de áudio, é que só 10% das palavras têm erro rotulado.
+
+Duas armadilhas de método aqui também, ambas descobertas depois de um
+resultado enganoso:
+
+- Comparar a curva humana usando o fallback **chutado** como base global, em
+  vez do global **medido**, fazia a calibração humana parecer pior que a
+  simulada (0,521 contra 0,546). Os fonemas sem curva humana caíam num global
+  errado e levavam a culpa.
+- A nota por fonema é média de cinco avaliadores, então vem fracionada. Tratar
+  tudo abaixo de 2 como erro joga 1,8 — que é "a maioria achou certo" — na
+  distribuição de erro e borra as duas. A faixa do meio é descartada.
+
+**Nada disso foi aplicado ao app.** As curvas humanas vêm de falantes de
+mandarim; usá-las num produto para brasileiro troca um viés conhecido por
+outro, em troca de 0,02.
+
 ### O que ainda falta
 - **Aluno brasileiro real.** As curvas foram ajustadas contra erro *simulado*
   em voz nativa. Erro simulado é limpo; aluno de verdade tem hesitação, ruído

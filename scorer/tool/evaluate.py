@@ -46,6 +46,8 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=600)
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--dump", type=Path,
+                    help="grava o GOP cru por fonema para experimentos offline")
     args = ap.parse_args()
 
     scores = json.loads((ROOT / "resource" / "scores.json").read_text())
@@ -63,6 +65,7 @@ def main() -> int:
 
     utt_ours, utt_human = [], []
     word_ours, word_human = [], []
+    dump: list[dict] = []
     skipped = 0
 
     # Amostra aleatoria, nao as primeiras N. O arquivo vem agrupado por
@@ -93,6 +96,29 @@ def main() -> int:
                 texts[uid], "en", phones, words, spans, em,
                 rec.blank_id, rec.id_to_sym, rec.special_ids, cal,
             )
+            if args.dump is not None:
+                measured = scoring.measure(
+                    phones, spans, em, rec.blank_id, rec.id_to_sym,
+                    rec.special_ids,
+                )
+                dump.append({
+                    "uid": uid,
+                    # o GOP cru, antes de virar nota: e sobre ele que os
+                    # experimentos de agregacao e de curva trabalham
+                    "phones": [
+                        {"s": m.symbol, "lpp": round(m.lpp, 4),
+                         "w": p.word_idx}
+                        for m, p in zip(measured, phones)
+                    ],
+                    "words": [w["text"] for w in label["words"]],
+                    "humanUtt": label["accuracy"],
+                    "humanWords": [w["accuracy"] for w in label["words"]],
+                    "humanPhones": [
+                        {"w": i, "p": p, "a": a}
+                        for i, w in enumerate(label["words"])
+                        for p, a in zip(w["phones"], w["phones-accuracy"])
+                    ],
+                })
         except Exception as error:
             print(f"[pulou] {uid}: {error}", file=sys.stderr)
             skipped += 1
@@ -135,6 +161,9 @@ def main() -> int:
             auc = 1 - (ranks[bad].sum() - n_bad * (n_bad + 1) / 2) / (n_bad * n_good)
             print(f"  deteccao de palavra imperfeita: AUC {auc:.3f}"
                   f"  ({n_bad} imperfeitas de {len(ours)})")
+    if args.dump is not None:
+        args.dump.write_text(json.dumps(dump), encoding="utf-8")
+        print(f"\ncache: {args.dump} ({len(dump)} falas)")
     return 0
 
 
