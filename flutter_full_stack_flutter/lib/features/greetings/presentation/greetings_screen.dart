@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_full_stack_flutter/app/locale_controller.dart';
+import 'package:flutter_full_stack_flutter/app/app_bar_actions.dart';
 import 'package:flutter_full_stack_flutter/core/text/stray_dead_key.dart';
 import 'package:flutter_full_stack_flutter/features/greetings/providers/greeting_controller.dart';
 import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
@@ -9,7 +9,6 @@ import 'package:flutter_full_stack_flutter/theme/app_tokens.dart';
 import 'package:flutter_full_stack_flutter/theme/aurora_backdrop.dart';
 import 'package:flutter_full_stack_flutter/theme/glass_surface.dart';
 import 'package:flutter_full_stack_flutter/theme/rise_in.dart';
-import 'package:flutter_full_stack_flutter/theme/theme_mode_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class GreetingsScreen extends ConsumerStatefulWidget {
@@ -38,33 +37,11 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(greetingControllerProvider);
-    final mode = ref.watch(themeModeControllerProvider);
-    final locale = ref.watch(localeControllerProvider);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        actions: [
-          IconButton(
-            key: const Key('greeting-language'),
-            onPressed: () => ref
-                .read(localeControllerProvider.notifier)
-                .cycle(deviceLocaleOf(context)),
-            icon: Icon(_localeIconFor(locale)),
-            tooltip: l10n.languageTooltip(_languageName(l10n, locale)),
-          ),
-          IconButton(
-            key: const Key('greeting-theme'),
-            onPressed: () => ref
-                .read(themeModeControllerProvider.notifier)
-                .cycle(MediaQuery.platformBrightnessOf(context)),
-            icon: Icon(_iconFor(mode)),
-            tooltip: l10n.themeTooltip(_themeName(l10n, mode)),
-          ),
-        ],
-      ),
+      appBar: AppBar(actions: const [AppBarActions()]),
       body: AuroraBackdrop(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -98,43 +75,6 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
         ),
       ),
     );
-  }
-
-  /// A globe for "whatever the device speaks", a translate mark for a language
-  /// the user picked — the same distinction [_iconFor] draws for the theme.
-  /// Pinning the language the device already speaks renders identical copy, so
-  /// the icon is the only thing that can report the change.
-  IconData _localeIconFor(Locale? locale) =>
-      locale == null ? Icons.language_outlined : Icons.translate_outlined;
-
-  IconData _iconFor(ThemeMode mode) => switch (mode) {
-    ThemeMode.system => Icons.brightness_auto_outlined,
-    ThemeMode.light => Icons.light_mode_outlined,
-    ThemeMode.dark => Icons.dark_mode_outlined,
-  };
-
-  String _themeName(AppLocalizations l10n, ThemeMode mode) => switch (mode) {
-    ThemeMode.system => l10n.themeModeSystem,
-    ThemeMode.light => l10n.themeModeLight,
-    ThemeMode.dark => l10n.themeModeDark,
-  };
-
-  /// A locale's own name, never translated: a language picker that renders
-  /// every option in the language you are already reading is useless to
-  /// someone who cannot read it.
-  String _languageName(AppLocalizations l10n, Locale? locale) {
-    if (locale == null) return l10n.languageSystem;
-
-    return switch (locale.languageCode) {
-      'en' => l10n.languageEnglish,
-      'pt' => l10n.languagePortuguese,
-      // A supported locale with no name here is an unfinished change, not a
-      // state to handle: dropping an .arb file into lib/l10n puts the locale
-      // into the cycle on its own, and this switch has to keep up. Showing
-      // the raw code makes that visible instead of mislabelling the new
-      // language as "following the device".
-      _ => locale.languageCode.toUpperCase(),
-    };
   }
 }
 

@@ -28,6 +28,9 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
     required this.auroraThree,
     required this.wellFill,
     required this.wellBorder,
+    required this.scoreStrong,
+    required this.scoreFair,
+    required this.scoreWeak,
   });
 
   /// Derives the tokens for [scheme].
@@ -47,6 +50,8 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
     required double paneTranslucency,
     required double wellTranslucency,
   }) {
+    final isDarkScheme = scheme.brightness == Brightness.dark;
+
     if (highContrast) {
       return AppTokens(
         backdropTop: scheme.surface,
@@ -64,6 +69,13 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
         auroraThree: Colors.transparent,
         wellFill: scheme.surface,
         wellBorder: scheme.outline,
+        scoreStrong: isDarkScheme
+            ? const Color(0xFF7FE8B4)
+            : const Color(0xFF0F5C34),
+        scoreFair: isDarkScheme
+            ? const Color(0xFFFFC85C)
+            : const Color(0xFF6B4400),
+        scoreWeak: scheme.error,
       );
     }
 
@@ -93,6 +105,9 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
         alpha: _translucent(isDark ? 0.34 : 0.58, well),
       ),
       wellBorder: scheme.outlineVariant,
+      scoreStrong: isDark ? const Color(0xFF5FD39A) : const Color(0xFF1B7F4B),
+      scoreFair: isDark ? const Color(0xFFE8B04B) : const Color(0xFF8A5A00),
+      scoreWeak: scheme.error,
     );
   }
 
@@ -165,4 +180,26 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
   /// boundary the eye can find without hunting.
   @override
   final Color wellBorder;
+
+  /// A pronunciation score that is good enough to move on from.
+  ///
+  /// The three score colours are the one exception to deriving everything
+  /// from the seed: "you said it right" is a fixed meaning, and a brand that
+  /// seeds green would otherwise render a good score and a bad one in the
+  /// same hue. [ColorScheme] has a slot for error and none for its opposite,
+  /// so the positive end is spelled out here. Each value is tuned against the
+  /// surface of its own brightness, which is why they are not one constant
+  /// with an opacity.
+  @override
+  final Color scoreStrong;
+
+  /// A score that is understandable but not yet right.
+  @override
+  final Color scoreFair;
+
+  /// A score the learner has to do something about. [ColorScheme.error], so a
+  /// mispronunciation reads with the same urgency as anything else that went
+  /// wrong.
+  @override
+  final Color scoreWeak;
 }

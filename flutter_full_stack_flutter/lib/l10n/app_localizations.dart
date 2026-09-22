@@ -187,6 +187,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Português'**
   String get languagePortuguese;
+
+  /// Name of the Spanish language, in that language.
+  ///
+  /// In en, this message translates to:
+  /// **'Español'**
+  String get languageSpanish;
+
+  /// Main heading on the language chooser.
+  ///
+  /// In en, this message translates to:
+  /// **'What are you practising?'**
+  String get pickLanguageHeadline;
+
+  /// Sentence under the chooser heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Each language has its own pack. Once it is on the device, practice works offline.'**
+  String get pickLanguageTagline;
+
+  /// Shown on a language whose pack is already downloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'On this device'**
+  String get packReady;
+
+  /// Shown on a language whose pack still has to be fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'{megabytes} MB to download'**
+  String packMissing(int megabytes);
+
+  /// Tab for the single-word prompts.
+  ///
+  /// In en, this message translates to:
+  /// **'Words'**
+  String get practiceWords;
+
+  /// Tab for the full-sentence prompts.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrases'**
+  String get practicePhrases;
+
+  /// Which prompt of the deck is on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} of {total}'**
+  String practicePosition(int current, int total);
+
+  /// Main heading on the pronunciation practice screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Read it out loud.'**
+  String get practiceHeadline;
+
+  /// Sentence under the heading, explaining that scoring is local.
+  ///
+  /// In en, this message translates to:
+  /// **'Your pronunciation is scored on this device. Nothing is uploaded.'**
+  String get practiceTagline;
+
+  /// Button that fetches the acoustic model for a language.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the language pack'**
+  String get practiceDownloadPack;
+
+  /// Explains the size and the one-off nature of the download.
+  ///
+  /// In en, this message translates to:
+  /// **'About {megabytes} MB, once. After that, practice works with no connection.'**
+  String practiceDownloadExplainer(int megabytes);
+
+  /// Shown while the model is being fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading the language pack'**
+  String get practiceDownloading;
+
+  /// Button that starts recording the learner reading the sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Record'**
+  String get practiceRecord;
+
+  /// Button that ends the recording and scores it.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get practiceStop;
+
+  /// Shown while the recording is being scored.
+  ///
+  /// In en, this message translates to:
+  /// **'Scoring'**
+  String get practiceScoring;
+
+  /// Shown when microphone permission was refused.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice needs the microphone. Turn it on in settings.'**
+  String get practiceNoMicrophone;
+
+  /// Caption for the phoneme accuracy part of the score.
+  ///
+  /// In en, this message translates to:
+  /// **'Pronunciation'**
+  String get practiceAccuracy;
+
+  /// Caption for the rhythm and pausing measure, reported beside the score.
+  ///
+  /// In en, this message translates to:
+  /// **'Fluency'**
+  String get practiceFluency;
+
+  /// Says the fluency number does not count towards the score.
+  ///
+  /// In en, this message translates to:
+  /// **'diagnostic only'**
+  String get practiceFluencyDiagnostic;
+
+  /// The raw rhythm measurements behind the fluency number.
+  ///
+  /// In en, this message translates to:
+  /// **'{rate} phonemes per second, {pauses, plural, =0{no pauses} =1{1 pause} other{{pauses} pauses}}'**
+  String practiceRhythmDetail(String rate, int pauses);
+
+  /// Names the phoneme the model heard in place of the right one.
+  ///
+  /// In en, this message translates to:
+  /// **'sounded like {phoneme}'**
+  String practiceHeardInstead(String phoneme);
+
+  /// Moves practice on to the next prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Next sentence'**
+  String get practiceNextSentence;
+
+  /// Records another attempt at the same sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get practiceTryAgain;
 }
 
 class _AppLocalizationsDelegate

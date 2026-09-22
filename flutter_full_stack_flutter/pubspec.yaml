@@ -30,10 +30,16 @@ dependencies:
     path: ../flutter_full_stack_client
   flutter_localizations:
     sdk: flutter
+  # Roda o modelo acustico de fonemas no device. Suporta Swift Package Manager,
+  # que e o que este repo usa: ios/ nao tem Podfile. Exige iOS 16+.
+  flutter_onnxruntime: ^1.8.0
   flutter_riverpod: ^3.4.3
   go_router: ^18.0.1
   google_fonts: ^8.2.1
   intl: ^0.20.3
+  path_provider: ^2.1.5
+  # Captura do microfone em PCM 16 kHz, que e o que o modelo espera.
+  record: ^6.1.2
   riverpod_annotation: ^4.0.7
   serverpod_auth_idp_flutter: 4.0.0-rc.2
   serverpod_flutter: 4.0.0-rc.2
@@ -79,6 +85,9 @@ flutter:
   # https://flutter.dev/assets-and-images/#from-packages
   assets:
     - assets/config.json
+    # Fonemas de cada exercicio, resolvidos no build por
+    # scorer/tool/build_lexicon.py - o device nao roda G2P.
+    - assets/lexicons/
     # Inter, bundled so the app never fetches a font at runtime. The files are
     # named the way the Google Fonts API names them, which is how google_fonts
     # finds them - do not rename them. See docs/theming.md.
