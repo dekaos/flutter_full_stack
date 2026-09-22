@@ -1,0 +1,28 @@
+{
+  "lang": "en",
+  "exercises": [
+    { "id": "en-w01", "kind": "word", "text": "think" },
+    { "id": "en-w02", "kind": "word", "text": "three" },
+    { "id": "en-w03", "kind": "word", "text": "weather" },
+    { "id": "en-w04", "kind": "word", "text": "this" },
+    { "id": "en-w05", "kind": "word", "text": "ship" },
+    { "id": "en-w06", "kind": "word", "text": "sheep" },
+    { "id": "en-w07", "kind": "word", "text": "big" },
+    { "id": "en-w08", "kind": "word", "text": "hat" },
+    { "id": "en-w09", "kind": "word", "text": "very" },
+    { "id": "en-w10", "kind": "word", "text": "world" },
+    { "id": "en-w11", "kind": "word", "text": "beach" },
+    { "id": "en-w12", "kind": "word", "text": "hungry" },
+
+    { "id": "en-p01", "kind": "phrase", "text": "The weather is beautiful today" },
+    { "id": "en-p02", "kind": "phrase", "text": "She thought about three things" },
+    { "id": "en-p03", "kind": "phrase", "text": "I would like a cup of coffee please" },
+    { "id": "en-p04", "kind": "phrase", "text": "He lives in a big house near the beach" },
+    { "id": "en-p05", "kind": "phrase", "text": "They were watching the birds this morning" },
+    { "id": "en-p06", "kind": "phrase", "text": "My brother works at a small hotel" },
+    { "id": "en-p07", "kind": "phrase", "text": "Can you help me with this problem" },
+    { "id": "en-p08", "kind": "phrase", "text": "The red car stopped at the traffic light" },
+    { "id": "en-p09", "kind": "phrase", "text": "I think this is the third time" },
+    { "id": "en-p10", "kind": "phrase", "text": "She wants to travel around the world" }
+  ]
+}

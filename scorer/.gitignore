@@ -1,0 +1,12 @@
+# Modelos exportados: 317 MB por idioma em int8, 1,26 GB em fp32. Sao
+# reproduzidos por tool/export_onnx.py e publicados no host do pacote de
+# idioma, nunca versionados.
+build/
+
+# Corpus publico baixado por tool/fetch_corpus.sh (~1 GB extraido). E dado de
+# terceiro, reproduzivel pelo script, e nao pertence ao historico do repo.
+corpus/
+
+.venv/
+__pycache__/
+*.pyc
