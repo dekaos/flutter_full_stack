@@ -53,8 +53,13 @@ by [scorer/tool/export_onnx.py](../scorer/tool/export_onnx.py):
   (`OnnxPhonemeModel.normalise` and `logSoftmax`), matching what
   `Wav2Vec2FeatureExtractor` does with `do_normalize`.
 
-The cost of the quantisation, measured in English only: the native sample
-scores 84.3 in fp32 and 83.4 in int8. See the numbers in the scorer README.
+The cost of the quantisation, on the four samples in `scorer/audio/` with the
+calibration the app uses: up to 2.0 points on the overall score and **6.6 on a
+single word** (Spanish "en", native voice). int8 is systematically kinder to
+poor speech. This is over the 1.5-point limit `check_int8.py` enforces, so
+**`r2` fails its own parity check.** The per-sample table, and a per-channel
+quantisation that fixes Spanish but not accented English, are in the scorer
+README under *Paridade fp32 × int8*.
 
 ## The contract between model, lexicon and calibration
 
@@ -82,8 +87,9 @@ another quantisation, a fix to the export — is a new model:
 1. Change `MODELS` / `UPSTREAM_REVISIONS` if the source changes, and **bump
    `MODEL_REVISION`** in `acoustic.py` (`r2` → `r3`) in every case.
 2. `python tool/export_onnx.py <lang>` — writes `build/phoneme_<lang>_r3.int8.onnx`.
-3. `python tool/check_int8.py` — int8 against fp32. It only covers English
-   today (`LANG = "en"`).
+3. `python tool/check_int8.py` — int8 against fp32 in both languages, with
+   the shipped calibration; fails above 1.5 points on any word or the overall
+   score.
 4. `python tool/calibrate.py <lang> ...` — refits `calibration/<lang>.json`.
    The corpora and flags are in the scorer README.
 5. `python tool/build_lexicon.py exercises/<lang>.json > ../flutter_full_stack_flutter/assets/lexicons/<lang>.json`
@@ -154,8 +160,10 @@ licence is not an engineering call.
 - **Agreement with human raters has been measured once, in English, on
   Mandarin speakers**: Pearson 0.54 at sentence level, zero-shot. Nothing has
   been measured on Brazilian learners, and nothing at all in Spanish.
-- **The Spanish int8 export has never been checked against fp32**, because
-  `check_int8.py` only runs English.
+- **The int8 packs move scores more than the parity check allows**: up to 6.6
+  points on a word, and on the samples the overall score of native Spanish
+  crosses 80 and changes colour, and one diagnosed phoneme changes in accented
+  English. Measured on four synthetic samples only.
 - **The regression head** that reaches Pearson 0.675 is not in the app. It was
   trained on Mandarin speakers.
 

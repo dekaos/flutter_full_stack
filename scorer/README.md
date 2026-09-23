@@ -37,7 +37,7 @@ uv sync --group export
 .venv/bin/python tool/build_lexicon.py exercises/en.json \
   > ../flutter_full_stack_flutter/assets/lexicons/en.json
 
-# paridade: o int8 não pode mover o score
+# paridade: o int8 não pode mover o score (en e es; falha acima de 1,5 ponto)
 .venv/bin/python tool/check_int8.py
 
 # fixture que trava o alinhador Dart no resultado do torchaudio
@@ -46,14 +46,37 @@ uv sync --group export
 
 ## Números medidos
 
-| | fp32 | int8 |
+| | fp32 | int8 (`r2`) |
 |---|---|---|
-| voz nativa (en) | 84.3 | 83.4 |
-| voz pt-br lendo em inglês | 13.0 | 12.7 |
-
-Esses dois são com o fallback chutado, para comparar fp32 com int8. Com a
-calibração medida os valores são outros — ver **Resultado medido**.
 | tamanho do modelo | 1264 MB | 355 MB |
+
+### Paridade fp32 × int8
+
+Com a calibração que o app usa, nas quatro amostras de `audio/`
+(`tool/check_int8.py`):
+
+| amostra | fp32 | int8 | desvio geral | maior desvio numa palavra |
+|---|---|---|---|---|
+| en, voz nativa | 88,6 | 88,5 | 0,1 | 0,9 |
+| en, voz pt-br | 36,4 | 38,4 | 2,0 | 3,1 |
+| es, voz nativa | 79,3 | 81,0 | 1,7 | **6,6** ("en") |
+| es, voz pt-br | 53,7 | 54,1 | 0,4 | 3,2 |
+
+**O `r2` não passa no limite de 1,5 ponto.** O int8 é sistematicamente mais
+generoso com fala ruim — toda palavra com sotaque sobe —, e o que o aluno vê
+muda em dois pontos: a nota geral do espanhol nativo cruza os 80 e troca de
+cor, e em "weather" com sotaque o fonema diagnosticado passa de /ɛ/ para /ɚ/.
+
+A medida anterior, 84,3 contra 83,4, usava o fallback chutado, uma curva mais
+plana que esconde a diferença, e só em inglês. Por isso parecia resolvido.
+
+Quantização **por canal** (`per_channel=True`, mesmo grafo, +1 MB) foi testada
+fora do repositório e não foi aplicada: leva o espanhol a 0,9 ponto no pior
+caso e 0,4 na nota geral, sem troca de cor, mas deixa o inglês com sotaque em
+3,1 e 1,6, e a troca /ɛ/ → /ɚ/ continua. Aplicar é trocar o modelo (`r3`, ver
+docs/pronunciation-models.md) e exige conferir no aparelho que o ONNX Runtime
+1.23 do app roda o grafo por canal. Quatro amostras sintéticas são indício, não
+conclusão.
 
 A nota **é** a pronúncia. A fluência é calculada e exibida ao lado, mas fora
 da nota: ela só perde ponto por pausa longa ou ritmo fora da faixa, então
@@ -62,9 +85,17 @@ leitura de 45 em 57. E os insumos dela são as durações do alinhamento — que
 *forçado*, ou seja, encaixa todo fonema canônico em algum lugar por pior que
 tenha saído. O ritmo parece plausível exatamente quando a pronúncia não é.
 
-Os áudios de `audio/` são sintetizados com espeak-ng (voz `en-us` como
-pronúncia canônica, voz `pt-br` lendo o texto em inglês como proxy de sotaque).
-Servem de smoke test, **não** de calibração.
+Os áudios de `audio/` são sintetizados com espeak-ng 1.52 a 150 palavras por
+minuto: a voz do idioma como pronúncia canônica, a voz `pt-br` lendo o mesmo
+texto como proxy de sotaque. Servem de smoke test, **não** de calibração.
+Reproduzem byte a byte com:
+
+```bash
+espeak-ng -v en-us -s 150 -w audio/en_ok.wav "The weather is beautiful today"
+espeak-ng -v pt-br -s 150 -w audio/en_br.wav "The weather is beautiful today"
+espeak-ng -v es-419 -s 150 -w audio/es_ok.wav "El desayuno está en la mesa"
+espeak-ng -v pt-br -s 150 -w audio/es_br.wav "El desayuno está en la mesa"
+```
 
 ## Calibração
 
@@ -270,7 +301,8 @@ outro, em troca de 0,02.
   `ConvInteger`, cujo kernel do onnxruntime não aceita peso int8: o app morre
   ao abrir a sessão com "Could not find an implementation for ConvInteger".
   Só os `MatMul` são quantizados. Custa 38 MB e *melhora* a paridade (a perda
-  cai de 2,6 para 0,7 ponto), porque o extrator de features é a parte mais
+  cai de 2,6 para 0,7 ponto, medida com o fallback na voz nativa em inglês;
+  com a calibração real ver **Paridade fp32 × int8**), porque o extrator de features é a parte mais
   sensível. `tool/export_onnx.py` falha se `ConvInteger` sobrar no grafo.
 
 - **Weight norm.** A conv posicional do wav2vec2 calcula o peso em runtime, e o
