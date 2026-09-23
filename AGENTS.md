@@ -17,6 +17,14 @@ A Melos monorepo backed by a native Dart workspace. Three packages, one
 Data flows one way: you write server models and endpoints, run the generator,
 and the client package plus the app's typed API appear from that.
 
+`scorer/` sits outside the workspace: a Python (`uv`) toolchain for
+pronunciation practice that never runs in production. It exports the acoustic
+models the app downloads and builds `assets/lexicons/*.json`, which are
+generated too — edit `scorer/exercises/<lang>.json` and rebuild, never the
+lexicon. Which models those are, their pinned revisions, licences and the
+checklist for changing one are in
+[docs/pronunciation-models.md](docs/pronunciation-models.md).
+
 The app's own shape — MVVM, which folder holds which role, and how a controller
 reaches the backend — is drawn out in
 [docs/flutter-architecture.md](docs/flutter-architecture.md).
@@ -107,9 +115,11 @@ back to per-process in every run mode. See [docs/caching.md](docs/caching.md).
 - `flutter_full_stack_server/test/integration/test_tools/serverpod_test_tools.dart`
 - `flutter_full_stack_client/lib/src/protocol/**`
 - every `*.g.dart` in `flutter_full_stack_flutter`
+- `flutter_full_stack_flutter/assets/lexicons/*.json`, built by
+  `scorer/tool/build_lexicon.py` — not by `melos run generate`
 
-Change the *source* instead: a `.spy.yaml` model, an endpoint class, or a
-`@riverpod` annotation.
+Change the *source* instead: a `.spy.yaml` model, an endpoint class, a
+`@riverpod` annotation, or a prompt in `scorer/exercises/<lang>.json`.
 
 **Always use `melos run generate`, never `serverpod generate` on its own.**
 Both generators emit code that `dart format` rejects on this language version,

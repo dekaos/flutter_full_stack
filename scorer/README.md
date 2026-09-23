@@ -16,7 +16,10 @@ A margem é o que vira feedback útil: não "68 pontos", e sim "você disse /t/ 
 era /ð/".
 
 Modelo acústico: wav2vec2 CTC com saída em IPA, um por idioma —
-`facebook/wav2vec2-lv-60-espeak-cv-ft` (en) e `-xlsr-53-` (es).
+`facebook/wav2vec2-lv-60-espeak-cv-ft` (en) e
+`facebook/wav2vec2-xlsr-53-espeak-cv-ft` (es), com o commit fixado em
+`UPSTREAM_REVISIONS`. Origem, licenças, hashes dos arquivos publicados e o que
+refazer ao trocar um modelo: [docs/pronunciation-models.md](../docs/pronunciation-models.md).
 
 ## Uso
 
