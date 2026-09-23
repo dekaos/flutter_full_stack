@@ -150,4 +150,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get practiceTryAgain => 'Try again';
+
+  @override
+  String get practiceUnavailable => 'Practice could not open.';
+
+  @override
+  String get practiceDownloadFailed =>
+      'The language pack did not download. Check your connection and try again.';
+
+  @override
+  String get practiceRecordFailed =>
+      'The microphone could not start. Try again.';
+
+  @override
+  String get practiceScoreFailed =>
+      'This attempt could not be scored. Record it again.';
 }

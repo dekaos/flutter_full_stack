@@ -25,6 +25,25 @@ enum PracticeStage {
   noMicrophone,
 }
 
+/// What the learner was doing when something went wrong.
+enum PracticeStep { download, record, score }
+
+/// A failed action, carried as the error of the controller's [AsyncValue]
+/// while the deck it happened on stays on screen.
+///
+/// The message the learner sees is chosen by [step], never by [cause]: the
+/// exception is written for whoever reads the log, and "SocketException:
+/// Connection refused" on a phone is not something a learner can act on.
+class PracticeFailure implements Exception {
+  const PracticeFailure(this.step, this.cause);
+
+  final PracticeStep step;
+  final Object cause;
+
+  @override
+  String toString() => '${step.name} failed: $cause';
+}
+
 class PracticeState {
   const PracticeState({
     required this.stage,
@@ -180,7 +199,7 @@ class PracticeController extends _$PracticeController {
     final lexicon = _lexicon;
     if (lexicon == null) return;
     state = AsyncData(_now.copyWith(stage: PracticeStage.downloading));
-    state = await AsyncValue.guard(() async {
+    await _attempt(PracticeStep.download, PracticeStage.needsModel, () async {
       await ref
           .read(modelStoreProvider)
           .ensure(
@@ -197,11 +216,10 @@ class PracticeController extends _$PracticeController {
 
   Future<void> startRecording() async {
     final recorder = ref.read(attemptRecorderProvider);
-    if (!await recorder.hasPermission()) {
-      state = AsyncData(_now.copyWith(stage: PracticeStage.noMicrophone));
-      return;
-    }
-    state = await AsyncValue.guard(() async {
+    await _attempt(PracticeStep.record, PracticeStage.ready, () async {
+      if (!await recorder.hasPermission()) {
+        return _now.copyWith(stage: PracticeStage.noMicrophone);
+      }
       await recorder.start();
       return _now.copyWith(stage: PracticeStage.recording, clearResult: true);
     });
@@ -211,7 +229,7 @@ class PracticeController extends _$PracticeController {
     final recorder = ref.read(attemptRecorderProvider);
     final exercise = _now.exercise;
     state = AsyncData(_now.copyWith(stage: PracticeStage.scoring));
-    state = await AsyncValue.guard(() async {
+    await _attempt(PracticeStep.score, PracticeStage.ready, () async {
       final samples = await recorder.stop();
       final engine = await _ensureEngine();
       final started = Stopwatch()..start();
@@ -222,6 +240,28 @@ class PracticeController extends _$PracticeController {
         scoringTime: started.elapsed,
       );
     });
+  }
+
+  /// Runs one action of the learner's. If it fails, the deck stays up with
+  /// the error over it, on [fallback] - a stage the same action can be tried
+  /// again from - instead of the error replacing the page.
+  ///
+  /// The deck survives because Riverpod keeps the previous value when a
+  /// notifier's state becomes an [AsyncError]; setting [fallback] first is
+  /// what makes that previous value one the learner can move on from, rather
+  /// than a spinner stuck on `scoring`.
+  Future<void> _attempt(
+    PracticeStep step,
+    PracticeStage fallback,
+    Future<PracticeState> Function() action,
+  ) async {
+    final outcome = await AsyncValue.guard(action);
+    if (outcome case AsyncError(:final error, :final stackTrace)) {
+      state = AsyncData(_now.copyWith(stage: fallback));
+      state = AsyncError(PracticeFailure(step, error), stackTrace);
+    } else {
+      state = outcome;
+    }
   }
 
   Future<PronunciationEngine> _ensureEngine() async {

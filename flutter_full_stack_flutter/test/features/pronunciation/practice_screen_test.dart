@@ -18,6 +18,11 @@ class _StubPracticeController extends PracticeController {
 
   @override
   FutureOr<PracticeState> build(String lang) => value;
+
+  /// What the real controller does when an action fails: the error goes on
+  /// top of the value it happened to, which Riverpod keeps.
+  void fail(PracticeFailure failure) =>
+      state = AsyncError(failure, StackTrace.empty);
 }
 
 const _exercise = Exercise(
@@ -143,6 +148,43 @@ void main() {
     expect(find.textContaining('diagnostic only'), findsOneWidget);
     // The number alone is not feedback; naming the substitution is.
     expect(find.textContaining('sounded like /t/'), findsOneWidget);
+  });
+
+  testWidgets('a failed attempt keeps the deck and says what to do', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const PracticeState(
+          stage: PracticeStage.ready,
+          kind: ExerciseKind.phrase,
+          items: [_exercise],
+          index: 0,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PracticeScreen)),
+    );
+    (container.read(
+      practiceControllerProvider('en').notifier,
+    ) as _StubPracticeController).fail(
+      PracticeFailure(
+        PracticeStep.score,
+        ArgumentError('audio too short: 3 frames for 5 tokens'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('This attempt could not be scored. Record it again.'),
+      findsOneWidget,
+    );
+    // The prompt and the way to try again are both still there.
+    expect(find.text('The weather is beautiful today'), findsOneWidget);
+    expect(find.byKey(const Key('practice-record')), findsOneWidget);
   });
 
   testWidgets('the deck says which prompt of how many is up', (tester) async {

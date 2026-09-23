@@ -205,5 +205,25 @@
   "practiceTryAgain": "Try again",
   "@practiceTryAgain": {
     "description": "Records another attempt at the same sentence."
+  },
+
+  "practiceUnavailable": "Practice could not open.",
+  "@practiceUnavailable": {
+    "description": "Shown when the practice screen could not load at all."
+  },
+
+  "practiceDownloadFailed": "The language pack did not download. Check your connection and try again.",
+  "@practiceDownloadFailed": {
+    "description": "Shown when fetching the acoustic model failed."
+  },
+
+  "practiceRecordFailed": "The microphone could not start. Try again.",
+  "@practiceRecordFailed": {
+    "description": "Shown when recording could not begin."
+  },
+
+  "practiceScoreFailed": "This attempt could not be scored. Record it again.",
+  "@practiceScoreFailed": {
+    "description": "Shown when a recording was made but could not be scored."
   }
 }

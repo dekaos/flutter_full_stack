@@ -39,13 +39,25 @@ class PracticeScreen extends ConsumerWidget {
                 RiseIn(child: _Headline(l10n: l10n)),
                 const SizedBox(height: 32),
                 switch (state) {
-                  AsyncData(:final value) => RiseIn(
+                  // A failed action keeps its deck: the error travels beside
+                  // the value, so the learner can simply try again.
+                  AsyncValue(:final value?) => RiseIn(
                     delay: const Duration(milliseconds: 90),
-                    child: _Practice(lang: lang, state: value),
+                    child: _Practice(
+                      lang: lang,
+                      state: value,
+                      failure: state.error,
+                    ),
                   ),
                   AsyncError(:final error) => RiseIn(
                     delay: const Duration(milliseconds: 90),
-                    child: _Failure(message: '$error'),
+                    child: _Failure(
+                      message: l10n.practiceUnavailable,
+                      detail: error,
+                      actionLabel: l10n.practiceTryAgain,
+                      onAction: () =>
+                          ref.invalidate(practiceControllerProvider(lang)),
+                    ),
                   ),
                   _ => const Center(child: CircularProgressIndicator()),
                 },
@@ -84,10 +96,13 @@ class _Headline extends StatelessWidget {
 
 /// The deck, the control that fits the current stage, and the last score.
 class _Practice extends ConsumerStatefulWidget {
-  const _Practice({required this.lang, required this.state});
+  const _Practice({required this.lang, required this.state, this.failure});
 
   final String lang;
   final PracticeState state;
+
+  /// Why the last action did not go through, if it did not.
+  final Object? failure;
 
   @override
   ConsumerState<_Practice> createState() => _PracticeState();
@@ -173,6 +188,10 @@ class _PracticeState extends ConsumerState<_Practice> {
           ),
         ),
         const SizedBox(height: 20),
+        if (widget.failure case final failure?) ...[
+          _Failure(message: failureMessage(l10n, failure), detail: failure),
+          const SizedBox(height: 12),
+        ],
         switch (state.stage) {
           PracticeStage.needsModel => _DownloadPrompt(
             l10n: l10n,
@@ -380,20 +399,63 @@ class _Busy extends StatelessWidget {
   );
 }
 
+/// What to tell the learner about a failed action.
+///
+/// Chosen by what they were doing, not by the exception: "Connection refused"
+/// or "audio too short: 3 frames for 5 tokens" is written for a log, and on a
+/// phone it reads as the app breaking rather than as something to try again.
+String failureMessage(AppLocalizations l10n, Object failure) =>
+    switch (failure) {
+      PracticeFailure(step: PracticeStep.download) =>
+        l10n.practiceDownloadFailed,
+      PracticeFailure(step: PracticeStep.record) => l10n.practiceRecordFailed,
+      _ => l10n.practiceScoreFailed,
+    };
+
 class _Failure extends StatelessWidget {
-  const _Failure({required this.message});
+  const _Failure({
+    required this.message,
+    this.detail,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String message;
+
+  /// The exception itself, shown in debug builds only: it is what whoever is
+  /// chasing the failure needs, and nothing a learner can use.
+  final Object? detail;
+
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GlassSurface(
-      child: Text(
-        message,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.error,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            message,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+          if (kDebugMode && detail != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              '$detail',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
       ),
     );
   }

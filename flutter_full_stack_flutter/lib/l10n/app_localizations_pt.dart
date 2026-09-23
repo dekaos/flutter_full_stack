@@ -150,4 +150,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get practiceTryAgain => 'Tentar de novo';
+
+  @override
+  String get practiceUnavailable => 'A prática não abriu.';
+
+  @override
+  String get practiceDownloadFailed =>
+      'O pacote do idioma não foi baixado. Confira a conexão e tente de novo.';
+
+  @override
+  String get practiceRecordFailed =>
+      'Não deu para começar a gravar. Tente de novo.';
+
+  @override
+  String get practiceScoreFailed =>
+      'Não deu para avaliar essa tentativa. Grave de novo.';
 }

@@ -39,5 +39,9 @@
   "practiceRhythmDetail": "{rate} fonemas por segundo, {pauses, plural, =0{sem pausas} =1{1 pausa} other{{pauses} pausas}}",
   "practiceHeardInstead": "soou como {phoneme}",
   "practiceNextSentence": "Próxima frase",
-  "practiceTryAgain": "Tentar de novo"
+  "practiceTryAgain": "Tentar de novo",
+  "practiceUnavailable": "A prática não abriu.",
+  "practiceDownloadFailed": "O pacote do idioma não foi baixado. Confira a conexão e tente de novo.",
+  "practiceRecordFailed": "Não deu para começar a gravar. Tente de novo.",
+  "practiceScoreFailed": "Não deu para avaliar essa tentativa. Grave de novo."
 }

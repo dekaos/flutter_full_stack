@@ -331,6 +331,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get practiceTryAgain;
+
+  /// Shown when the practice screen could not load at all.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice could not open.'**
+  String get practiceUnavailable;
+
+  /// Shown when fetching the acoustic model failed.
+  ///
+  /// In en, this message translates to:
+  /// **'The language pack did not download. Check your connection and try again.'**
+  String get practiceDownloadFailed;
+
+  /// Shown when recording could not begin.
+  ///
+  /// In en, this message translates to:
+  /// **'The microphone could not start. Try again.'**
+  String get practiceRecordFailed;
+
+  /// Shown when a recording was made but could not be scored.
+  ///
+  /// In en, this message translates to:
+  /// **'This attempt could not be scored. Record it again.'**
+  String get practiceScoreFailed;
 }
 
 class _AppLocalizationsDelegate
