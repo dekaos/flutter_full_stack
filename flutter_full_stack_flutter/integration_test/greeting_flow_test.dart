@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/app/app.dart';
+import 'package:flutter_full_stack_flutter/app/router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -25,10 +26,20 @@ void main() {
   testWidgets('sending a name renders the greeting built by the server', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: App()));
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const App()),
+    );
 
     // serverpodClientProvider resolves the server URL and initializes auth
     // before the first usable frame.
+    await tester.pumpAndSettle();
+
+    // The app now opens on pronunciation practice, which never touches the
+    // server. Navigate to the demo this suite exists to protect, through the
+    // real router rather than a test-only entry point.
+    container.read(routerProvider).go('/greetings');
     await tester.pumpAndSettle();
 
     // The empty state is the absence of a response card, not a card saying

@@ -17,6 +17,14 @@ A Melos monorepo backed by a native Dart workspace. Three packages, one
 Data flows one way: you write server models and endpoints, run the generator,
 and the client package plus the app's typed API appear from that.
 
+`scorer/` sits outside the workspace: a Python (`uv`) toolchain for
+pronunciation practice that never runs in production. It exports the acoustic
+models the app downloads and builds `assets/lexicons/*.json`, which are
+generated too — edit `scorer/exercises/<lang>.json` and rebuild, never the
+lexicon. Which models those are, their pinned revisions, licences and the
+checklist for changing one are in
+[docs/pronunciation-models.md](docs/pronunciation-models.md).
+
 The app's own shape — MVVM, which folder holds which role, and how a controller
 reaches the backend — is drawn out in
 [docs/flutter-architecture.md](docs/flutter-architecture.md).
@@ -107,9 +115,11 @@ back to per-process in every run mode. See [docs/caching.md](docs/caching.md).
 - `flutter_full_stack_server/test/integration/test_tools/serverpod_test_tools.dart`
 - `flutter_full_stack_client/lib/src/protocol/**`
 - every `*.g.dart` in `flutter_full_stack_flutter`
+- `flutter_full_stack_flutter/assets/lexicons/*.json`, built by
+  `scorer/tool/build_lexicon.py` — not by `melos run generate`
 
-Change the *source* instead: a `.spy.yaml` model, an endpoint class, or a
-`@riverpod` annotation.
+Change the *source* instead: a `.spy.yaml` model, an endpoint class, a
+`@riverpod` annotation, or a prompt in `scorer/exercises/<lang>.json`.
 
 **Always use `melos run generate`, never `serverpod generate` on its own.**
 Both generators emit code that `dart format` rejects on this language version,
@@ -140,13 +150,34 @@ follows `JAVA_HOME` instead, so an older one there makes only the IDE's Gradle
 sync fail, with "Gradle requires JVM 17 or later" in the Problems panel while
 every command line build succeeds.
 
-**iOS has no CocoaPods.** Every plugin the app pulls in ships a Swift Package,
-so `ios/` has no `Podfile` and the `Flutter/*.xcconfig` files no longer include
-the `Pods-Runner` configs. Xcode resolves the native dependencies itself and
-the versions are pinned in the two `swiftpm/Package.resolved` files. If you add
-a plugin that has no Swift Package, the iOS build will fail asking for
-CocoaPods: restore it with `pod init` in `ios/` plus the two `#include?` lines,
-or pick a plugin that supports SwiftPM.
+**iOS is back on CocoaPods, and that was a trade.** The repo used to have no
+`Podfile` at all: every plugin shipped a Swift Package, Xcode resolved the
+native dependencies itself, and the versions were pinned in the two
+`swiftpm/Package.resolved` files. Pronunciation practice needs microphone
+capture, `record` has no Swift Package, and the iOS build fails asking for
+CocoaPods — so `ios/` has a `Podfile` again and the `Flutter/*.xcconfig` files
+carry the two `#include?` lines back.
+
+What that costs: `pod install` is part of an iOS build again, and plugin
+versions are pinned in `Podfile.lock` as well as in `Package.resolved`. Prefer
+a SwiftPM-capable plugin where one exists — `flutter_onnxruntime`, which runs
+the acoustic model, was chosen partly for that — and revisit this if `record`
+ever ships a Swift Package.
+
+**iOS deploys to 16.0 or later.** `flutter_onnxruntime` links ONNX Runtime
+statically and requires it. Below that the build fails in Xcode rather than at
+runtime.
+
+**Downloaded language packs stay out of backups, on both platforms.** They sit
+in `getApplicationSupportDirectory()/pronunciation_models`, which is backed up
+by default. On iOS that is 355 MB per language in the learner's iCloud and a
+review rejection under Apple's data storage guidelines, so `ModelStore` marks
+the folder and each pack through `BackupExclusion`. On Android, Auto Backup's
+quota is 25 MB per app, and going over it stops *all* of the app's data from
+being backed up, so the folder is excluded in
+`android/app/src/main/res/xml/data_extraction_rules.xml` (Android 12+) and
+`backup_rules.xml` (11 and below). Anything else large and re-downloadable goes
+in that folder or gets its own entry in both files.
 
 **A Serverpod server that cannot bind its ports does not exit.** It logs
 `Failed to start the Serverpod servers`, then stays alive serving nothing, and

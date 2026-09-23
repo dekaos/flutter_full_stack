@@ -23,6 +23,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
   Color get auroraThree;
   Color get wellFill;
   Color get wellBorder;
+  Color get scoreStrong;
+  Color get scoreFair;
+  Color get scoreWeak;
 
   @override
   AppTokens copyWith({
@@ -39,6 +42,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
     Color? auroraThree,
     Color? wellFill,
     Color? wellBorder,
+    Color? scoreStrong,
+    Color? scoreFair,
+    Color? scoreWeak,
   }) {
     return AppTokens(
       backdropTop: backdropTop ?? this.backdropTop,
@@ -54,6 +60,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       auroraThree: auroraThree ?? this.auroraThree,
       wellFill: wellFill ?? this.wellFill,
       wellBorder: wellBorder ?? this.wellBorder,
+      scoreStrong: scoreStrong ?? this.scoreStrong,
+      scoreFair: scoreFair ?? this.scoreFair,
+      scoreWeak: scoreWeak ?? this.scoreWeak,
     );
   }
 
@@ -74,6 +83,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       auroraThree: Color.lerp(auroraThree, other.auroraThree, t)!,
       wellFill: Color.lerp(wellFill, other.wellFill, t)!,
       wellBorder: Color.lerp(wellBorder, other.wellBorder, t)!,
+      scoreStrong: Color.lerp(scoreStrong, other.scoreStrong, t)!,
+      scoreFair: Color.lerp(scoreFair, other.scoreFair, t)!,
+      scoreWeak: Color.lerp(scoreWeak, other.scoreWeak, t)!,
     );
   }
 
@@ -118,7 +130,13 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
             const DeepCollectionEquality().equals(
               wellBorder,
               other.wellBorder,
-            ));
+            ) &&
+            const DeepCollectionEquality().equals(
+              scoreStrong,
+              other.scoreStrong,
+            ) &&
+            const DeepCollectionEquality().equals(scoreFair, other.scoreFair) &&
+            const DeepCollectionEquality().equals(scoreWeak, other.scoreWeak));
   }
 
   @override
@@ -138,6 +156,9 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       const DeepCollectionEquality().hash(auroraThree),
       const DeepCollectionEquality().hash(wellFill),
       const DeepCollectionEquality().hash(wellBorder),
+      const DeepCollectionEquality().hash(scoreStrong),
+      const DeepCollectionEquality().hash(scoreFair),
+      const DeepCollectionEquality().hash(scoreWeak),
     );
   }
 }

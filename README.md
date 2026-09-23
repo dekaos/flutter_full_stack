@@ -158,6 +158,11 @@ the access token once and retries that same call before surfacing an error.
 It is a native Dart workspace: a single `pubspec.lock` at the root, and one
 `dart pub get` there resolves all three packages together.
 
+Beside them, outside the workspace, [`scorer/`](scorer) is a Python toolchain
+for pronunciation practice, which is what the app opens on. It never runs in
+production: it exports the acoustic models the app downloads, and builds the
+lexicons and calibration curves the app bundles.
+
 ## Requirements
 
 - Flutter **3.47.2** (bundles Dart 3.13.2) — the version CI runs
@@ -305,5 +310,7 @@ it produces — a dirty `git status` afterwards means the pipeline will fail.
   **[docs/theming.md](docs/theming.md)**
 - How translation works, and how to add a string or a language:
   **[docs/i18n.md](docs/i18n.md)**
+- Which pronunciation models the app runs, their licences, and what has to
+  change together when one does: **[docs/pronunciation-models.md](docs/pronunciation-models.md)**
 - [Serverpod documentation](https://docs.serverpod.dev)
 - [Riverpod documentation](https://riverpod.dev)

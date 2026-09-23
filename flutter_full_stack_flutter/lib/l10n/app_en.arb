@@ -74,5 +74,176 @@
   "languagePortuguese": "Português",
   "@languagePortuguese": {
     "description": "Name of the Portuguese locale, in that language."
+  },
+
+  "languageSpanish": "Español",
+  "@languageSpanish": {
+    "description": "Name of the Spanish language, in that language."
+  },
+
+  "pickLanguageHeadline": "What are you practising?",
+  "@pickLanguageHeadline": {
+    "description": "Main heading on the language chooser."
+  },
+
+  "pickLanguageTagline": "Each language has its own pack. Once it is on the device, practice works offline.",
+  "@pickLanguageTagline": {
+    "description": "Sentence under the chooser heading."
+  },
+
+  "packReady": "On this device",
+  "@packReady": {
+    "description": "Shown on a language whose pack is already downloaded."
+  },
+
+  "packMissing": "{megabytes} MB to download",
+  "@packMissing": {
+    "description": "Shown on a language whose pack still has to be fetched.",
+    "placeholders": { "megabytes": { "type": "int" } }
+  },
+
+  "practiceWords": "Words",
+  "@practiceWords": {
+    "description": "Tab for the single-word prompts."
+  },
+
+  "practicePhrases": "Phrases",
+  "@practicePhrases": {
+    "description": "Tab for the full-sentence prompts."
+  },
+
+  "practicePosition": "{current} of {total}",
+  "@practicePosition": {
+    "description": "Which prompt of the deck is on screen.",
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "practiceHeadline": "Read it out loud.",
+  "@practiceHeadline": {
+    "description": "Main heading on the pronunciation practice screen."
+  },
+
+  "practiceTagline": "Your pronunciation is scored on this device. Nothing is uploaded.",
+  "@practiceTagline": {
+    "description": "Sentence under the heading, explaining that scoring is local."
+  },
+
+  "practiceDownloadPack": "Download the language pack",
+  "@practiceDownloadPack": {
+    "description": "Button that fetches the acoustic model for a language."
+  },
+
+  "practiceDownloadExplainer": "About {megabytes} MB, once. After that, practice works with no connection.",
+  "@practiceDownloadExplainer": {
+    "description": "Explains the size and the one-off nature of the download.",
+    "placeholders": { "megabytes": { "type": "int" } }
+  },
+
+  "practiceDownloading": "Downloading the language pack",
+  "@practiceDownloading": {
+    "description": "Shown while the model is being fetched."
+  },
+
+  "practiceRecord": "Record",
+  "@practiceRecord": {
+    "description": "Button that starts recording the learner reading the sentence."
+  },
+
+  "practiceStop": "Stop",
+  "@practiceStop": {
+    "description": "Button that ends the recording and scores it."
+  },
+
+  "practiceScoring": "Scoring",
+  "@practiceScoring": {
+    "description": "Shown while the recording is being scored."
+  },
+
+  "practiceNoMicrophone": "Practice needs the microphone. Turn it on in settings.",
+  "@practiceNoMicrophone": {
+    "description": "Shown when microphone permission was refused."
+  },
+
+  "practiceAccuracy": "Pronunciation",
+  "@practiceAccuracy": {
+    "description": "Caption for the phoneme accuracy part of the score."
+  },
+
+  "practiceFluency": "Fluency",
+  "@practiceFluency": {
+    "description": "Caption for the rhythm and pausing measure, reported beside the score."
+  },
+
+  "practiceFluencyDiagnostic": "diagnostic only",
+  "@practiceFluencyDiagnostic": {
+    "description": "Says the fluency number does not count towards the score."
+  },
+
+  "practiceRhythmDetail": "{rate} phonemes per second, {pauses, plural, =0{no pauses} =1{1 pause} other{{pauses} pauses}}",
+  "@practiceRhythmDetail": {
+    "description": "The raw rhythm measurements behind the fluency number.",
+    "placeholders": {
+      "rate": { "type": "String" },
+      "pauses": { "type": "int" }
+    }
+  },
+
+  "practiceHeardInstead": "sounded like {phoneme}",
+  "@practiceHeardInstead": {
+    "description": "Names the phoneme the model heard in place of the right one.",
+    "placeholders": { "phoneme": { "type": "String" } }
+  },
+
+  "practiceNextSentence": "Next sentence",
+  "@practiceNextSentence": {
+    "description": "Moves practice on to the next prompt."
+  },
+
+  "practiceTryAgain": "Try again",
+  "@practiceTryAgain": {
+    "description": "Records another attempt at the same sentence."
+  },
+
+  "practiceUnavailable": "Practice could not open.",
+  "@practiceUnavailable": {
+    "description": "Shown when the practice screen could not load at all."
+  },
+
+  "practiceDownloadFailed": "The language pack did not download. Check your connection and try again.",
+  "@practiceDownloadFailed": {
+    "description": "Shown when fetching the acoustic model failed."
+  },
+
+  "practiceRecordFailed": "The microphone could not start. Try again.",
+  "@practiceRecordFailed": {
+    "description": "Shown when recording could not begin."
+  },
+
+  "practiceScoreFailed": "This attempt could not be scored. Record it again.",
+  "@practiceScoreFailed": {
+    "description": "Shown when a recording was made but could not be scored."
+  },
+
+  "practiceTooShort": "That was too short. Tap Stop once you have finished reading.",
+  "@practiceTooShort": {
+    "description": "Shown when a recording holds too little audio to score."
+  },
+
+  "practiceNotHeard": "We could not hear you read it. Read the whole text, close to the microphone.",
+  "@practiceNotHeard": {
+    "description": "Shown when a recording holds no speech, or only a fragment of the prompt."
+  },
+
+  "practiceOpenSettings": "Open settings",
+  "@practiceOpenSettings": {
+    "description": "Button that opens the app's page in the system settings, where the microphone can be allowed."
+  },
+
+  "licensesTooltip": "Licenses",
+  "@licensesTooltip": {
+    "description": "Tooltip of the app bar button that opens the licences page, including the pronunciation models'."
   }
 }
