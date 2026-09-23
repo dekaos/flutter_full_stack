@@ -373,6 +373,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open settings'**
   String get practiceOpenSettings;
+
+  /// Tooltip of the app bar button that opens the licences page, including the pronunciation models'.
+  ///
+  /// In en, this message translates to:
+  /// **'Licenses'**
+  String get licensesTooltip;
 }
 
 class _AppLocalizationsDelegate

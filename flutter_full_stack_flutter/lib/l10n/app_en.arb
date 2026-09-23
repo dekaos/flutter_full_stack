@@ -240,5 +240,10 @@
   "practiceOpenSettings": "Open settings",
   "@practiceOpenSettings": {
     "description": "Button that opens the app's page in the system settings, where the microphone can be allowed."
+  },
+
+  "licensesTooltip": "Licenses",
+  "@licensesTooltip": {
+    "description": "Tooltip of the app bar button that opens the licences page, including the pronunciation models'."
   }
 }

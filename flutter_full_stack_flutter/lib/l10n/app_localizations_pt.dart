@@ -176,4 +176,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get practiceOpenSettings => 'Abrir configurações';
+
+  @override
+  String get licensesTooltip => 'Licenças';
 }

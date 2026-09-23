@@ -4,7 +4,8 @@ import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
 import 'package:flutter_full_stack_flutter/theme/theme_mode_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// The theme and language buttons, on every screen that has an app bar.
+/// The theme, language and licences buttons, on every screen that has an app
+/// bar.
 ///
 /// They are app-level controls, not a feature's: a user who lands somewhere
 /// they cannot read needs the language button on *that* screen, not on the
@@ -36,6 +37,15 @@ class AppBarActions extends ConsumerWidget {
               .cycle(MediaQuery.platformBrightnessOf(context)),
           icon: Icon(_iconFor(mode)),
           tooltip: l10n.themeTooltip(_themeName(l10n, mode)),
+        ),
+        // The licences page is where the attribution the models' Apache-2.0
+        // licence requires is shown. Registered is not enough; it has to be
+        // reachable.
+        IconButton(
+          key: const Key('app-licenses'),
+          onPressed: () => showLicensePage(context: context),
+          icon: const Icon(Icons.info_outline),
+          tooltip: l10n.licensesTooltip,
         ),
       ],
     );
