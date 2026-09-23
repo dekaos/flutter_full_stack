@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_full_stack_flutter/core/app_settings.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/attempt_recorder.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
@@ -119,6 +120,11 @@ AttemptRecorder attemptRecorder(Ref ref) {
   ref.onDispose(recorder.dispose);
   return recorder;
 }
+
+/// The way back from a refused microphone. Overridden in tests, which have no
+/// settings screen to open.
+@Riverpod(keepAlive: true)
+AppSettings appSettings(Ref ref) => const AppSettings();
 
 /// Opens the acoustic model at a path. Overridden in tests, which must never
 /// load 355 MB of weights.
@@ -295,6 +301,22 @@ class PracticeController extends _$PracticeController {
       _limit = Timer(maxRecording, () => unawaited(stopAndScore()));
       return _now.copyWith(stage: PracticeStage.recording, clearResult: true);
     });
+  }
+
+  /// Looks at the microphone permission again, without asking for it.
+  ///
+  /// Called when the app comes back to the foreground, which is how the
+  /// learner returns from the settings page the refusal sent them to. Having
+  /// to leave and reopen practice to see the change would read as the
+  /// setting not having worked.
+  Future<void> recheckMicrophone() async {
+    if (!state.hasValue || _now.stage != PracticeStage.noMicrophone) return;
+    final granted = await ref
+        .read(attemptRecorderProvider)
+        .hasPermission(request: false);
+    if (!ref.mounted || !granted) return;
+    if (_now.stage != PracticeStage.noMicrophone) return;
+    state = AsyncData(_now.copyWith(stage: PracticeStage.ready));
   }
 
   Future<void> stopAndScore() async {

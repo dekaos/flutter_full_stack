@@ -173,4 +173,7 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get practiceNotHeard =>
       'Não deu para ouvir você lendo. Leia o texto inteiro, perto do microfone.';
+
+  @override
+  String get practiceOpenSettings => 'Abrir configurações';
 }

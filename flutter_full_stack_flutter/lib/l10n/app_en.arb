@@ -235,5 +235,10 @@
   "practiceNotHeard": "We could not hear you read it. Read the whole text, close to the microphone.",
   "@practiceNotHeard": {
     "description": "Shown when a recording holds no speech, or only a fragment of the prompt."
+  },
+
+  "practiceOpenSettings": "Open settings",
+  "@practiceOpenSettings": {
+    "description": "Button that opens the app's page in the system settings, where the microphone can be allowed."
   }
 }

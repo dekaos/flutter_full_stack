@@ -18,7 +18,12 @@ class AttemptRecorder {
   final AudioRecorder _recorder;
   String? _path;
 
-  Future<bool> hasPermission() => _recorder.hasPermission();
+  /// Whether the microphone may be used. With [request], asks for it when
+  /// the answer is not settled yet; without, only looks - which is what
+  /// checking again after a visit to settings needs, so that coming back does
+  /// not throw another dialog at the learner.
+  Future<bool> hasPermission({bool request = true}) =>
+      _recorder.hasPermission(request: request);
 
   Future<void> start() async {
     final directory = await getTemporaryDirectory();

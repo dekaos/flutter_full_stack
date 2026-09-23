@@ -122,6 +122,55 @@ final class AttemptRecorderProvider
 
 String _$attemptRecorderHash() => r'84e8fcfe677c68652da629e788f38695d950059b';
 
+/// The way back from a refused microphone. Overridden in tests, which have no
+/// settings screen to open.
+
+@ProviderFor(appSettings)
+final appSettingsProvider = AppSettingsProvider._();
+
+/// The way back from a refused microphone. Overridden in tests, which have no
+/// settings screen to open.
+
+final class AppSettingsProvider
+    extends $FunctionalProvider<AppSettings, AppSettings, AppSettings>
+    with $Provider<AppSettings> {
+  /// The way back from a refused microphone. Overridden in tests, which have no
+  /// settings screen to open.
+  AppSettingsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'appSettingsProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$appSettingsHash();
+
+  @$internal
+  @override
+  $ProviderElement<AppSettings> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  AppSettings create(Ref ref) {
+    return appSettings(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AppSettings value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AppSettings>(value),
+    );
+  }
+}
+
+String _$appSettingsHash() => r'a9ed7b0cf28113656f77712d024b09733a5570d8';
+
 /// Opens the acoustic model at a path. Overridden in tests, which must never
 /// load 355 MB of weights.
 
@@ -353,7 +402,7 @@ final class PracticeControllerProvider
 }
 
 String _$practiceControllerHash() =>
-    r'7d4464755343761a24bed9fc963a4a7faf0059ac';
+    r'5b6a5711675b8622902f6d36203d8c46d0a55907';
 
 /// Drives read-aloud practice for one language.
 ///

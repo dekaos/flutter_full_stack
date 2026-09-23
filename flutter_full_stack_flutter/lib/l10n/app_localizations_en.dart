@@ -173,4 +173,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get practiceNotHeard =>
       'We could not hear you read it. Read the whole text, close to the microphone.';
+
+  @override
+  String get practiceOpenSettings => 'Open settings';
 }

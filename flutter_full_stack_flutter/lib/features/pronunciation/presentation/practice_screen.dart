@@ -114,6 +114,22 @@ class _PracticeState extends ConsumerState<_Practice> {
     initialPage: widget.state.index,
   );
 
+  /// Coming back to the app is how a learner returns from granting the
+  /// microphone in settings, so that is when to look again.
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(
+      onResume: () => unawaited(
+        ref
+            .read(practiceControllerProvider(widget.lang).notifier)
+            .recheckMicrophone(),
+      ),
+    );
+  }
+
   @override
   void didUpdateWidget(_Practice old) {
     super.didUpdateWidget(old);
@@ -126,6 +142,7 @@ class _PracticeState extends ConsumerState<_Practice> {
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     _pages.dispose();
     super.dispose();
   }
@@ -217,8 +234,12 @@ class _PracticeState extends ConsumerState<_Practice> {
             onPressed: () => unawaited(controller.stopAndScore()),
           ),
           PracticeStage.scoring => _Busy(label: l10n.practiceScoring),
+          // A refusal is final as far as the system dialog goes, so the only
+          // way forward is the settings page - and it has to be one tap away.
           PracticeStage.noMicrophone => _Failure(
             message: l10n.practiceNoMicrophone,
+            actionLabel: l10n.practiceOpenSettings,
+            onAction: () => unawaited(ref.read(appSettingsProvider).open()),
           ),
         },
         if (state.result case final result?) ...[

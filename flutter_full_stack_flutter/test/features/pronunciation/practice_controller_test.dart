@@ -16,8 +16,14 @@ class _FakeRecorder implements AttemptRecorder {
   Float32List samples = Float32List(16000);
   bool recording = false;
 
+  /// Every time the permission dialog would have been shown.
+  int requests = 0;
+
   @override
-  Future<bool> hasPermission() async => permitted;
+  Future<bool> hasPermission({bool request = true}) async {
+    if (request) requests++;
+    return permitted;
+  }
 
   @override
   Future<void> start() async => recording = true;
@@ -316,6 +322,46 @@ void main() {
     expect(
       ((after.error! as PracticeFailure).cause as AttemptRejected).reason,
       RejectedBecause.notHeard,
+    );
+  });
+
+  test('granting the microphone in settings is seen on return', () async {
+    recorder.permitted = false;
+    final c = container();
+    final practice = c.read(practiceControllerProvider('en').notifier);
+    await c.read(practiceControllerProvider('en').future);
+
+    await practice.startRecording();
+    expect(
+      c.read(practiceControllerProvider('en')).value?.stage,
+      PracticeStage.noMicrophone,
+    );
+    final asked = recorder.requests;
+
+    // The learner goes to settings, allows the microphone and comes back.
+    recorder.permitted = true;
+    await practice.recheckMicrophone();
+
+    expect(
+      c.read(practiceControllerProvider('en')).value?.stage,
+      PracticeStage.ready,
+    );
+    // Looking is not asking: coming back must not raise another dialog.
+    expect(recorder.requests, asked);
+  });
+
+  test('coming back still refused leaves the way to settings up', () async {
+    recorder.permitted = false;
+    final c = container();
+    final practice = c.read(practiceControllerProvider('en').notifier);
+    await c.read(practiceControllerProvider('en').future);
+
+    await practice.startRecording();
+    await practice.recheckMicrophone();
+
+    expect(
+      c.read(practiceControllerProvider('en')).value?.stage,
+      PracticeStage.noMicrophone,
     );
   });
 }

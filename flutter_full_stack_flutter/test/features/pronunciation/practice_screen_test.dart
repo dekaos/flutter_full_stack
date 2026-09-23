@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_full_stack_flutter/core/app_settings.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
@@ -24,6 +25,18 @@ class _StubPracticeController extends PracticeController {
   /// top of the value it happened to, which Riverpod keeps.
   void fail(PracticeFailure failure) =>
       state = AsyncError(failure, StackTrace.empty);
+
+  int rechecks = 0;
+
+  @override
+  Future<void> recheckMicrophone() async => rechecks++;
+}
+
+class _FakeAppSettings implements AppSettings {
+  int opened = 0;
+
+  @override
+  Future<void> open() async => opened++;
 }
 
 const _exercise = Exercise(
@@ -49,8 +62,9 @@ PhoneScore _phone(String symbol, double score, {String? heard}) => PhoneScore(
   heardInstead: heard,
 );
 
-Widget _app(PracticeState state) => ProviderScope(
+Widget _app(PracticeState state, {AppSettings? settings}) => ProviderScope(
   overrides: [
+    appSettingsProvider.overrideWithValue(settings ?? _FakeAppSettings()),
     // A family override is handed the argument, so the stub stands in for
     // every language rather than only the one the test happens to open.
     practiceControllerProvider.overrideWith2(
@@ -211,6 +225,45 @@ void main() {
       ),
       l10n.practiceTooShort,
     );
+  });
+
+  testWidgets('a refused microphone offers the way to settings', (
+    tester,
+  ) async {
+    final settings = _FakeAppSettings();
+    await tester.pumpWidget(
+      _app(
+        const PracticeState(
+          stage: PracticeStage.noMicrophone,
+          kind: ExerciseKind.phrase,
+          items: [_exercise],
+          index: 0,
+        ),
+        settings: settings,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Open settings'));
+    expect(settings.opened, 1);
+
+    // Back from settings: the screen looks at the permission again.
+    final binding = tester.binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.paused)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PracticeScreen)),
+    );
+    final controller = container.read(
+      practiceControllerProvider('en').notifier,
+    ) as _StubPracticeController;
+    expect(controller.rechecks, 1);
+    expect(binding.lifecycleState, AppLifecycleState.resumed);
   });
 
   testWidgets('the deck says which prompt of how many is up', (tester) async {

@@ -45,5 +45,6 @@
   "practiceRecordFailed": "Não deu para começar a gravar. Tente de novo.",
   "practiceScoreFailed": "Não deu para avaliar essa tentativa. Grave de novo.",
   "practiceTooShort": "Ficou curto demais. Toque em Parar depois de terminar de ler.",
-  "practiceNotHeard": "Não deu para ouvir você lendo. Leia o texto inteiro, perto do microfone."
+  "practiceNotHeard": "Não deu para ouvir você lendo. Leia o texto inteiro, perto do microfone.",
+  "practiceOpenSettings": "Abrir configurações"
 }

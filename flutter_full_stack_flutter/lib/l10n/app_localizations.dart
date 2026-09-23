@@ -367,6 +367,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We could not hear you read it. Read the whole text, close to the microphone.'**
   String get practiceNotHeard;
+
+  /// Button that opens the app's page in the system settings, where the microphone can be allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get practiceOpenSettings;
 }
 
 class _AppLocalizationsDelegate
