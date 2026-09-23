@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12 and later. The language packs (filesDir/pronunciation_models,
+  355 MB each) stay out of the cloud backup: Auto Backup's quota is 25 MB per
+  app, and going over it does not trim the backup - it stops everything of the
+  app from being backed up. They are fetched again in one tap.
+
+  A device-to-device transfer has no quota, so there the packs are left in:
+  moving to a new phone over a cable saves the learner the download.
+
+  Android 11 and earlier read backup_rules.xml instead. Keep the two in step.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="pronunciation_models" />
+    </cloud-backup>
+</data-extraction-rules>

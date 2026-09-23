@@ -158,6 +158,17 @@ ever ships a Swift Package.
 statically and requires it. Below that the build fails in Xcode rather than at
 runtime.
 
+**Downloaded language packs stay out of backups, on both platforms.** They sit
+in `getApplicationSupportDirectory()/pronunciation_models`, which is backed up
+by default. On iOS that is 355 MB per language in the learner's iCloud and a
+review rejection under Apple's data storage guidelines, so `ModelStore` marks
+the folder and each pack through `BackupExclusion`. On Android, Auto Backup's
+quota is 25 MB per app, and going over it stops *all* of the app's data from
+being backed up, so the folder is excluded in
+`android/app/src/main/res/xml/data_extraction_rules.xml` (Android 12+) and
+`backup_rules.xml` (11 and below). Anything else large and re-downloadable goes
+in that folder or gets its own entry in both files.
+
 **A Serverpod server that cannot bind its ports does not exit.** It logs
 `Failed to start the Serverpod servers`, then stays alive serving nothing, and
 in that state it ignores SIGTERM as well — `kill -9` is the only way out. So

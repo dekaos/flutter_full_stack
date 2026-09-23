@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_full_stack_flutter/core/backup_exclusion.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// A download that could not even start.
@@ -61,6 +62,12 @@ class _Download {
 /// the only part of pronunciation practice that touches the network, and only
 /// once per language - scoring itself never does.
 ///
+/// The packs are kept out of the device's backups, see [BackupExclusion]:
+/// they are fetched again in one tap, and 355 MB each is what would push a
+/// learner's iCloud over its free tier - and, on Android, the whole app past
+/// Auto Backup's 25 MB quota, which stops *everything* of the app being
+/// backed up.
+///
 /// A download outlives whoever started it. The learner leaving the practice
 /// screen is not a reason to throw away half a pack, and coming back must join
 /// the download already running: a second one would delete the first one's
@@ -71,6 +78,7 @@ class ModelStore {
     this.baseUrl,
     this.directory,
     this.progressInterval = const Duration(milliseconds: 100),
+    this.backup = const BackupExclusion(),
   });
 
   /// Where the packs are served from. Resolved like the server URL is:
@@ -91,6 +99,10 @@ class ModelStore {
   /// 355 MB pack, which starves the download of the frames it is competing
   /// for and looks exactly like a slow server.
   final Duration progressInterval;
+
+  /// What keeps the packs out of backups. Replaced by tests, which have no
+  /// platform to ask.
+  final BackupExclusion backup;
 
   final _downloads = <String, _Download>{};
   final _changes = StreamController<String>.broadcast();
@@ -126,8 +138,22 @@ class ModelStore {
     final target = directory == null
         ? Directory('${documents.path}/$directoryName')
         : documents;
-    if (!target.existsSync()) await target.create(recursive: true);
+    if (!target.existsSync()) {
+      await target.create(recursive: true);
+      await _keepOutOfBackups(target.path);
+    }
     return target;
+  }
+
+  /// A pack whose flag could not be set is still a good pack. Failing the
+  /// download over it would cost the learner 355 MB again for a problem that
+  /// is not theirs, so the error is reported and the pack kept.
+  Future<void> _keepOutOfBackups(String path) async {
+    try {
+      await backup.exclude(path);
+    } on Object catch (error, stackTrace) {
+      Zone.current.handleUncaughtError(error, stackTrace);
+    }
   }
 
   Future<File> fileFor(String name) async =>
@@ -169,7 +195,12 @@ class ModelStore {
     void Function(DownloadProgress)? onProgress,
   }) async {
     final target = await fileFor(name);
-    if (target.existsSync()) return target;
+    if (target.existsSync()) {
+      // Marked on every open, not only on arrival: a pack fetched by a build
+      // that did not mark it would otherwise stay in the backup for good.
+      await _keepOutOfBackups(target.path);
+      return target;
+    }
 
     // Nothing is awaited between this lookup and the registration below, so
     // two callers cannot both find the slot empty.
@@ -236,6 +267,9 @@ class ModelStore {
       // The throttle would otherwise leave the bar short of the end.
       onProgress(DownloadProgress(received: received, total: total));
       await partial.rename(target.path);
+      // After the rename, not before: the flag belongs to the file that
+      // stays, and the `.part` is gone by now.
+      await _keepOutOfBackups(target.path);
       _changes.add(name);
       return target;
     } on SocketException catch (error) {

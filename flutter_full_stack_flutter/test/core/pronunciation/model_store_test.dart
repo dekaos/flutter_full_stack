@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter_full_stack_flutter/core/backup_exclusion.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,6 +35,21 @@ Future<HttpServer> _server({
     await request.response.close();
   });
   return server;
+}
+
+/// Records what would have been kept out of the backup, and can fail the way
+/// the platform call can.
+class _FakeBackup implements BackupExclusion {
+  _FakeBackup({this.fails = false});
+
+  final bool fails;
+  final excluded = <String>[];
+
+  @override
+  Future<void> exclude(String path) async {
+    if (fails) throw StateError('could not set the flag');
+    excluded.add(path);
+  }
 }
 
 void main() {
@@ -169,5 +185,54 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(changes, ['model.onnx', 'model.onnx']);
+  });
+
+  test('a pack that lands is kept out of the backup', () async {
+    final server = await _server(chunks: 10);
+    addTearDown(() => server.close(force: true));
+    final backup = _FakeBackup();
+    final packs = Directory('${temp.path}/packs');
+    final store = ModelStore(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      directory: packs,
+      backup: backup,
+    );
+
+    final file = await store.ensure('model.onnx');
+
+    // The folder, so anything put there is covered, and the pack itself -
+    // the file that stays, never the `.part` it was written to.
+    expect(backup.excluded, [packs.path, file.path]);
+  });
+
+  test('a pack already on disk is marked too', () async {
+    // Fetched by a build that did not mark it: it must not stay in the
+    // backup for good.
+    File('${temp.path}/model.onnx').writeAsStringSync('kept');
+    final backup = _FakeBackup();
+    final store = ModelStore(directory: temp, backup: backup);
+
+    final file = await store.ensure('model.onnx');
+
+    expect(backup.excluded, [file.path]);
+  });
+
+  test('a flag that cannot be set does not cost the pack', () async {
+    final server = await _server(chunks: 10);
+    addTearDown(() => server.close(force: true));
+    final store = ModelStore(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      directory: temp,
+      backup: _FakeBackup(fails: true),
+    );
+
+    final reported = <Object>[];
+    final file = await runZonedGuarded(
+      () => store.ensure('model.onnx'),
+      (error, _) => reported.add(error),
+    );
+
+    expect(file?.lengthSync(), 10 * 1024);
+    expect(reported.single, isA<StateError>());
   });
 }
