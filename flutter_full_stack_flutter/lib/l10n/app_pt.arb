@@ -43,5 +43,7 @@
   "practiceUnavailable": "A prática não abriu.",
   "practiceDownloadFailed": "O pacote do idioma não foi baixado. Confira a conexão e tente de novo.",
   "practiceRecordFailed": "Não deu para começar a gravar. Tente de novo.",
-  "practiceScoreFailed": "Não deu para avaliar essa tentativa. Grave de novo."
+  "practiceScoreFailed": "Não deu para avaliar essa tentativa. Grave de novo.",
+  "practiceTooShort": "Ficou curto demais. Toque em Parar depois de terminar de ler.",
+  "practiceNotHeard": "Não deu para ouvir você lendo. Leia o texto inteiro, perto do microfone."
 }

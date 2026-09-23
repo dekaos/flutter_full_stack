@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter_full_stack_flutter/core/pronunciation/attempt_recorder.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/phoneme_model.dart';
+import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,6 +46,29 @@ class _BrokenModel implements PhonemeAcousticModel {
   Future<void> dispose() async {}
 }
 
+/// A model that hears nothing but blank, which is what silence looks like.
+class _SilentModel implements PhonemeAcousticModel {
+  @override
+  Future<Emissions> emissions(Float32List samples) async {
+    const frames = 50;
+    const vocabSize = 392;
+    final logProbs = Float32List(frames * vocabSize)
+      ..fillRange(0, frames * vocabSize, -20);
+    for (var t = 0; t < frames; t++) {
+      logProbs[t * vocabSize] = 0;
+    }
+    return Emissions(
+      logProbs: logProbs,
+      frames: frames,
+      vocabSize: vocabSize,
+      frameSeconds: 0.02,
+    );
+  }
+
+  @override
+  Future<void> dispose() async {}
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -69,6 +93,7 @@ void main() {
   ProviderContainer container({
     bool downloaded = true,
     String baseUrl = 'http://127.0.0.1:1',
+    PhonemeAcousticModel? model,
   }) {
     if (downloaded) File('${packs.path}/phoneme_en_r2.int8.onnx').createSync();
     final container = ProviderContainer(
@@ -78,7 +103,7 @@ void main() {
         ),
         attemptRecorderProvider.overrideWithValue(recorder),
         phonemeModelLoaderProvider.overrideWithValue(
-          (_) async => _BrokenModel(),
+          (_) async => model ?? _BrokenModel(),
         ),
       ],
     );
@@ -213,5 +238,84 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(await c.read(packDownloadedProvider('en').future), isTrue);
+  });
+
+  test('silence is turned away as not heard, not graded', () async {
+    final c = container(model: _SilentModel());
+    final practice = c.read(practiceControllerProvider('en').notifier);
+    await c.read(practiceControllerProvider('en').future);
+
+    await practice.startRecording();
+    await practice.stopAndScore();
+
+    final failed = c.read(practiceControllerProvider('en'));
+    final cause = (failed.error! as PracticeFailure).cause;
+    expect((cause as AttemptRejected).reason, RejectedBecause.notHeard);
+    expect(failed.value?.result, isNull);
+    expect(failed.value?.stage, PracticeStage.ready);
+  });
+
+  test(
+    'swiping to another prompt mid-recording closes the microphone',
+    () async {
+      final c = container();
+      final practice = c.read(practiceControllerProvider('en').notifier);
+      await c.read(practiceControllerProvider('en').future);
+
+      await practice.startRecording();
+      practice.next();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(recorder.recording, isFalse);
+      expect(
+        c.read(practiceControllerProvider('en')).value?.stage,
+        PracticeStage.ready,
+      );
+    },
+  );
+
+  test('leaving mid-recording closes the microphone', () async {
+    final c = container();
+    final screen = c.listen(practiceControllerProvider('en'), (_, _) {});
+    await c.read(practiceControllerProvider('en').future);
+
+    await c.read(practiceControllerProvider('en').notifier).startRecording();
+    screen.close();
+    c.invalidate(practiceControllerProvider('en'));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(recorder.recording, isFalse);
+  });
+
+  testWidgets('a recording left running stops itself at the limit', (
+    tester,
+  ) async {
+    // Built under real time: loading the lexicon is real I/O, which never
+    // completes inside the fake clock. The timer that matters is started
+    // afterwards, on the fake one.
+    final c = (await tester.runAsync(() async {
+      final c = container(model: _SilentModel());
+      await c.read(practiceControllerProvider('en').future);
+      return c;
+    }))!;
+    final practice = c.read(practiceControllerProvider('en').notifier);
+
+    await practice.startRecording();
+    await tester.pump(
+      PracticeController.maxRecording - const Duration(seconds: 1),
+    );
+    expect(recorder.recording, isTrue);
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+
+    expect(recorder.recording, isFalse);
+    // It went on to scoring rather than just cutting off: the silent model
+    // is what turns this particular attempt away.
+    final after = c.read(practiceControllerProvider('en'));
+    expect(
+      ((after.error! as PracticeFailure).cause as AttemptRejected).reason,
+      RejectedBecause.notHeard,
+    );
   });
 }

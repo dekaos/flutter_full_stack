@@ -225,5 +225,15 @@
   "practiceScoreFailed": "This attempt could not be scored. Record it again.",
   "@practiceScoreFailed": {
     "description": "Shown when a recording was made but could not be scored."
+  },
+
+  "practiceTooShort": "That was too short. Tap Stop once you have finished reading.",
+  "@practiceTooShort": {
+    "description": "Shown when a recording holds too little audio to score."
+  },
+
+  "practiceNotHeard": "We could not hear you read it. Read the whole text, close to the microphone.",
+  "@practiceNotHeard": {
+    "description": "Shown when a recording holds no speech, or only a fragment of the prompt."
   }
 }

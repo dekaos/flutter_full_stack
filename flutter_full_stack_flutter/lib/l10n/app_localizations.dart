@@ -355,6 +355,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This attempt could not be scored. Record it again.'**
   String get practiceScoreFailed;
+
+  /// Shown when a recording holds too little audio to score.
+  ///
+  /// In en, this message translates to:
+  /// **'That was too short. Tap Stop once you have finished reading.'**
+  String get practiceTooShort;
+
+  /// Shown when a recording holds no speech, or only a fragment of the prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not hear you read it. Read the whole text, close to the microphone.'**
+  String get practiceNotHeard;
 }
 
 class _AppLocalizationsDelegate

@@ -165,4 +165,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get practiceScoreFailed =>
       'This attempt could not be scored. Record it again.';
+
+  @override
+  String get practiceTooShort =>
+      'That was too short. Tap Stop once you have finished reading.';
+
+  @override
+  String get practiceNotHeard =>
+      'We could not hear you read it. Read the whole text, close to the microphone.';
 }

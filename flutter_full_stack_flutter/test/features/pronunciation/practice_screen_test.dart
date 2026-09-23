@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
+import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/practice_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
 import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
@@ -185,6 +186,31 @@ void main() {
     // The prompt and the way to try again are both still there.
     expect(find.text('The weather is beautiful today'), findsOneWidget);
     expect(find.byKey(const Key('practice-record')), findsOneWidget);
+  });
+
+  test('an attempt turned away says why, not that scoring broke', () {
+    final l10n = lookupAppLocalizations(const Locale('en'));
+
+    expect(
+      failureMessage(
+        l10n,
+        const PracticeFailure(
+          PracticeStep.score,
+          AttemptRejected(RejectedBecause.notHeard),
+        ),
+      ),
+      l10n.practiceNotHeard,
+    );
+    expect(
+      failureMessage(
+        l10n,
+        const PracticeFailure(
+          PracticeStep.score,
+          AttemptRejected(RejectedBecause.tooShort),
+        ),
+      ),
+      l10n.practiceTooShort,
+    );
   });
 
   testWidgets('the deck says which prompt of how many is up', (tester) async {

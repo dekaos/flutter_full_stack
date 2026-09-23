@@ -6,6 +6,7 @@ import 'package:flutter_full_stack_flutter/app/app_bar_actions.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
+import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
 import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
@@ -409,6 +410,14 @@ String failureMessage(AppLocalizations l10n, Object failure) =>
       PracticeFailure(step: PracticeStep.download) =>
         l10n.practiceDownloadFailed,
       PracticeFailure(step: PracticeStep.record) => l10n.practiceRecordFailed,
+      PracticeFailure(
+        cause: AttemptRejected(reason: RejectedBecause.tooShort),
+      ) =>
+        l10n.practiceTooShort,
+      PracticeFailure(
+        cause: AttemptRejected(reason: RejectedBecause.notHeard),
+      ) =>
+        l10n.practiceNotHeard,
       _ => l10n.practiceScoreFailed,
     };
 

@@ -151,14 +151,34 @@ Future<bool> packDownloaded(Ref ref, String lang) async {
 /// 355 MB model cannot ship inside the app.
 @riverpod
 class PracticeController extends _$PracticeController {
+  /// The longest attempt recorded before it is stopped and scored on its own.
+  ///
+  /// The longest prompt takes a native speaker about three seconds, so this
+  /// leaves a slow reader room several times over. The cap is about the
+  /// device: the acoustic model's attention grows with the square of the
+  /// audio's length, and a recording left running would eventually take more
+  /// memory than a small phone has.
+  static const maxRecording = Duration(seconds: 15);
+
   PronunciationEngine? _engine;
   Lexicon? _lexicon;
+
+  /// Set only while the microphone is open.
+  AttemptRecorder? _live;
+  Timer? _limit;
 
   @override
   FutureOr<PracticeState> build(String lang) async {
     final lexicon = await Lexicon.load(lang);
     _lexicon = lexicon;
-    ref.onDispose(() => unawaited(_engine?.dispose() ?? Future.value()));
+    ref.onDispose(() {
+      // The recorder outlives this controller, so leaving mid-attempt would
+      // otherwise keep the microphone - and the system's recording
+      // indicator - on after the screen is gone.
+      _limit?.cancel();
+      unawaited(_live?.cancel() ?? Future.value());
+      unawaited(_engine?.dispose() ?? Future.value());
+    });
 
     final store = ref.read(modelStoreProvider);
     // A download started on an earlier visit is still running: pick it up
@@ -195,6 +215,7 @@ class PracticeController extends _$PracticeController {
   void selectKind(ExerciseKind kind) {
     final lexicon = _lexicon;
     if (lexicon == null || kind == _now.kind) return;
+    _discardRecording();
     state = AsyncData(
       _now.copyWith(
         kind: kind,
@@ -208,6 +229,7 @@ class PracticeController extends _$PracticeController {
 
   void goTo(int index) {
     if (index < 0 || index >= _now.items.length || index == _now.index) return;
+    _discardRecording();
     state = AsyncData(
       _now.copyWith(index: index, stage: _readyStage(), clearResult: true),
     );
@@ -215,6 +237,16 @@ class PracticeController extends _$PracticeController {
 
   void next() => goTo(_now.index + 1);
   void previous() => goTo(_now.index - 1);
+
+  /// Throws away an attempt in progress. Swiping to another prompt while
+  /// recording used to leave the microphone running under a Record button.
+  void _discardRecording() {
+    final live = _live;
+    if (live == null) return;
+    _limit?.cancel();
+    _live = null;
+    unawaited(live.cancel());
+  }
 
   /// Moving between prompts must not clear a download prompt or a refused
   /// microphone: those are about the device, not about which prompt is up.
@@ -259,11 +291,18 @@ class PracticeController extends _$PracticeController {
         return _now.copyWith(stage: PracticeStage.noMicrophone);
       }
       await recorder.start();
+      _live = recorder;
+      _limit = Timer(maxRecording, () => unawaited(stopAndScore()));
       return _now.copyWith(stage: PracticeStage.recording, clearResult: true);
     });
   }
 
   Future<void> stopAndScore() async {
+    // Both the Stop button and the time limit land here; whichever comes
+    // second finds nothing to stop.
+    if (_live == null) return;
+    _limit?.cancel();
+    _live = null;
     final recorder = ref.read(attemptRecorderProvider);
     final exercise = _now.exercise;
     state = AsyncData(_now.copyWith(stage: PracticeStage.scoring));
