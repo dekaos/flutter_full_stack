@@ -137,6 +137,32 @@ void main() {
     expect(phone.margin, lessThan(0));
   });
 
+  test('a word names the phoneme that failed it', () {
+    // The screen only ever explains a word through [WordScore.weakest], so a
+    // scorer that computes `heardInstead` and never picks the phoneme to
+    // report ships a diagnosis nobody sees.
+    final result = _score(
+      _emissions(saidInSecondHalf: 4),
+      calibration: const GopCalibration(
+        center: -1.75,
+        scale: 0.80,
+        phones: {'b': PhoneCalibration(center: -1.75, scale: 2)},
+      ),
+    );
+    final weakest = result.words.single.weakest;
+
+    expect(weakest?.symbol, 'b');
+    expect(weakest?.heardInstead, 'c');
+  });
+
+  test('a word said well has no weakest phoneme', () {
+    // The lowest phoneme of a good word is still the lowest, but it is an
+    // accent rather than an error, and there is nothing to report.
+    final result = _score(_emissions(saidInSecondHalf: 3));
+
+    expect(result.words.single.weakest, isNull);
+  });
+
   test('an unmeasured phoneme is scored but never diagnosed', () {
     // Spanish /ð/ is in this bucket today: it appears in the prompts and the
     // calibration run could not fit it. A score still comes out; a claim

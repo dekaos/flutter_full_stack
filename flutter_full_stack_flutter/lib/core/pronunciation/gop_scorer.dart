@@ -183,6 +183,9 @@ class GopScorer {
       final end = math.min(word.phoneEnd, phoneScores.length);
       final group = phoneScores.sublist(word.phoneStart, end);
       if (group.isEmpty) continue;
+      // Only an error earns a mention: the lowest phoneme of a word said well
+      // is an accent, and reporting it would turn every word into a fault.
+      final lowest = group.reduce((a, b) => b.score < a.score ? b : a);
       words.add(
         WordScore(
           word: word.word,
@@ -191,6 +194,7 @@ class GopScorer {
           score:
               group.map((p) => p.score).reduce((a, b) => a + b) / group.length,
           phones: group,
+          weakest: lowest.score < calibration.errorThreshold ? lowest : null,
         ),
       );
     }
