@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -51,6 +52,9 @@ void main() {
   late _FakeRecorder recorder;
 
   setUp(() async {
+    // The test binding answers every HTTP request with a 400, which is right
+    // for widget tests and wrong for one that serves a pack from loopback.
+    HttpOverrides.global = null;
     packs = await Directory.systemTemp.createTemp('practice_controller_test');
     recorder = _FakeRecorder();
   });
@@ -60,13 +64,17 @@ void main() {
   });
 
   /// A container whose pack is on disk unless [downloaded] says otherwise,
-  /// and whose downloads go to a port nothing listens on.
-  ProviderContainer container({bool downloaded = true}) {
+  /// and whose downloads go to [baseUrl] - by default a port nothing listens
+  /// on.
+  ProviderContainer container({
+    bool downloaded = true,
+    String baseUrl = 'http://127.0.0.1:1',
+  }) {
     if (downloaded) File('${packs.path}/phoneme_en_r2.int8.onnx').createSync();
     final container = ProviderContainer(
       overrides: [
         modelStoreProvider.overrideWithValue(
-          ModelStore(directory: packs, baseUrl: 'http://127.0.0.1:1'),
+          ModelStore(directory: packs, baseUrl: baseUrl),
         ),
         attemptRecorderProvider.overrideWithValue(recorder),
         phonemeModelLoaderProvider.overrideWithValue(
@@ -79,6 +87,24 @@ void main() {
     // screen watching it does.
     container.listen(practiceControllerProvider('en'), (_, _) {});
     return container;
+  }
+
+  /// Serves a pack slowly enough that a test can leave in the middle of it.
+  Future<(HttpServer, List<String>)> slowServer() async {
+    final requests = <String>[];
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      requests.add(request.uri.path);
+      request.response.headers.contentLength = 20 * 1024;
+      for (var i = 0; i < 20; i++) {
+        request.response.add(Uint8List(1024));
+        await request.response.flush();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      await request.response.close();
+    });
+    addTearDown(() => server.close(force: true));
+    return (server, requests);
   }
 
   test('a failed attempt keeps the deck and can be recorded again', () async {
@@ -129,5 +155,63 @@ void main() {
     final moved = c.read(practiceControllerProvider('en'));
     expect(moved.hasError, isFalse);
     expect(moved.value?.index, 1);
+  });
+
+  test('leaving mid-download neither aborts it nor starts a second', () async {
+    final (server, requests) = await slowServer();
+    final c = container(
+      downloaded: false,
+      baseUrl: 'http://${server.address.host}:${server.port}',
+    );
+    final store = c.read(modelStoreProvider);
+    final screen = c.listen(practiceControllerProvider('en'), (_, _) {});
+    await c.read(practiceControllerProvider('en').future);
+
+    unawaited(
+      c.read(practiceControllerProvider('en').notifier).downloadModel(),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    // Leaving the screen: the listener from `container` is the only one
+    // left, so drop both to let the controller go.
+    screen.close();
+    c.invalidate(practiceControllerProvider('en'));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(store.isDownloading('phoneme_en_r2.int8.onnx'), isTrue);
+
+    // Coming back finds the download under way instead of offering it again.
+    final back = await c.read(practiceControllerProvider('en').future);
+    expect(back.stage, PracticeStage.downloading);
+
+    while (store.isDownloading('phoneme_en_r2.int8.onnx')) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    await Future<void>.delayed(Duration.zero);
+
+    expect(requests, hasLength(1));
+    expect(
+      File('${packs.path}/phoneme_en_r2.int8.onnx').lengthSync(),
+      20 * 1024,
+    );
+    expect(
+      c.read(practiceControllerProvider('en')).value?.stage,
+      PracticeStage.ready,
+    );
+  });
+
+  test('the chooser sees a pack that landed while it was underneath', () async {
+    final (server, _) = await slowServer();
+    // The chooser stays mounted under the practice route, so it never lets go
+    // of this provider and auto-disposal alone would keep it stale.
+    final c = container(
+      downloaded: false,
+      baseUrl: 'http://${server.address.host}:${server.port}',
+    )..listen(packDownloadedProvider('en'), (_, _) {});
+    expect(await c.read(packDownloadedProvider('en').future), isFalse);
+
+    await c.read(modelStoreProvider).ensure('phoneme_en_r2.int8.onnx');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(await c.read(packDownloadedProvider('en').future), isTrue);
   });
 }

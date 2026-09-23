@@ -97,8 +97,14 @@ class PracticeState {
   );
 }
 
+/// Kept alive because the downloads it runs must outlive the screen that
+/// started them.
 @Riverpod(keepAlive: true)
-ModelStore modelStore(Ref ref) => const ModelStore();
+ModelStore modelStore(Ref ref) {
+  final store = ModelStore();
+  ref.onDispose(store.dispose);
+  return store;
+}
 
 /// The microphone, for as long as the app is running.
 ///
@@ -125,10 +131,17 @@ Future<PhonemeAcousticModel> Function(String path) phonemeModelLoader(
 ///
 /// Auto-disposed on purpose: it is read by the chooser, which has to see the
 /// pack appear after a download without the app being restarted.
+/// Auto-disposal alone is not enough, because the chooser stays mounted under
+/// the practice route and so never lets go of this. It is invalidated instead
+/// whenever a pack lands or leaves - including a download that finished after
+/// the learner walked away from it.
 @riverpod
 Future<bool> packDownloaded(Ref ref, String lang) async {
+  final store = ref.watch(modelStoreProvider);
+  final changes = store.changes.listen((_) => ref.invalidateSelf());
+  ref.onDispose(changes.cancel);
   final lexicon = await Lexicon.load(lang);
-  return await ref.read(modelStoreProvider).isDownloaded(lexicon.model);
+  return await store.isDownloaded(lexicon.model);
 }
 
 /// Drives read-aloud practice for one language.
@@ -147,15 +160,32 @@ class PracticeController extends _$PracticeController {
     _lexicon = lexicon;
     ref.onDispose(() => unawaited(_engine?.dispose() ?? Future.value()));
 
-    final downloaded = await ref
-        .read(modelStoreProvider)
-        .isDownloaded(lexicon.model);
+    final store = ref.read(modelStoreProvider);
+    // A download started on an earlier visit is still running: pick it up
+    // where it is instead of offering to start it again.
+    if (store.isDownloading(lexicon.model)) {
+      unawaited(_rejoinDownload());
+      return PracticeState(
+        stage: PracticeStage.downloading,
+        kind: ExerciseKind.word,
+        items: lexicon.byKind(ExerciseKind.word),
+        index: 0,
+        download: store.progressOf(lexicon.model),
+      );
+    }
+    final downloaded = await store.isDownloaded(lexicon.model);
     return PracticeState(
       stage: downloaded ? PracticeStage.ready : PracticeStage.needsModel,
       kind: ExerciseKind.word,
       items: lexicon.byKind(ExerciseKind.word),
       index: 0,
     );
+  }
+
+  Future<void> _rejoinDownload() async {
+    // Waits for build to hand over the state this reports into.
+    await future;
+    await _followDownload();
   }
 
   PracticeState get _now => state.requireValue;
@@ -196,16 +226,24 @@ class PracticeController extends _$PracticeController {
   };
 
   Future<void> downloadModel() async {
-    final lexicon = _lexicon;
-    if (lexicon == null) return;
+    if (_lexicon == null) return;
     state = AsyncData(_now.copyWith(stage: PracticeStage.downloading));
+    await _followDownload();
+  }
+
+  /// Starts the download, or joins the one already running. The store owns
+  /// it, so if the learner leaves, it carries on without this controller.
+  Future<void> _followDownload() async {
+    final lexicon = _lexicon!;
     await _attempt(PracticeStep.download, PracticeStage.needsModel, () async {
       await ref
           .read(modelStoreProvider)
           .ensure(
             lexicon.model,
             onProgress: (progress) {
-              if (state.hasValue) {
+              // Called by the store for as long as the download runs, which
+              // can be long after this controller is gone.
+              if (ref.mounted && state.hasValue) {
                 state = AsyncData(_now.copyWith(download: progress));
               }
             },
@@ -256,6 +294,9 @@ class PracticeController extends _$PracticeController {
     Future<PracticeState> Function() action,
   ) async {
     final outcome = await AsyncValue.guard(action);
+    // The learner may have left while this ran. Nothing is waiting for the
+    // result, and touching the state of a disposed notifier throws.
+    if (!ref.mounted) return;
     if (outcome case AsyncError(:final error, :final stackTrace)) {
       state = AsyncData(_now.copyWith(stage: fallback));
       state = AsyncError(PracticeFailure(step, error), stackTrace);
@@ -270,10 +311,15 @@ class PracticeController extends _$PracticeController {
     final lexicon = _lexicon!;
     final file = await ref.read(modelStoreProvider).ensure(lexicon.model);
     final load = ref.read(phonemeModelLoaderProvider);
-    final engine = PronunciationEngine(
-      lexicon: lexicon,
-      model: await load(file.path),
-    );
+    final model = await load(file.path);
+    // Left while the session opened: [build]'s onDispose has already run and
+    // found no engine, so this one would hold its weights until the process
+    // died.
+    if (!ref.mounted) {
+      await model.dispose();
+      throw StateError('practice closed while the model was loading');
+    }
+    final engine = PronunciationEngine(lexicon: lexicon, model: model);
     _engine = engine;
     return engine;
   }

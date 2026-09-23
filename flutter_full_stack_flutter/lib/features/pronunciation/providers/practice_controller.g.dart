@@ -8,13 +8,20 @@ part of 'practice_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Kept alive because the downloads it runs must outlive the screen that
+/// started them.
 
 @ProviderFor(modelStore)
 final modelStoreProvider = ModelStoreProvider._();
 
+/// Kept alive because the downloads it runs must outlive the screen that
+/// started them.
+
 final class ModelStoreProvider
     extends $FunctionalProvider<ModelStore, ModelStore, ModelStore>
     with $Provider<ModelStore> {
+  /// Kept alive because the downloads it runs must outlive the screen that
+  /// started them.
   ModelStoreProvider._()
     : super(
         from: null,
@@ -48,7 +55,7 @@ final class ModelStoreProvider
   }
 }
 
-String _$modelStoreHash() => r'c661065c77abefdf83645b0ad2c209f67aeae622';
+String _$modelStoreHash() => r'79d71dcd6f4e9ad6b95d9bcaac19c40f31f2c3c4';
 
 /// The microphone, for as long as the app is running.
 ///
@@ -179,6 +186,10 @@ String _$phonemeModelLoaderHash() =>
 ///
 /// Auto-disposed on purpose: it is read by the chooser, which has to see the
 /// pack appear after a download without the app being restarted.
+/// Auto-disposal alone is not enough, because the chooser stays mounted under
+/// the practice route and so never lets go of this. It is invalidated instead
+/// whenever a pack lands or leaves - including a download that finished after
+/// the learner walked away from it.
 
 @ProviderFor(packDownloaded)
 final packDownloadedProvider = PackDownloadedFamily._();
@@ -187,6 +198,10 @@ final packDownloadedProvider = PackDownloadedFamily._();
 ///
 /// Auto-disposed on purpose: it is read by the chooser, which has to see the
 /// pack appear after a download without the app being restarted.
+/// Auto-disposal alone is not enough, because the chooser stays mounted under
+/// the practice route and so never lets go of this. It is invalidated instead
+/// whenever a pack lands or leaves - including a download that finished after
+/// the learner walked away from it.
 
 final class PackDownloadedProvider
     extends $FunctionalProvider<AsyncValue<bool>, bool, FutureOr<bool>>
@@ -195,6 +210,10 @@ final class PackDownloadedProvider
   ///
   /// Auto-disposed on purpose: it is read by the chooser, which has to see the
   /// pack appear after a download without the app being restarted.
+  /// Auto-disposal alone is not enough, because the chooser stays mounted under
+  /// the practice route and so never lets go of this. It is invalidated instead
+  /// whenever a pack lands or leaves - including a download that finished after
+  /// the learner walked away from it.
   PackDownloadedProvider._({
     required PackDownloadedFamily super.from,
     required String super.argument,
@@ -238,12 +257,16 @@ final class PackDownloadedProvider
   }
 }
 
-String _$packDownloadedHash() => r'424783474827d4e03301b65042b0e480760b912b';
+String _$packDownloadedHash() => r'10555e3b9ac0474affd57541ae3eb7ffb82cc7b7';
 
 /// Whether a language's pack is already on the device.
 ///
 /// Auto-disposed on purpose: it is read by the chooser, which has to see the
 /// pack appear after a download without the app being restarted.
+/// Auto-disposal alone is not enough, because the chooser stays mounted under
+/// the practice route and so never lets go of this. It is invalidated instead
+/// whenever a pack lands or leaves - including a download that finished after
+/// the learner walked away from it.
 
 final class PackDownloadedFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<bool>, String> {
@@ -260,6 +283,10 @@ final class PackDownloadedFamily extends $Family
   ///
   /// Auto-disposed on purpose: it is read by the chooser, which has to see the
   /// pack appear after a download without the app being restarted.
+  /// Auto-disposal alone is not enough, because the chooser stays mounted under
+  /// the practice route and so never lets go of this. It is invalidated instead
+  /// whenever a pack lands or leaves - including a download that finished after
+  /// the learner walked away from it.
 
   PackDownloadedProvider call(String lang) =>
       PackDownloadedProvider._(argument: lang, from: this);
@@ -326,7 +353,7 @@ final class PracticeControllerProvider
 }
 
 String _$practiceControllerHash() =>
-    r'f26645d897025aa447c93e77e403449195641961';
+    r'c52bd9c2e8557ebafbeefe1a7e06de9b1a8930e6';
 
 /// Drives read-aloud practice for one language.
 ///

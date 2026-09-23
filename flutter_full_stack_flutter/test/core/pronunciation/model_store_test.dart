@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -6,9 +7,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Serves [chunks] KB, pausing now and then so the transfer spans several
 /// progress intervals instead of finishing inside one.
-Future<HttpServer> _server({int chunks = 500, int status = 200}) async {
+///
+/// [requests] counts what reached the server, which is how a test tells one
+/// shared download from two racing ones.
+Future<HttpServer> _server({
+  int chunks = 500,
+  int status = 200,
+  List<String>? requests,
+}) async {
   final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
   server.listen((request) async {
+    requests?.add(request.uri.path);
     if (status != 200) {
       request.response.statusCode = status;
       await request.response.close();
@@ -91,5 +100,74 @@ void main() {
 
     expect(file.readAsStringSync(), 'kept');
     expect(existing.lengthSync(), 4);
+  });
+
+  test('asking twice while downloading fetches the pack once', () async {
+    final requests = <String>[];
+    final server = await _server(requests: requests);
+    addTearDown(() => server.close(force: true));
+    final store = ModelStore(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      directory: temp,
+    );
+
+    // The learner leaves the practice screen mid-download and comes back:
+    // the second call must join the first, not delete its partial file and
+    // start again.
+    final first = store.ensure('model.onnx');
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(store.isDownloading('model.onnx'), isTrue);
+    final joined = <DownloadProgress>[];
+    final second = store.ensure('model.onnx', onProgress: joined.add);
+
+    final files = await Future.wait([first, second]);
+
+    expect(requests, ['/model.onnx']);
+    expect(files[0].path, files[1].path);
+    expect(files[0].lengthSync(), 500 * 1024);
+    expect(joined.last.received, 500 * 1024);
+    expect(store.isDownloading('model.onnx'), isFalse);
+  });
+
+  test('a listener that throws does not abort the download', () async {
+    final server = await _server();
+    addTearDown(() => server.close(force: true));
+    final store = ModelStore(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      directory: temp,
+      progressInterval: Duration.zero,
+    );
+
+    // What a torn-down screen does when it is called back.
+    final reported = <Object>[];
+    final file = await runZonedGuarded(
+      () => store.ensure(
+        'model.onnx',
+        onProgress: (_) => throw StateError('screen is gone'),
+      ),
+      (error, _) => reported.add(error),
+    );
+
+    expect(file?.lengthSync(), 500 * 1024);
+    // Not swallowed: reported, just not allowed to kill the transfer.
+    expect(reported, isNotEmpty);
+  });
+
+  test('a pack landing is announced', () async {
+    final server = await _server(chunks: 10);
+    addTearDown(() => server.close(force: true));
+    final store = ModelStore(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      directory: temp,
+    );
+    final changes = <String>[];
+    final subscription = store.changes.listen(changes.add);
+    addTearDown(subscription.cancel);
+
+    await store.ensure('model.onnx');
+    await store.remove('model.onnx');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(changes, ['model.onnx', 'model.onnx']);
   });
 }

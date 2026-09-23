@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -32,14 +33,40 @@ class DownloadProgress {
       total == null || total == 0 ? null : received / total!;
 }
 
+/// One pack on its way down, shared by everyone who asks for it meanwhile.
+class _Download {
+  final listeners = <void Function(DownloadProgress)>[];
+  DownloadProgress? last;
+  late final Future<File> done;
+
+  void report(DownloadProgress progress) {
+    last = progress;
+    for (final listener in [...listeners]) {
+      // The download belongs to the store, not to whoever is watching it: a
+      // listener that throws - a screen torn down mid-callback - must not
+      // abort 355 MB for everyone else.
+      try {
+        listener(progress);
+      } on Object catch (error, stackTrace) {
+        Zone.current.handleUncaughtError(error, stackTrace);
+      }
+    }
+  }
+}
+
 /// Keeps the acoustic models on disk.
 ///
 /// A language pack is around 355 MB, which is why it is fetched instead of
 /// bundled: `melos run size` holds the release APK to a byte budget. This is
 /// the only part of pronunciation practice that touches the network, and only
 /// once per language - scoring itself never does.
+///
+/// A download outlives whoever started it. The learner leaving the practice
+/// screen is not a reason to throw away half a pack, and coming back must join
+/// the download already running: a second one would delete the first one's
+/// partial file from under it.
 class ModelStore {
-  const ModelStore({
+  ModelStore({
     this.directoryName = 'pronunciation_models',
     this.baseUrl,
     this.directory,
@@ -64,6 +91,20 @@ class ModelStore {
   /// 355 MB pack, which starves the download of the frames it is competing
   /// for and looks exactly like a slow server.
   final Duration progressInterval;
+
+  final _downloads = <String, _Download>{};
+  final _changes = StreamController<String>.broadcast();
+
+  /// The name of every pack that lands on or leaves the disk. What lets the
+  /// language chooser, which stays mounted under the practice route, notice a
+  /// download that finished while it was not the screen being looked at.
+  Stream<String> get changes => _changes.stream;
+
+  /// Whether [name] is being downloaded right now.
+  bool isDownloading(String name) => _downloads.containsKey(name);
+
+  /// How far the running download of [name] has got, if one is running.
+  DownloadProgress? progressOf(String name) => _downloads[name]?.last;
 
   Future<String> resolveBaseUrl() async {
     if (baseUrl != null) return baseUrl!;
@@ -107,10 +148,17 @@ class ModelStore {
 
   Future<void> remove(String name) async {
     final file = await fileFor(name);
-    if (file.existsSync()) await file.delete();
+    if (file.existsSync()) {
+      await file.delete();
+      _changes.add(name);
+    }
   }
 
   /// Returns the local model, downloading it first if it is not there yet.
+  ///
+  /// A call made while [name] is already downloading joins that download
+  /// instead of starting another, and [onProgress] is told where it stands
+  /// straight away rather than at the next tick.
   ///
   /// The download lands in a `.part` file and is renamed only once complete,
   /// so an interrupted download can never be mistaken for a usable model -
@@ -123,6 +171,33 @@ class ModelStore {
     final target = await fileFor(name);
     if (target.existsSync()) return target;
 
+    // Nothing is awaited between this lookup and the registration below, so
+    // two callers cannot both find the slot empty.
+    final running = _downloads[name];
+    if (running != null) {
+      if (onProgress != null) {
+        running.listeners.add(onProgress);
+        if (running.last case final last?) onProgress(last);
+      }
+      return await running.done;
+    }
+
+    final download = _Download();
+    if (onProgress != null) download.listeners.add(onProgress);
+    _downloads[name] = download;
+    download.done = _fetch(name, target, download.report).whenComplete(() {
+      _downloads.remove(name);
+    });
+    return await download.done;
+  }
+
+  Future<void> dispose() => _changes.close();
+
+  Future<File> _fetch(
+    String name,
+    File target,
+    void Function(DownloadProgress) onProgress,
+  ) async {
     final baseUrl = await resolveBaseUrl();
     final uri = Uri.parse('$baseUrl/$name');
     final partial = File('${target.path}.part');
@@ -150,9 +225,7 @@ class ModelStore {
             received += chunk.length;
             if (since.elapsed >= progressInterval) {
               since.reset();
-              onProgress?.call(
-                DownloadProgress(received: received, total: total),
-              );
+              onProgress(DownloadProgress(received: received, total: total));
             }
             return chunk;
           }),
@@ -161,8 +234,9 @@ class ModelStore {
         await sink.close();
       }
       // The throttle would otherwise leave the bar short of the end.
-      onProgress?.call(DownloadProgress(received: received, total: total));
+      onProgress(DownloadProgress(received: received, total: total));
       await partial.rename(target.path);
+      _changes.add(name);
       return target;
     } on SocketException catch (error) {
       if (partial.existsSync()) await partial.delete();
