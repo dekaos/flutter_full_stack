@@ -16,7 +16,7 @@ from onnxruntime.quantization.shape_inference import quant_pre_process
 from transformers import AutoModelForCTC
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
-from gop.acoustic import MODEL_REVISION, MODELS  # noqa: E402
+from gop.acoustic import MODEL_REVISION, MODELS, revision_for  # noqa: E402
 
 # So os MatMul. Quantizar Conv produz ConvInteger, cujo kernel do onnxruntime
 # nao aceita peso int8 -- no Android o app morre ao abrir a sessao com
@@ -40,7 +40,8 @@ def main() -> int:
     out = pathlib.Path("build")
     out.mkdir(exist_ok=True)
 
-    model = AutoModelForCTC.from_pretrained(MODELS[lang]).eval()
+    model_id = MODELS[lang]
+    model = AutoModelForCTC.from_pretrained(model_id, revision=revision_for(model_id)).eval()
     strip_weight_norm(model)
     print("params:", round(sum(p.numel() for p in model.parameters()) / 1e6, 1), "M")
 

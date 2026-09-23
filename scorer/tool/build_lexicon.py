@@ -14,13 +14,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from gop import calibration as calib  # noqa: E402
-from gop.acoustic import MODEL_REVISION, MODELS  # noqa: E402
+from gop.acoustic import MODEL_REVISION, MODELS, vocab_file  # noqa: E402
 from gop.g2p import phonemize  # noqa: E402
-from huggingface_hub import hf_hub_download  # noqa: E402
 
 
 def load_vocab(lang: str) -> dict[str, int]:
-    with open(hf_hub_download(MODELS[lang], "vocab.json"), encoding="utf-8") as f:
+    with open(vocab_file(MODELS[lang]), encoding="utf-8") as f:
         return json.load(f)
 
 

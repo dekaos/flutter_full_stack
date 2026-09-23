@@ -28,6 +28,30 @@ MODELS = {
     "es": "facebook/wav2vec2-xlsr-53-espeak-cv-ft",
 }
 
+# Commit de cada modelo no Hugging Face, fixado. Sem ele o from_pretrained pega
+# o `main` do dia, e um export refeito meses depois poderia sair de pesos
+# diferentes sem ninguem notar -- enquanto as curvas de calibration/<lang>.json
+# e o vocabulario do lexico foram medidos contra estes. Trocar um destes e
+# trocar o modelo: sobe MODEL_REVISION e refaz export, lexico e calibracao
+# (docs/pronunciation-models.md).
+UPSTREAM_REVISIONS = {
+    "en": "ae45363bf3413b374fecd9dc8bc1df0e24c3b7f4",
+    "es": "2c733782da5604684829819a5eb744c193fe9398",
+}
+
+
+def revision_for(model_id: str) -> str | None:
+    """O commit fixado, para um dos modelos acima; None para qualquer outro."""
+    for lang, known in MODELS.items():
+        if known == model_id:
+            return UPSTREAM_REVISIONS[lang]
+    return None
+
+
+def vocab_file(model_id: str) -> str:
+    """Caminho local do vocab.json do modelo, na revisao fixada."""
+    return hf_hub_download(model_id, "vocab.json", revision=revision_for(model_id))
+
 
 def load_audio(path: str | Path) -> np.ndarray:
     """Converte qualquer formato para PCM float32 16 kHz mono via ffmpeg."""
@@ -58,9 +82,12 @@ class PhonemeRecognizer:
         self.device = device
         # Carrega o vocab.json direto: o Wav2Vec2PhonemeCTCTokenizer exigiria a
         # lib phonemizer, que nao existe no device. Fazemos o G2P em g2p.py.
-        self.features = AutoFeatureExtractor.from_pretrained(self.model_id)
-        self.model = AutoModelForCTC.from_pretrained(self.model_id).to(device).eval()
-        with open(hf_hub_download(self.model_id, "vocab.json"), encoding="utf-8") as f:
+        revision = revision_for(self.model_id)
+        self.features = AutoFeatureExtractor.from_pretrained(self.model_id, revision=revision)
+        self.model = (
+            AutoModelForCTC.from_pretrained(self.model_id, revision=revision).to(device).eval()
+        )
+        with open(vocab_file(self.model_id), encoding="utf-8") as f:
             self.vocab: dict[str, int] = json.load(f)
         self.id_to_sym = {i: s for s, i in self.vocab.items()}
         self.blank_id = self.model.config.pad_token_id or 0

@@ -10,7 +10,6 @@ import sys
 import numpy as np
 import onnxruntime as ort
 import torch
-from huggingface_hub import hf_hub_download
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 from gop import acoustic, g2p, score as scoring  # noqa: E402
@@ -28,7 +27,7 @@ def emissions_from_onnx(path: str, audio: np.ndarray) -> acoustic.Emissions:
 
 
 def main() -> int:
-    with open(hf_hub_download(acoustic.MODELS[LANG], "vocab.json"), encoding="utf-8") as f:
+    with open(acoustic.vocab_file(acoustic.MODELS[LANG]), encoding="utf-8") as f:
         vocab = json.load(f)
     phones, words, _ = g2p.phonemize(TEXT, LANG, vocab)
     targets = [i for p in phones for i in p.token_ids]
