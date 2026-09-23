@@ -30,7 +30,7 @@ uv sync --group export
 .venv/bin/python -m gop.cli --lang en \
   --text "The weather is beautiful today" --audio audio/en_ok.wav
 
-# modelo para o device: ONNX int8 (~317 MB por idioma)
+# modelo para o device: ONNX int8 (355 MB por idioma)
 .venv/bin/python tool/export_onnx.py en
 
 # léxico que o app embarca (G2P roda aqui, nunca no device)

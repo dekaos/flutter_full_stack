@@ -1,4 +1,4 @@
-# Modelos exportados: 317 MB por idioma em int8, 1,26 GB em fp32. Sao
+# Modelos exportados: 355 MB por idioma em int8, 1,26 GB em fp32. Sao
 # reproduzidos por tool/export_onnx.py e publicados no host do pacote de
 # idioma, nunca versionados.
 build/

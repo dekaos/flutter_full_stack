@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 Widget _app(Directory packs) => ProviderScope(
   overrides: [
-    // A real directory instead of the documents folder, which needs a
+    // A real directory instead of the support directory, which needs a
     // platform channel a widget test does not have.
     modelStoreProvider.overrideWithValue(ModelStore(directory: packs)),
   ],

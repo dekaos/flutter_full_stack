@@ -20,7 +20,7 @@ class _NoGreeting extends GreetingController {
 }
 
 /// The landing screen is practice, and its controller would reach for the
-/// documents directory to see whether the language pack is downloaded — a
+/// support directory to see whether the language pack is downloaded — a
 /// platform channel that does not exist in a widget test.
 class _StubPractice extends PracticeController {
   @override

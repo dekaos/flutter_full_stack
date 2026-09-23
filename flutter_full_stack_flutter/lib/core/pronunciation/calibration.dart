@@ -57,8 +57,10 @@ class GopCalibration {
     );
   }
 
-  /// Educated guesses, standing in until there are recordings to fit against.
-  /// Every score the app shows today rests on these two numbers.
+  /// Educated guesses, for a language with no calibration file at all. Both
+  /// shipped languages have one, measured, whose global curve stands in for
+  /// any phoneme without its own - Spanish /ð/ today. So these two numbers
+  /// score nothing the app shows; they are the floor under a new language.
   static const fallback = GopCalibration(center: -1.75, scale: 0.80);
 
   final double center;

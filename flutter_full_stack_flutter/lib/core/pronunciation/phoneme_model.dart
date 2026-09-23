@@ -26,7 +26,7 @@ class Emissions {
 
 /// What the scorer needs from an acoustic model. The GOP core is written
 /// against this, so it can be exercised in tests with canned emissions and
-/// never has to load 300 MB of weights.
+/// never has to load 355 MB of weights.
 abstract interface class PhonemeAcousticModel {
   Future<Emissions> emissions(Float32List samples);
   Future<void> dispose();
@@ -35,9 +35,10 @@ abstract interface class PhonemeAcousticModel {
 /// The phoneme CTC model, quantised to int8 and run through ONNX Runtime.
 ///
 /// The weights are not bundled: `melos run size` holds the release APK to a
-/// byte budget, and one language pack is roughly 300 MB. They are downloaded
-/// once into the app's documents directory, after which everything here runs
-/// with no network at all.
+/// byte budget, and one language pack is 355 MB. They are downloaded once
+/// into the app's support directory by `ModelStore`, after which everything
+/// here runs with no network at all. Which models these are, and where they
+/// come from: docs/pronunciation-models.md.
 class OnnxPhonemeModel implements PhonemeAcousticModel {
   OnnxPhonemeModel._(this._session, this._sampleRate);
 

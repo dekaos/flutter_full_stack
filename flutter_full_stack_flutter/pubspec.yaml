@@ -30,8 +30,10 @@ dependencies:
     path: ../flutter_full_stack_client
   flutter_localizations:
     sdk: flutter
-  # Roda o modelo acustico de fonemas no device. Suporta Swift Package Manager,
-  # que e o que este repo usa: ios/ nao tem Podfile. Exige iOS 16+.
+  # Roda o modelo acustico de fonemas no device, com o ONNX Runtime 1.23.0.
+  # Suporta Swift Package Manager, mas o ios/ voltou a ter Podfile por causa do
+  # `record` (ver AGENTS.md). Exige iOS 16+. Modelos:
+  # docs/pronunciation-models.md.
   flutter_onnxruntime: ^1.8.0
   flutter_riverpod: ^3.4.3
   go_router: ^18.0.1
