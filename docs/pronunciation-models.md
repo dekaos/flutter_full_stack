@@ -12,28 +12,69 @@ How the scoring itself works (GOP over a forced alignment) is in
 
 ## What ships
 
-| | English | Spanish |
-|---|---|---|
-| Upstream model | [`facebook/wav2vec2-lv-60-espeak-cv-ft`](https://huggingface.co/facebook/wav2vec2-lv-60-espeak-cv-ft) | [`facebook/wav2vec2-xlsr-53-espeak-cv-ft`](https://huggingface.co/facebook/wav2vec2-xlsr-53-espeak-cv-ft) |
-| Upstream commit | `ae45363bf3413b374fecd9dc8bc1df0e24c3b7f4` | `2c733782da5604684829819a5eb744c193fe9398` |
-| Licence | Apache-2.0 | Apache-2.0 |
-| Pre-trained on | `wav2vec2-large-lv60` — Libri-Light, English audiobooks | `wav2vec2-large-xlsr-53` — 53 languages |
-| Fine-tuned on | Common Voice, multilingual, to espeak phoneme labels | the same |
-| Paper | Xu, Baevski, Auli, *Simple and Effective Zero-shot Cross-lingual Phoneme Recognition*, [arXiv:2109.11680](https://arxiv.org/abs/2109.11680) | the same |
-| File the app downloads | `phoneme_en_r2.int8.onnx` | `phoneme_es_r2.int8.onnx` |
-| Size | 354,930,937 bytes | 354,930,937 bytes |
-| SHA-256 | `8fb6b418aa5c1b5d9786728be1b35d21e7c1e9a2a14d2dd5e8f2af0387aa43f3` | `cf032b3ffd234e4fcf57fba3af2285a19236eb66896086eea95b0af726712e0f` |
+| | English | Spanish | Korean |
+|---|---|---|---|
+| Upstream model | [`facebook/wav2vec2-lv-60-espeak-cv-ft`](https://huggingface.co/facebook/wav2vec2-lv-60-espeak-cv-ft) | [`facebook/wav2vec2-xlsr-53-espeak-cv-ft`](https://huggingface.co/facebook/wav2vec2-xlsr-53-espeak-cv-ft) | [`facebook/wav2vec2-xlsr-53-espeak-cv-ft`](https://huggingface.co/facebook/wav2vec2-xlsr-53-espeak-cv-ft) |
+| Upstream commit | `ae45363bf3413b374fecd9dc8bc1df0e24c3b7f4` | `2c733782da5604684829819a5eb744c193fe9398` | `2c733782da5604684829819a5eb744c193fe9398` |
+| Licence | Apache-2.0 | Apache-2.0 | Apache-2.0 |
+| Pre-trained on | `wav2vec2-large-lv60` — Libri-Light, English audiobooks | `wav2vec2-large-xlsr-53` — 53 languages | `wav2vec2-large-xlsr-53` — 53 languages, Korean among them |
+| Fine-tuned on | Common Voice, multilingual, to espeak phoneme labels | the same | the same — **Korean was not in the fine-tuning**, so the model is zero-shot here |
+| Paper | Xu, Baevski, Auli, *Simple and Effective Zero-shot Cross-lingual Phoneme Recognition*, [arXiv:2109.11680](https://arxiv.org/abs/2109.11680) | the same | the same |
+| File the app downloads | `phoneme_en_r2.int8.onnx` | `phoneme_es_r2.int8.onnx` | `phoneme_ko_r2.int8.onnx` |
+| Size | 354,930,937 bytes | 354,930,937 bytes | 354,930,937 bytes |
+| SHA-256 | `8fb6b418aa5c1b5d9786728be1b35d21e7c1e9a2a14d2dd5e8f2af0387aa43f3` | `cf032b3ffd234e4fcf57fba3af2285a19236eb66896086eea95b0af726712e0f` | `cf032b3ffd234e4fcf57fba3af2285a19236eb66896086eea95b0af726712e0f` |
 
 The commits are pinned in `UPSTREAM_REVISIONS` in
 [scorer/src/gop/acoustic.py](../scorer/src/gop/acoustic.py), so an export redone
 later starts from the same weights. `r2` in the file name is the revision of
 *our* export, not of the upstream model: see [Changing a model](#changing-a-model).
 
-The two models are the same architecture, wav2vec2-large with a CTC head over
-the same 392-symbol IPA vocabulary, which is why the two files are the same
+The three models are the same architecture, wav2vec2-large with a CTC head over
+the same 392-symbol IPA vocabulary, which is why the three files are the same
 size to the byte. They differ in pre-training: `lv-60` saw only English, so it
 is the stronger of the two on English; `xlsr-53` is multilingual, which is what
-makes it the stronger on Spanish.
+makes it the stronger on Spanish and the only candidate for Korean.
+
+**The Korean file is byte-identical to the Spanish one** — same SHA-256,
+because it is the same weights through the same export. It still ships under
+its own name: the app stores packs by file name and never re-downloads a name
+it has, and a shared file would couple the two languages' revisions forever.
+355 MB twice on the host, and on the device of a learner who downloads both,
+is the price of keeping the one-pack-per-language contract honest.
+
+## Korean and the label map
+
+Every other language here trusts the espeak-ng label as the canonical phoneme.
+Korean cannot: espeak-ng and the model were born apart, and for several Korean
+sounds the label espeak-ng writes is a column the model barely activates.
+Measured on the Zeroth test split (457 utterances) with
+[scorer/tool/fit_label_map.py](../scorer/tool/fit_label_map.py), which aligns
+each utterance against the *unmapped* canonical sequence and averages the log
+posterior of every vocabulary symbol per window:
+
+| espeak-ng says | model actually hears (own → best, in nats) | mapped to |
+|---|---|---|
+| ㅏ /ɐ/ | −5.3 → /a/ −1.4 | `a` |
+| ㅓ /ʌ/ | −5.1 → /ɔ/ −2.6 | `ɔ` |
+| ㅡ /ɯ/ | −5.2 → /ə/ −3.4 | `ə` (least bad; the model has no good column for ㅡ) |
+| ㄱ /q/, /ɡ/ | −7.1/−4.3 → /k/ −2.3/−0.9 | `k` |
+| ㄹ final /ɫ/ | −7.9 → /l/ −2.9 | `l` |
+| ㅐ /ɛ/ | −3.1 → /e/ −1.9 | `e` (ㅐ and ㅔ merge — as they do in modern Seoul speech) |
+| ㄷ /d/ | −2.2 → /t/ −1.7 | `t` |
+| ㅈ /dʑ/, /tɕ/ | −7.5/−4.7 → /dʒ/, /tʃ/ | `dʒ`, `tʃ` |
+| ㅍ /ph/, ㅋ /kh/ | −7.9/−6.7 → /p/ −0.3, /k/ −0.4 | `p`, `k` |
+
+The map lives in `LABEL_MAP` in
+[scorer/src/gop/g2p.py](../scorer/src/gop/g2p.py) and applies everywhere the
+G2P runs (lexicon build, calibration, CLI). Without it every native speaker
+scores like a bad learner; with it, native Zeroth utterances land at a median
+of 81.7 — the same range as native Spanish (79.3).
+
+The price, also measured: **Korean's three-way stop contrast (plain / tense /
+aspirated) collapses to the plain stop**, because the model has no column that
+separates ㄱ from ㅋ from ㄲ in this language. A learner who under-aspirates ㅍ
+is not caught. That is a model limitation, not a G2P one — no relabelling can
+create a distinction the acoustic model does not encode.
 
 ## What our export changes
 
@@ -139,9 +180,10 @@ documented against. The scorer README gives the English command line
 |---|---|---|---|
 | [LibriSpeech](https://www.openslr.org/12) `test-clean` | CC BY 4.0 | English native medians | as curves |
 | [OpenSLR 71](https://www.openslr.org/71), Chilean Spanish, **female speakers only** | CC BY-SA 4.0 | Spanish native medians | as curves |
+| [Zeroth-Korean](https://www.openslr.org/40) test split, 457 utterances, 10 speakers — fetched as the [`Bingsu/zeroth-korean`](https://huggingface.co/datasets/Bingsu/zeroth-korean) parquet mirror, revision pinned, because the canonical 10 GB tarball is throttled to ~1 MB/s per connection | CC BY 4.0 | Korean native medians | as curves |
 | [speechocean762](https://www.openslr.org/101) | CC BY 4.0 | agreement with human raters; the regression head | no |
 | Common Voice | CC0 | the upstream fine-tuning | inside the weights |
-| [espeak-ng](https://github.com/espeak-ng/espeak-ng), voices `en-us` and `es-419` | GPL-3.0-or-later | grapheme-to-phoneme at build time | no, only its output, as the lexicon's phonemes |
+| [espeak-ng](https://github.com/espeak-ng/espeak-ng), voices `en-us`, `es-419` and `ko` | GPL-3.0-or-later | grapheme-to-phoneme at build time | no, only its output, as the lexicon's phonemes |
 
 **Before publishing, ask legal whether curves fitted on the OpenSLR 71 data
 fall under CC BY-SA 4.0's ShareAlike clause.** They are statistics of
@@ -150,6 +192,36 @@ licence is not an engineering call.
 
 ## Known limitations
 
+- **Korean's plain/tense/aspirated stop contrast is not scored.** The model has
+  no column that separates ㄱ from ㅋ from ㄲ (measured: /kh/ scores −6.7 nats
+  under its own label, /k/ −0.4 in the same windows), so all three map to the
+  plain stop. Under-aspirating a ㅍ passes. See
+  [Korean and the label map](#korean-and-the-label-map).
+- **Korean ㅐ and ㅔ are scored as one vowel** (/e/): the model does not
+  separate them either, and modern Seoul Korean merges them anyway.
+- **Korean ㅡ is scored against /ə/**, the least bad column the model offers
+  (−3.4 nats on native windows — far from the −1.4 of /a/ for ㅏ). Expect a
+  looser curve there.
+- **Korean calibration is 457 utterances from 10 speakers** (Zeroth test
+  split): 22 of 23 phonemes reached their own curve, and the global curve
+  does more work here than in English (which had 700 LibriSpeech utterances).
+- **Korean is zero-shot**: the fine-tuning never saw the language. Native
+  Zeroth utterances score a median of 81.7 (Spanish: 79.3), but agreement
+  with human raters has never been measured — no public Korean corpus with
+  expert pronunciation scores exists.
+- **espeak-ng's Korean G2P covers only part of the phonology.** Liaison and
+  nasalisation are partially applied (한국어를 comes out /h a n k u k ɔ ɾ ə l/,
+  without the 한궁거를 nasalisation), so a learner who applies the rules
+  *correctly* can be scored against a canonical sequence that does not.
+  The curated prompts avoid the worst cases; `g2pk` is the alternative if
+  this starts to matter.
+- **The Korean confusion table is a starting point, not pedagogy.** The
+  Brazilian-learner confusions in `calibrate.py` were written by an engineer
+  from the literature, not reviewed by a Korean teacher.
+- **No accent proxy for Korean in `check_int8.py`**: the pt-br espeak voice
+  cannot read Hangul, so the pack's int8 parity is measured on the native
+  synthetic sample only (2.1 overall, 3.2 on a word — inside the envelope the
+  `r2` packs already show).
 - **Spanish curves come from female voices only**, all Chilean: `es_cl_female`
   is the only part of OpenSLR 71 the fetch script downloads. How far a male
   voice's native median sits from them has not been measured.

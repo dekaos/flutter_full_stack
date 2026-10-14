@@ -18,6 +18,12 @@ SAMPLE_RATE = 16_000
 
 # Um modelo por idioma: lv-60 e melhor em ingles (pre-treino LibriVox),
 # xlsr-53 e melhor em espanhol (pre-treino multilingue). Ambos emitem IPA.
+# Coreano usa o mesmo xlsr-53 do espanhol: o pre-treino das 53 linguas inclui
+# coreano e o vocabulario de 392 simbolos cobre o IPA que o espeak-ng produz
+# para o idioma (verificacao em docs/pronunciation-models.md). O fine-tuning
+# espeak-cv-ft nao viu coreano, entao o modelo e zero-shot nesse idioma -- e o
+# mesmo arquivo de pesos do pacote espanhol, exportado com nome proprio para
+# manter o contrato um-pacote-por-idioma do app.
 # Revisao do pacote exportado. Entra no nome do arquivo porque o app guarda o
 # modelo por nome e nunca rebaixa um download existente: corrigir o modelo tem
 # que produzir um arquivo novo, ou o aparelho que ja baixou fica com o antigo.
@@ -26,6 +32,7 @@ MODEL_REVISION = "r2"
 MODELS = {
     "en": "facebook/wav2vec2-lv-60-espeak-cv-ft",
     "es": "facebook/wav2vec2-xlsr-53-espeak-cv-ft",
+    "ko": "facebook/wav2vec2-xlsr-53-espeak-cv-ft",
 }
 
 # Commit de cada modelo no Hugging Face, fixado. Sem ele o from_pretrained pega
@@ -37,6 +44,7 @@ MODELS = {
 UPSTREAM_REVISIONS = {
     "en": "ae45363bf3413b374fecd9dc8bc1df0e24c3b7f4",
     "es": "2c733782da5604684829819a5eb744c193fe9398",
+    "ko": "2c733782da5604684829819a5eb744c193fe9398",
 }
 
 

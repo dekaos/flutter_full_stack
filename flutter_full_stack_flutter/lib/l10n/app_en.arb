@@ -71,6 +71,11 @@
   "languageEnglish": "English",
   "@languageEnglish": { "description": "Name of the English locale." },
 
+  "languageKorean": "한국어",
+  "@languageKorean": {
+    "description": "Name of the Korean language, in that language."
+  },
+
   "languagePortuguese": "Português",
   "@languagePortuguese": {
     "description": "Name of the Portuguese locale, in that language."
@@ -126,7 +131,7 @@
     "description": "Main heading on the pronunciation practice screen."
   },
 
-  "practiceTagline": "Your pronunciation is scored on this device. Nothing is uploaded.",
+  "practiceTagline": "Your pronunciation is scored on this device.",
   "@practiceTagline": {
     "description": "Sentence under the heading, explaining that scoring is local."
   },

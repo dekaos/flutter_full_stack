@@ -61,4 +61,29 @@ void main() {
     expect(lexicon.vocabSize, 4);
     expect(lexicon.specialIds, containsAll([0, 1]));
   });
+
+  testWidgets('the bundled Korean lexicon parses fully resolved', (
+    tester,
+  ) async {
+    // Pins the contract with scorer/tool/build_lexicon.py: a phoneme the
+    // G2P could not map would arrive with empty token ids and be scored as
+    // silence, and nothing would fail.
+    final lexicon = await Lexicon.load('ko');
+
+    expect(lexicon.lang, 'ko');
+    expect(lexicon.model, 'phoneme_ko_r2.int8.onnx');
+    expect(lexicon.exercises, isNotEmpty);
+    for (final exercise in lexicon.exercises) {
+      for (final phone in exercise.phones) {
+        expect(
+          phone.tokenIds,
+          isNotEmpty,
+          reason: '${exercise.id}: /${phone.symbol}/ sem id no vocabulario',
+        );
+      }
+    }
+    // The Korean calibration is measured (22 of 23 phonemes), so the global
+    // curve must not be the guessed fallback.
+    expect(lexicon.calibration.isMeasured('ɔ'), isTrue);
+  });
 }

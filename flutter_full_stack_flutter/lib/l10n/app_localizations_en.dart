@@ -57,6 +57,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
+  String get languageKorean => '한국어';
+
+  @override
   String get languagePortuguese => 'Português';
 
   @override
@@ -92,8 +95,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get practiceHeadline => 'Read it out loud.';
 
   @override
-  String get practiceTagline =>
-      'Your pronunciation is scored on this device. Nothing is uploaded.';
+  String get practiceTagline => 'Your pronunciation is scored on this device.';
 
   @override
   String get practiceDownloadPack => 'Download the language pack';

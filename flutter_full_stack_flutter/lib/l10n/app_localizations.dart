@@ -182,6 +182,12 @@ abstract class AppLocalizations {
   /// **'English'**
   String get languageEnglish;
 
+  /// Name of the Korean language, in that language.
+  ///
+  /// In en, this message translates to:
+  /// **'한국어'**
+  String get languageKorean;
+
   /// Name of the Portuguese locale, in that language.
   ///
   /// In en, this message translates to:
@@ -245,7 +251,7 @@ abstract class AppLocalizations {
   /// Sentence under the heading, explaining that scoring is local.
   ///
   /// In en, this message translates to:
-  /// **'Your pronunciation is scored on this device. Nothing is uploaded.'**
+  /// **'Your pronunciation is scored on this device.'**
   String get practiceTagline;
 
   /// Button that fetches the acoustic model for a language.

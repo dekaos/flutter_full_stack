@@ -110,6 +110,24 @@ CONFUSIONS = {
         "e": ["ɛ"],
         "o": ["ɔ"],
     },
+    "ko": {
+        # PONTO DE PARTIDA, nao revisao pedagogica: o mesmo raciocinio de
+        # "o que um brasileiro fala no lugar" aplicado ao coreano, ainda sem
+        # validacao de quem ensina o idioma. Sobre o inventario JA MAPEADO
+        # (LABEL_MAP do g2p.py): ㅓ e /ɔ/, ㅡ e /ə/, ㄹ final e /l/.
+        # O lado "falado" precisa existir na fala nativa coreana para virar
+        # janela de erro -- por isso /h/ como proxy do r guttural, e nao /x/.
+        # ㅓ fechado em ㅗ: a confusao de vogal mais documentada para L1 pt.
+        "ɔ": ["o"],
+        # ㅡ nao existe em portugues: sai /u/ (ou /i/ nos nao arredondados).
+        "ə": ["u", "i"],
+        # ㄹ final vogaliza (물 -> "mu"), como o /l/ final do portugues.
+        "l": ["u"],
+        # ㄹ medial e batida; o brasileiro faz /l/ ou um r guttural.
+        "ɾ": ["l", "h"],
+        # ㅇ final: portugues nao fecha silaba em /ŋ/, vira /n/.
+        "ŋ": ["n"],
+    },
 }
 
 
@@ -186,7 +204,7 @@ def fit(native: list[float], wrong: list[float]) -> tuple[dict | None, str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("lang", choices=["en", "es"])
+    ap.add_argument("lang", choices=["en", "es", "ko"])
     ap.add_argument("--corpus", type=Path, help="raiz estilo LibriSpeech")
     ap.add_argument("--manifest", type=Path, help="TSV caminho<TAB>texto")
     ap.add_argument("--limit", type=int, default=300)

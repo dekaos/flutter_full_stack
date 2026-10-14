@@ -57,6 +57,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
+  String get languageKorean => '한국어';
+
+  @override
   String get languagePortuguese => 'Português';
 
   @override

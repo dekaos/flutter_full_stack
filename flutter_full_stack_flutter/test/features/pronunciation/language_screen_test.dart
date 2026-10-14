@@ -57,6 +57,7 @@ void main() {
     // Not "Spanish": someone choosing a language has to recognise it without
     // already reading the one the app happens to be in.
     expect(find.text('Español'), findsOneWidget);
+    expect(find.text('한국어'), findsOneWidget);
   });
 
   testWidgets('says which packs still have to be downloaded', (tester) async {
@@ -64,7 +65,7 @@ void main() {
 
     // Whether the pack is there decides whether a tap starts practice or a
     // 355 MB download, so it belongs on the card, not behind the tap.
-    expect(find.textContaining('355 MB'), findsNWidgets(2));
+    expect(find.textContaining('355 MB'), findsNWidgets(3));
     expect(find.text('On this device'), findsNothing);
   });
 
@@ -74,6 +75,6 @@ void main() {
     await _pump(tester, _app(packs));
 
     expect(find.text('On this device'), findsOneWidget);
-    expect(find.textContaining('355 MB'), findsOneWidget);
+    expect(find.textContaining('355 MB'), findsNWidgets(2));
   });
 }

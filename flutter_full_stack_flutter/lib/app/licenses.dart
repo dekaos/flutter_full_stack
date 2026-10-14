@@ -34,7 +34,8 @@ void registerLicenses() {
 const modelModificationNotice =
     'The pronunciation language packs are derived from '
     'facebook/wav2vec2-lv-60-espeak-cv-ft (English) and '
-    'facebook/wav2vec2-xlsr-53-espeak-cv-ft (Spanish), published on Hugging '
+    'facebook/wav2vec2-xlsr-53-espeak-cv-ft (Spanish and Korean), published '
+    'on Hugging '
     'Face under the Apache License 2.0. They were modified: the weight norm '
     'of the '
     'positional convolution was folded into its weight, the model was '

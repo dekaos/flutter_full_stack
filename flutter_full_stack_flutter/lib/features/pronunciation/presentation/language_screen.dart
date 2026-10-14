@@ -19,7 +19,7 @@ const packMegabytes = 355;
 /// Not derived from the bundled lexicons: the asset list is not something the
 /// app can enumerate at runtime, and a language nobody wrote prompts for
 /// should not appear just because a file exists.
-const practiceLanguages = ['en', 'es'];
+const practiceLanguages = ['en', 'es', 'ko'];
 
 /// Picks the language, which decides both the prompts and which pack has to be
 /// on the device.
@@ -33,7 +33,11 @@ class LanguageScreen extends ConsumerWidget {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(actions: const [AppBarActions()]),
+      appBar: AppBar(
+        actions: const [
+          AppBarActions(),
+        ],
+      ),
       body: AuroraBackdrop(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -129,6 +133,7 @@ class _LanguageCard extends ConsumerWidget {
   String _name(AppLocalizations l10n, String code) => switch (code) {
     'en' => l10n.languageEnglish,
     'es' => l10n.languageSpanish,
+    'ko' => l10n.languageKorean,
     _ => code.toUpperCase(),
   };
 }

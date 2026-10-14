@@ -17,9 +17,20 @@ era /ð/".
 
 Modelo acústico: wav2vec2 CTC com saída em IPA, um por idioma —
 `facebook/wav2vec2-lv-60-espeak-cv-ft` (en) e
-`facebook/wav2vec2-xlsr-53-espeak-cv-ft` (es), com o commit fixado em
+`facebook/wav2vec2-xlsr-53-espeak-cv-ft` (es e ko — coreano é zero-shot, o
+fine-tuning nunca viu o idioma; o pacote coreano é byte-idêntico ao espanhol
+e mesmo assim sai com nome próprio), com o commit fixado em
 `UPSTREAM_REVISIONS`. Origem, licenças, hashes dos arquivos publicados e o que
 refazer ao trocar um modelo: [docs/pronunciation-models.md](../docs/pronunciation-models.md).
+
+Coreano tem uma camada a mais: o rótulo que o espeak-ng escreve nem sempre é
+a coluna que o modelo ativa (/ɐ/ vale −5,3 nats onde /a/ vale −1,4). O mapa
+de rótulos do `g2p.py` é **medido**, não escolhido:
+
+```bash
+.venv/bin/python tool/fit_label_map.py ko \
+  --manifest corpus/ko/manifest.tsv --limit 457 --device mps
+```
 
 ## Uso
 
@@ -61,6 +72,10 @@ Com a calibração que o app usa, nas quatro amostras de `audio/`
 | en, voz pt-br | 36,4 | 38,4 | 2,0 | 3,1 |
 | es, voz nativa | 79,3 | 81,0 | 1,7 | **6,6** ("en") |
 | es, voz pt-br | 53,7 | 54,1 | 0,4 | 3,2 |
+| ko, voz nativa | 77,8 | 79,9 | 2,1 | 3,2 |
+
+(sem "ko, voz pt-br": a voz pt-br do espeak-ng não lê Hangul, e um proxy de
+sotaque coreano teria que ser gravado, não sintetizado.)
 
 **O `r2` não passa no limite de 1,5 ponto.** O int8 é sistematicamente mais
 generoso com fala ruim — toda palavra com sotaque sobe —, e o que o aluno vê
@@ -107,7 +122,17 @@ A curva log-posterior → 0–100 é **dado, não código**: sai de
 .venv/bin/python tool/calibrate.py en \
   --corpus corpus/LibriSpeech/test-clean --limit 700 \
   --substitutions 500 --device mps
+
+./tool/fetch_corpus.sh ko          # Zeroth test split, 60 MB (parquet do HF)
+.venv/bin/python tool/calibrate.py ko \
+  --manifest corpus/ko/manifest.tsv --limit 457 \
+  --substitutions 500 --device mps
 ```
+
+O `--substitutions 500` importa: os negativos genéricos são sorteados do
+inventário inteiro, e com o default (6 por fala) nenhum fonema junta as 30
+amostras mínimas — em coreano só os 5 fonemas com confusão real catalogada
+ganhariam curva própria.
 
 ### Como se calibra sem gravar ninguém
 
@@ -148,9 +173,13 @@ segundo para 0.15 e recalibrar é uma linha.
 |---|---|---|---|
 | inglês | 88,6 | 36,4 | 53 de 58 fonemas |
 | espanhol | 79,3 | 53,7 | 30 de 38 fonemas |
+| coreano | 81,7 (mediana, 80 falas do Zeroth) | — | 22 de 23 fonemas |
 
 A separação menor em espanhol não é defeito: português e espanhol são
 próximos, e um brasileiro lendo espanhol erra muito menos do que lendo inglês.
+Coreano zero-shot cair na faixa do espanhol é o sinal de que o xlsr-53
+"escuta" o idioma — medido depois do mapa de rótulos, sem o qual o nativo
+coreano pontuava como aluno ruim.
 
 As curvas por fonema saem com a forma certa. Fonema confusável fica apertado
 (`/ʌ/` center −2,8, `/ɪ/` −3,3 em inglês; `/ɾ/` −1,6 e `/β/` −2,1 em espanhol,

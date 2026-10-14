@@ -31,7 +31,7 @@ def render(res: scoring.Result) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="gop")
-    ap.add_argument("--lang", choices=["en", "es"], required=True)
+    ap.add_argument("--lang", choices=["en", "es", "ko"], required=True)
     ap.add_argument("--text", required=True, help="texto de referencia que o aluno deve ler")
     ap.add_argument("--audio", required=True)
     ap.add_argument("--model", default=None)

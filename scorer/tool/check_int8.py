@@ -3,7 +3,7 @@
 Quantizacao que passa no export mas move o score nao serve: o numero mostrado
 ao aluno tem que ser o mesmo dos dois lados.
 
-    python tool/check_int8.py          # en e es
+    python tool/check_int8.py          # en, es e ko
     python tool/check_int8.py es
 
 Sai com erro se alguma amostra mover mais que MAX_DRIFT pontos, em qualquer
@@ -22,10 +22,13 @@ from gop import acoustic, calibration as calib, g2p, score as scoring  # noqa: E
 
 # Texto de cada amostra em audio/. Sao sinteses do espeak-ng a 150 palavras
 # por minuto: a voz do idioma como pronuncia nativa, a pt-br lendo o mesmo
-# texto como proxy de sotaque (comando no README).
+# texto como proxy de sotaque (comando no README). Coreano so tem a amostra
+# nativa: a voz pt-br nao le Hangul, e um proxy de sotaque teria que ser
+# gravado -- um brasileiro lendo coreano --, nao sintetizado.
 SAMPLES = {
     "en": ("The weather is beautiful today", ("en_ok", "en_br")),
     "es": ("El desayuno está en la mesa", ("es_ok", "es_br")),
+    "ko": ("한국어를 공부해요", ("ko_ok",)),
 }
 
 # Em pontos de 0-100, na nota geral e em cada palavra. Com o fallback chutado,
