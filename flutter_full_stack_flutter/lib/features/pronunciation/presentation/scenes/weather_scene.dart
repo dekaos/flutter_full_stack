@@ -2,15 +2,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: a clear summer day. A sky-blue wash, meadow greens, the
 // cottage's cream and terracotta, and one accent - the coral of the parasol,
 // the deck chair and the shirt on the line - for the sunny day itself.
 const _skyTop = Tint(210, 0.75, 0.52);
 const _skyLow = Tint(190, 0.6, 0.96);
-const _sunBody = Tint(44, 1, 0.72);
-const _sunHalo = Tint(48, 0.95, 0.88);
+const _sunBody = Tint(44, 1, 0.84);
+const _sunHalo = Tint(48, 0.95, 0.78);
 const _cloud = Tint(210, 0.5, 1);
 const _farHill = Tint(165, 0.4, 0.74);
 const _nearHill = Tint(150, 0.34, 0.62);
@@ -47,85 +49,259 @@ const _lemonade = Tint(52, 0.75, 0.72);
 const _skin = Tint(26, 0.6, 0.7);
 const _swimsuit = Tint(196, 0.6, 0.42);
 const _straw = Tint(42, 0.62, 0.76);
-const _ginger = Tint(24, 0.7, 0.36);
 const _wingBlue = Tint(206, 0.7, 0.62);
 const _hose = Tint(140, 0.5, 0.34);
+// The grey the island stands in while the clouds are over the sun, and the
+// streaks of the wind that blows them away.
+const _overcast = Tint(218, 0.22, 0.4);
+const _gust = Tint(206, 0.4, 0.74);
 
-/// "The weather is beautiful today": a meadow island on a summer morning.
-/// The island rises, the cottage drops onto it, the trees spring up and the
-/// sun climbs out of the haze. Then the day gets going: a picnic rug unrolls
-/// and the basket lands on it, a deck chair and a parasol open by the pond
-/// and someone in a sun hat settles in, the washing is pegged out and a
-/// breeze flaps it dry, the cat comes out onto the step, the sprinkler
-/// starts and a little rainbow opens in its spray, two butterflies arrive,
-/// and the glass goes up to the weather.
+/// "The weather is beautiful today", in two acts.
+///
+/// The meadow assembles first, under a sky that is clouding over: the island
+/// rises, the cottage drops onto it, the trees spring up, the washing is
+/// pegged out, the deck chair and the furled parasol land by the pond, the
+/// sprinkler starts, and two clouds drift together over the sun. Then the
+/// story, while the rest of the island sinks back: the wind gets up - the
+/// weathervane on the roof spins round, the washing flaps and the clouds
+/// start rolling apart (*weather*); the sun breaks through with a glow, its
+/// light floods the garden, the flowers burst open and a little rainbow
+/// arcs in the sprinkler's spray (*beautiful*); and the day gets going -
+/// someone in a sun hat settles into the deck chair as the parasol opens
+/// beside it (*today*), two butterflies arrive and the glass goes up to the
+/// weather.
+const weatherScene = SceneScript(
+  paintWeather,
+  cues: [
+    Cue('weather', _windUp),
+    Cue('beautiful', _sunOut),
+    Cue('today', _dayOn),
+  ],
+  sounds: [
+    SceneSound(Sound.wind, _windUp),
+    SceneSound(Sound.sparkle, _sunOut),
+  ],
+);
+
+// The story's beats, on the arrival's clock, in the order the sentence says
+// them - which is also the order they cause each other: the wind clears the
+// sky, the sun comes out into it, and then the day can be enjoyed.
+const _windUp = 0.42;
+const _sunOut = 0.56;
+const _dayOn = 0.72;
+// The wind has rolled the clouds clear of the sun as it breaks through.
+const double _cleared = _sunOut + 0.02;
+// The glass goes up last, a toast to the weather.
+const double _toast = _dayOn + 0.12;
+
+// Where the sun stands, in screen fractions: on the right, and under the
+// card rather than behind it, since this time it is what the story is about.
+const _sunX = 0.78;
+const _sunY = 0.365;
+
+/// Paints [weatherScene].
 void paintWeather(IsoStage s) {
-  s.sky(_skyTop, _skyLow);
+  s.setting(() {
+    s.sky(_skyTop, _skyLow);
 
-  final climb = s.phase(0.1, 0.8);
-  s
-    ..sun(0.8, 0.27 - 0.09 * climb, 0.8, _sunBody, _sunHalo)
-    ..ridge(0.78, 1.3, _farHill, seed: 2)
-    ..ridge(0.86, 1, _nearHill, seed: 5);
-
-  // Clouds drift in from either side and stop.
-  final drift = s.phase(0.2, 1);
-  s
-    ..cloud(s.screen(0.22 - 0.5 * (1 - drift), 0.24), 2.8, _cloud)
-    ..cloud(s.screen(0.6 + 0.6 * (1 - drift), 0.4), 2.1, _cloud)
-    ..cloud(s.screen(0.12 - 0.4 * (1 - drift), 0.56), 1.6, _cloud);
-
-  s.rising(0, 0.42, () {
-    s.island(grass: _grass, earth: _earth, stone: _stone);
-    // Flat on the ground, so before anything that stands.
-    _path(s);
-    _pond(s);
-    _rug(s);
-
-    // A bush tucked behind the cottage's left side, so the cottage lands in
-    // front of it.
-    s.bush(0.35, 2.55, _leavesLight, size: 1.1, grow: s.pop(0.5, 0.7));
-    s.dropping(0.28, 0.66, (lift) => _cottage(s, lift));
-
-    s
-      ..tree(
-        4.6,
-        0.9,
-        leaves: _leavesLight,
-        bark: _bark,
-        ground: _grass,
-        h: 1.9,
-        grow: s.pop(0.44, 0.66),
-      )
-      ..tree(
-        5.6,
-        0.6,
-        leaves: _leaves,
-        bark: _bark,
-        ground: _grass,
-        h: 1.4,
-        grow: s.pop(0.52, 0.74),
+    // The sun climbs to its place while two clouds drift together over it;
+    // breaking through them is the story's.
+    final climb = s.phase(0.1, 0.8);
+    final drift = s.phase(0.2, 1);
+    s.story(() {
+      _sun(
+        s,
+        s.screen(_sunX, _sunY + 0.06 * (1 - climb)),
+        burst: s.pop(_sunOut - 0.01, _sunOut + 0.05),
+        settle: s.phase(_sunOut + 0.06, _sunOut + 0.26),
       );
+    });
+    s
+      ..ridge(0.78, 1.3, _farHill, seed: 2)
+      ..ridge(0.86, 1, _nearHill, seed: 5)
+      ..cloud(s.screen(0.12 - 0.4 * (1 - drift), 0.56), 1.6, _cloud);
+    // The wind gets them moving apart, and they roll clear of the sun just
+    // as it breaks through: one to rest on the left, the other blown away
+    // off the right.
+    s.story(() {
+      final part =
+          0.1 * s.phase(_windUp - 0.01, _windUp + 0.1) +
+          0.9 * s.phase(_sunOut - 0.05, _cleared, Curves.easeInOutCubic);
+      double go(double from, double to) => from + (to - from) * part;
+      s
+        ..cloud(
+          s.screen(go(0.8 - 0.9 * (1 - drift), 0.13), go(0.382, 0.335)),
+          2.5,
+          _cloud,
+        )
+        ..cloud(
+          s.screen(go(0.88 + 0.5 * (1 - drift), 1.3), go(0.355, 0.32)),
+          2,
+          _cloud,
+        );
+    });
 
-    _cat(s, 1.92, 3.12, _stepTop, s.pop(0.8, 0.92));
-    s.pine(
-      0.42,
-      5.15,
-      needles: _leaves,
-      bark: _bark,
-      ground: _grass,
-      h: 2,
-      grow: s.pop(0.44, 0.66),
-    );
-    _clothesline(s);
-    s.dropping(0.46, 0.64, (lift) => _deckChair(s, lift));
-    _parasol(s, 5.45, 1.9);
-    s.bush(5.75, 4.05, _leaves, size: 0.8, grow: s.pop(0.6, 0.8));
-    _flowers(s);
-    _picnic(s);
-    _sprinkler(s, 5.55, 5.45);
-    _butterflies(s);
+    s.rising(0, 0.42, () {
+      s.island(grass: _grass, earth: _earth, stone: _stone);
+      // Flat on the ground, so before anything that stands.
+      _path(s);
+      _pond(s);
+      _rug(s);
+      // The stage: the garden in front of the cottage, dark while the
+      // clouds are over it. The sun's light floods out across it as it
+      // breaks through, and stays.
+      s.story(() {
+        final flood = s.phase(_sunOut - 0.01, _sunOut + 0.08);
+        s.pool(4.55, 3.35, 0.9 + 1.3 * flood, strength: s.storyLight * flood);
+      });
+
+      // A bush tucked behind the cottage's left side, so the cottage lands
+      // in front of it.
+      s.bush(0.35, 2.55, _leavesLight, size: 1.1, grow: s.pop(0.5, 0.7));
+      s.dropping(0.28, 0.66, (lift) => _cottage(s, lift));
+
+      s
+        ..tree(
+          4.6,
+          0.9,
+          leaves: _leavesLight,
+          bark: _bark,
+          ground: _grass,
+          h: 1.9,
+          grow: s.pop(0.44, 0.66),
+        )
+        ..tree(
+          5.6,
+          0.6,
+          leaves: _leaves,
+          bark: _bark,
+          ground: _grass,
+          h: 1.4,
+          grow: s.pop(0.52, 0.74),
+        );
+
+      s.pine(
+        0.42,
+        5.15,
+        needles: _leaves,
+        bark: _bark,
+        ground: _grass,
+        h: 2,
+        grow: s.pop(0.44, 0.66),
+      );
+      _clothesline(s);
+      // The parasol stands just behind the chair, so whoever sits in it is
+      // seen under it rather than behind it.
+      _parasol(s, 5.4, 1.5);
+      s.dropping(0.46, 0.64, (lift) => _deckChair(s, lift));
+      s.bush(5.75, 4.05, _leaves, size: 0.8, grow: s.pop(0.6, 0.8));
+      _flowers(s);
+      _picnic(s);
+      _sprinkler(s, 5.55, 5.45);
+
+      s.story(() {
+        _butterflies(s);
+        _wind(s);
+
+        // While the clouds are over the sun the whole island stands in their
+        // grey; the sun breaking through lifts it.
+        final grey = 1 - s.phase(_sunOut - 0.01, _sunOut + 0.06);
+        if (grey > 0) {
+          s.canvas.drawPaint(
+            Paint()..color = s.colour(_overcast).withValues(alpha: 0.3 * grey),
+          );
+        }
+
+        // The rest of the island steps back: round the weathervane while
+        // the wind gets up, then round the garden once the sun is on it.
+        s.spotlight(
+          Offset.lerp(
+            s.at(3.1, 1.5, 2.4),
+            s.at(4.5, 3.3, 0.5),
+            s.phase(_sunOut - 0.03, _sunOut + 0.1, Curves.easeInOut),
+          )!,
+          radius: 2.5,
+          strength: s.storyLight,
+        );
+      });
+    });
   });
+}
+
+// --------------------------------------------------------------------- sky --
+
+/// The sun at [c], in its halo. Once it has broken through - [burst] - a glow
+/// spreads round it and its rays shoot out, then [settle] to a gentler
+/// shine.
+void _sun(
+  IsoStage s,
+  Offset c, {
+  required double burst,
+  required double settle,
+}) {
+  const r = 0.55;
+  final shine = burst.clamp(0.0, 1.0);
+  s.glow(c, 2.6, strength: shine * (1 - 0.45 * settle));
+  s.sun(
+    c.dx / s.size.width,
+    c.dy / s.size.height,
+    r,
+    _sunBody,
+    _sunHalo,
+    rings: 2,
+  );
+  if (burst <= 0) return;
+  final ray = s.stroke(_sunBody, 0.08);
+  for (var i = 0; i < 10; i++) {
+    final a = i * math.pi / 5 + 0.3 * settle;
+    final d = Offset(math.cos(a), math.sin(a));
+    s.canvas.drawLine(
+      c + d * (r * 2 * s.unit),
+      c + d * ((r * 2 + 0.45 * burst) * s.unit),
+      ray,
+    );
+  }
+}
+
+/// The wind getting up: streaks blowing across the roof, past the
+/// weathervane, each a beat after the one before.
+void _wind(IsoStage s) {
+  final u = s.unit;
+  final anchor = s.at(2.66, 2.05, 2.7);
+  for (final (i, dy) in const [-0.55, 0.05, 0.6].indexed) {
+    final p = s.phase(
+      _windUp - 0.02 + i * 0.012,
+      _windUp + 0.12 + i * 0.012,
+      Curves.easeOutSine,
+    );
+    final fade = math.sin(p * math.pi);
+    if (fade <= 0.01) continue;
+    final length = (1.4 - 0.25 * i) * u;
+    final curl = 0.13 * u;
+    final a = anchor.translate((-2.8 + 4.2 * p + 0.3 * i) * u, dy * u);
+    s.canvas.drawPath(
+      Path()
+        ..moveTo(a.dx, a.dy)
+        ..cubicTo(
+          a.dx + length * 0.35,
+          a.dy - 0.1 * u,
+          a.dx + length * 0.65,
+          a.dy + 0.08 * u,
+          a.dx + length,
+          a.dy,
+        )
+        ..arcTo(
+          Rect.fromCircle(
+            center: Offset(a.dx + length, a.dy - curl),
+            radius: curl,
+          ),
+          math.pi / 2,
+          -1.5 * math.pi,
+          false,
+        ),
+      s.stroke(_gust, 0.055)..color = s.colour(_gust).withValues(alpha: fade),
+    );
+  }
 }
 
 // ------------------------------------------------------------------ ground --
@@ -145,7 +321,8 @@ void _path(IsoStage s) {
 const _pondX = 4.75;
 const _pondY = 4.55;
 
-/// The pond: water in a ring of stones, with lily pads and a bloom.
+/// The pond: water in a ring of stones, with lily pads, and a bloom that
+/// opens when the sun comes out.
 void _pond(IsoStage s) {
   const x = _pondX;
   const y = _pondY;
@@ -179,13 +356,14 @@ void _pond(IsoStage s) {
 
   _lilyPad(s, x + 0.24, y + 0.2, 0.17, 1.1, s.pop(0.56, 0.7));
   _lilyPad(s, x + 0.36, y - 0.2, 0.11, 2.6, s.pop(0.6, 0.74));
-  final bloom = s.pop(0.82, 0.94);
-  if (bloom > 0) {
+  s.story(() {
+    final bloom = s.pop(_sunOut + 0.01, _sunOut + 0.09);
+    if (bloom <= 0) return;
     final c = s.at(x + 0.21, y + 0.17, 0.05);
     s.canvas
       ..drawCircle(c, 0.075 * s.unit * bloom, s.fill(_petalPink.shade(0.26)))
       ..drawCircle(c, 0.03 * s.unit * bloom, s.fill(_petalGold));
-  }
+  });
 }
 
 /// A lily pad of radius [r] at [x], [y], its notch facing [notch] radians,
@@ -287,114 +465,76 @@ void _cottage(IsoStage s, double lift) {
     ..box(x + 0.4, y + 0.3, z + h, 0.32, 0.32, 0.95, _tile.shade(-0.08))
     ..roof(x, y, z + h, w, d, 0.85, _tile);
 
-  // Flowers in the window boxes, once the cottage has landed.
-  final bloom = s.pop(0.7, 0.82);
-  if (bloom > 0) {
+  s.story(() {
+    // The window boxes flower with the rest of the garden when the sun
+    // comes out.
     for (final (i, bx) in const [1.3, 1.45, 1.6, 2.7, 2.85, 3.0].indexed) {
+      final bloom = s.pop(_sunOut + i * 0.006, _sunOut + 0.08 + i * 0.006);
+      if (bloom <= 0) continue;
       s.canvas.drawCircle(
         s.at(bx, y + d + 0.05, z + 0.44),
-        0.05 * s.unit * bloom,
+        0.055 * s.unit * bloom,
         s.fill(i.isEven ? _petalPink : _petalGold),
       );
     }
-  }
 
-  // The weathervane on the ridge: spins while the cottage lands, then points
-  // into the wind.
-  final top = s.at(x + w * 0.72, y + d / 2, z + h + 0.85);
-  final mast = s.at(x + w * 0.72, y + d / 2, z + h + 1.45);
-  final turn = 0.6 + (1 - s.phase(0.5, 1)) * math.pi * 6;
-  final tip = Offset(math.cos(turn), math.sin(turn) * 0.5) * (0.42 * s.unit);
-  s.canvas
-    ..drawLine(top, mast, s.stroke(_vane, 0.035))
-    ..drawLine(mast - tip, mast + tip, s.stroke(_vane, 0.04))
-    ..drawCircle(mast + tip, 0.07 * s.unit, s.fill(_vane))
-    ..drawCircle(mast, 0.05 * s.unit, s.fill(_petalGold));
+    // The weathervane on the ridge points one way while the sky clouds
+    // over; when the wind gets up it spins round and settles into it.
+    final spin = s.phase(_windUp - 0.01, _windUp + 0.16, Curves.easeOutQuad);
+    _weathervane(
+      s,
+      x + w * 0.72,
+      y + d / 2,
+      z + h + 0.85,
+      0.6 + (1 - spin) * (math.pi * 4 + 1.9),
+    );
+  });
 }
 
-// --------------------------------------------------------------------- cat --
+/// A weathervane standing on the ridge at [x], [y], [z]: a mast, the fixed
+/// arms of the compass, and the arrow turned to [turn] radians.
+void _weathervane(IsoStage s, double x, double y, double z, double turn) {
+  final u = s.unit;
+  final iron = s.stroke(_vane, 0.035);
+  final mast = s.at(x, y, z + 0.76);
+  s.canvas.drawLine(s.at(x, y, z), mast, iron);
+  // The compass arms, fixed, a little below the arrow.
+  const arm = 0.3;
+  for (final (ax, ay) in const [(arm, 0.0), (0.0, arm)]) {
+    s.canvas.drawLine(
+      s.at(x - ax, y - ay, z + 0.48),
+      s.at(x + ax, y + ay, z + 0.48),
+      s.stroke(_vane, 0.025),
+    );
+  }
 
-/// The ginger cat, sunning itself on the step with its eyes shut: it pops
-/// up, [grow] of the way, and curls its tail round its paws.
-void _cat(IsoStage s, double x, double y, double z, double grow) {
-  if (grow <= 0) return;
-  final foot = s.at(x, y, z);
-  final curl = s.phase(0.86, 1);
-  s.canvas.drawOval(
-    s.disc(x, y, z + 0.002, 0.2),
-    s.fill(_gravel.shade(-0.14)),
-  );
-  s.scaled(foot, grow, () {
-    final k = 0.17 * s.unit;
-    final tail = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.38
-      ..strokeCap = StrokeCap.round
-      ..color = s.colour(_ginger.shade(-0.08));
-    final ear = s.fill(_ginger.shade(-0.04));
-    final lid = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.14
-      ..strokeCap = StrokeCap.round
-      ..color = s.colour(_ginger.shade(-0.28));
-    s.canvas
-      ..save()
-      ..translate(foot.dx, foot.dy)
-      ..scale(k, k)
-      ..drawPath(
-        Path()
-          ..moveTo(-0.5, -0.25)
-          ..quadraticBezierTo(
-            -1.9,
-            -0.3 + 0.2 * curl,
-            -1.7 + 2.4 * curl,
-            -1.6 + 1.45 * curl,
-          ),
-        tail,
-      )
-      ..drawOval(
-        Rect.fromCenter(center: const Offset(0, -1), width: 1.7, height: 2),
-        s.fill(_ginger),
-      )
-      ..drawOval(
-        Rect.fromCenter(
-          center: const Offset(0.35, -0.95),
-          width: 0.7,
-          height: 1.3,
-        ),
-        s.fill(_ginger.shade(0.14)),
-      )
-      ..drawPath(
-        Path()
-          ..moveTo(-0.15, -2.6)
-          ..lineTo(-0.05, -3.4)
-          ..lineTo(0.42, -2.9)
-          ..close(),
-        ear,
-      )
-      ..drawPath(
-        Path()
-          ..moveTo(0.55, -2.95)
-          ..lineTo(1.05, -3.35)
-          ..lineTo(1.1, -2.55)
-          ..close(),
-        ear,
-      )
-      ..drawCircle(const Offset(0.4, -2.3), 0.72, s.fill(_ginger.shade(0.05)))
-      // Eyes shut against the sun.
-      ..drawArc(
-        Rect.fromCenter(
-          center: const Offset(0.78, -2.5),
-          width: 0.34,
-          height: 0.24,
-        ),
-        0.2,
-        math.pi - 0.4,
-        false,
-        lid,
-      )
-      ..restore();
-  });
+  // The arrow swings in the horizontal plane; its head and its tail fin are
+  // upright plates, so they show whichever way it points.
+  final along = Offset(math.cos(turn), math.sin(turn) * 0.5);
+  final tip = mast + along * (0.6 * u);
+  final tail = mast - along * (0.52 * u);
+  final neck = tip - along * (0.24 * u);
+  final fin = tail + along * (0.24 * u);
+  s.canvas
+    ..drawLine(tail, tip, s.stroke(_vane, 0.04))
+    ..drawPath(
+      Path()
+        ..moveTo(tip.dx, tip.dy)
+        ..lineTo(neck.dx, neck.dy - 0.13 * u)
+        ..lineTo(neck.dx, neck.dy + 0.13 * u)
+        ..close(),
+      s.fill(_vane),
+    )
+    ..drawPath(
+      Path()
+        ..moveTo(tail.dx, tail.dy - 0.2 * u)
+        ..lineTo(fin.dx, fin.dy - 0.05 * u)
+        ..lineTo(fin.dx, fin.dy + 0.03 * u)
+        ..lineTo(tail.dx, tail.dy + 0.06 * u)
+        ..close(),
+      s.fill(_vane),
+    )
+    ..drawCircle(mast, 0.06 * u, s.fill(_petalGold));
 }
 
 // ------------------------------------------------------------- clothesline --
@@ -463,9 +603,9 @@ _wash = [
   ),
 ];
 
-/// The washing line: the posts come up, the line is strung, the washing is
-/// pegged out one piece after another, and then a breeze lifts it and lets
-/// it settle.
+/// The washing line: the posts come up, the line is strung and the washing
+/// is pegged out one piece after another. When the wind gets up it lifts the
+/// washing and lets it settle.
 void _clothesline(IsoStage s) {
   void post(double y, double grow) {
     if (grow <= 0) return;
@@ -493,50 +633,60 @@ void _clothesline(IsoStage s) {
     s.canvas.drawPath(line, s.stroke(_pebble.shade(-0.2), 0.018));
   }
 
-  for (var i = 0; i < _wash.length; i++) {
-    final item = _wash[i];
-    final unfurl = s.pop(0.62 + i * 0.05, 0.74 + i * 0.05);
-    if (unfurl <= 0) continue;
-    // The breeze: a swing out and back that dies away, each piece a beat
-    // after the one before.
-    final gust = s.phase(0.78 + i * 0.03, 0.96 + i * 0.01, Curves.linear);
-    final swing = 0.6 * math.sin(gust * math.pi * 5) * (1 - gust);
-    final hang = item.hang * unfurl;
-    V3 point(Offset o) {
-      final y = item.y + o.dx * item.w;
-      return (
-        x: _lineX + o.dy * hang * math.sin(swing),
-        y: y,
-        z: _sag(y) - o.dy * hang * math.cos(swing),
+  final pegged = [
+    for (var i = 0; i < _wash.length; i++)
+      s.pop(0.62 + i * 0.05, 0.74 + i * 0.05),
+  ];
+  s.story(() {
+    for (var i = 0; i < _wash.length; i++) {
+      final item = _wash[i];
+      final unfurl = pegged[i];
+      if (unfurl <= 0) continue;
+      // The gust: a swing out and back that dies away, each piece a beat
+      // after the one before.
+      final gust = s.phase(
+        _windUp - 0.01 + i * 0.012,
+        _windUp + 0.2 + i * 0.012,
+        Curves.linear,
       );
-    }
+      final swing = 0.75 * math.sin(gust * math.pi * 5) * (1 - gust);
+      final hang = item.hang * unfurl;
+      V3 point(Offset o) {
+        final y = item.y + o.dx * item.w;
+        return (
+          x: _lineX + o.dy * hang * math.sin(swing),
+          y: y,
+          z: _sag(y) - o.dy * hang * math.cos(swing),
+        );
+      }
 
-    s.canvas.drawPath(
-      s.face([for (final o in item.shape) point(o)]),
-      s.fill(item.tint.shade(-0.04 + 0.06 * math.sin(swing))),
-    );
-    if (i == 0) {
-      // A stripe across the sheet.
       s.canvas.drawPath(
-        s.face([
-          point(const Offset(0, 0.74)),
-          point(const Offset(1, 0.74)),
-          point(const Offset(1, 0.86)),
-          point(const Offset(0, 0.86)),
-        ]),
-        s.fill(_gingham.at(0.68)),
+        s.face([for (final o in item.shape) point(o)]),
+        s.fill(item.tint.shade(-0.04 + 0.06 * math.sin(swing))),
       );
+      if (i == 0) {
+        // A stripe across the sheet.
+        s.canvas.drawPath(
+          s.face([
+            point(const Offset(0, 0.74)),
+            point(const Offset(1, 0.74)),
+            point(const Offset(1, 0.86)),
+            point(const Offset(0, 0.86)),
+          ]),
+          s.fill(_gingham.at(0.68)),
+        );
+      }
+      // The pegs.
+      for (final u in const [0.12, 0.88]) {
+        final y = item.y + u * item.w;
+        s.canvas.drawCircle(
+          s.at(_lineX, y, _sag(y)),
+          0.03 * s.unit,
+          s.fill(_wood.shade(0.1)),
+        );
+      }
     }
-    // The pegs.
-    for (final u in const [0.12, 0.88]) {
-      final y = item.y + u * item.w;
-      s.canvas.drawCircle(
-        s.at(_lineX, y, _sag(y)),
-        0.03 * s.unit,
-        s.fill(_wood.shade(0.1)),
-      );
-    }
-  }
+  });
 
   post(_lineTo, s.pop(0.5, 0.62));
 }
@@ -547,8 +697,8 @@ const _chairX = 4.75;
 const _chairY = 1.95;
 const _seat = 0.3;
 
-/// The deck chair, [lift] tiles above its place, facing the pond, and the
-/// one in the sun hat who settles into it.
+/// The deck chair, [lift] tiles above its place, facing the pond. Once the
+/// day gets going, someone in a sun hat settles into it.
 void _deckChair(IsoStage s, double lift) {
   const x = _chairX;
   const y = _chairY;
@@ -613,13 +763,21 @@ void _deckChair(IsoStage s, double lift) {
       );
   }
 
-  final arrive = s.pop(0.6, 0.74);
-  s.scaled(s.at(x, y + 0.4, z + _seat), arrive, () => _sunbather(s, z));
+  // They drop into the seat with a bounce as the day begins.
+  s.story(() {
+    s.dropping(
+      _dayOn - 0.015,
+      _dayOn + 0.08,
+      (fall) => _sunbather(s, z + fall),
+      from: 0.9,
+    );
+  });
   rail(x + half);
 }
 
-/// Someone in a swimsuit and sunglasses, legs out along the seat; the sun
-/// hat drops onto their head, and last they raise a glass of lemonade.
+/// Someone in a swimsuit and sunglasses, legs out along the seat, [z] tiles
+/// above it; the sun hat drops onto their head, and last they raise a glass
+/// of lemonade.
 void _sunbather(IsoStage s, double z) {
   const x = _chairX;
   const y = _chairY;
@@ -646,8 +804,8 @@ void _sunbather(IsoStage s, double z) {
   );
 
   // The hat drops on and bounces to rest.
-  if (s.t >= 0.74) {
-    final lift = s.drop(0.74, 0.9, from: 0.8);
+  if (s.t >= _dayOn + 0.04) {
+    final lift = s.drop(_dayOn + 0.04, _dayOn + 0.15, from: 0.8);
     final brim = z + seat + 0.6 + lift;
     s.canvas.drawOval(
       s.disc(x, y + 0.28, brim, 0.24),
@@ -659,7 +817,7 @@ void _sunbather(IsoStage s, double z) {
   }
 
   // The near arm comes up with the glass, a toast to the weather.
-  final raise = s.phase(0.88, 0.98, Curves.easeInOutCubic);
+  final raise = s.phase(_toast, _toast + 0.07, Curves.easeInOutCubic);
   final shoulder = s.at(x + 0.14, y + 0.3, z + seat + 0.34);
   final rest = s.at(x + 0.22, y + 0.6, z + seat + 0.1);
   final up = head.translate(0.32 * u, 0.02 * u);
@@ -679,80 +837,132 @@ void _sunbather(IsoStage s, double z) {
     );
 }
 
-/// The striped parasol beside the chair: the pole drops in, then the canopy
-/// pops open.
+/// The striped parasol beside the chair: the pole drops in furled, and it
+/// pops open as the day gets going.
 void _parasol(IsoStage s, double x, double y) {
   if (s.t < 0.5) return;
   final lift = s.drop(0.5, 0.64, from: 3);
   const pole = 1.2;
-  s
-    ..shadow(x - 0.15, y + 0.25, 0.5 * s.pop(0.6, 0.76), _grass)
-    ..canvas.drawLine(
-      s.at(x, y, lift),
-      s.at(x, y, lift + pole + 0.08),
-      s.stroke(_wood.shade(0.1), 0.035),
+  s.story(() {
+    final open = s.pop(_dayOn - 0.01, _dayOn + 0.07);
+    final apexZ = lift + pole + 0.1;
+    s
+      ..shadow(x - 0.15, y + 0.25, 0.08 + 0.42 * open, _grass)
+      ..canvas.drawLine(
+        s.at(x, y, lift),
+        s.at(x, y, lift + pole + 0.08),
+        s.stroke(_wood.shade(0.1), 0.035),
+      );
+    // Furled: the canopy wrapped round the top of the pole.
+    final furled = 1 - open;
+    if (furled > 0) {
+      s.cone(x, y, apexZ - 0.62 * furled, 0.07, 0.62 * furled, _coral);
+    }
+    if (open <= 0) return;
+    const n = 10;
+    final r = 0.62 * open;
+    final rimZ = apexZ - 0.26 * open;
+    final apex = s.at(x, y, apexZ);
+    double angle(double i) => i * 2 * math.pi / n + 0.2;
+    Offset rim(double i, [double drop = 0]) => s.at(
+      x + r * math.cos(angle(i)),
+      y + r * math.sin(angle(i)),
+      rimZ - drop,
     );
-  final open = s.pop(0.6, 0.76);
-  if (open <= 0) return;
-  const n = 10;
-  final r = 0.62 * open;
-  final apexZ = lift + pole + 0.1;
-  final rimZ = apexZ - 0.26 * open;
-  final apex = s.at(x, y, apexZ);
-  double angle(double i) => i * 2 * math.pi / n + 0.2;
-  Offset rim(double i, [double drop = 0]) => s.at(
-    x + r * math.cos(angle(i)),
-    y + r * math.sin(angle(i)),
-    rimZ - drop,
-  );
-  for (var i = 0; i < n; i++) {
-    final m = angle(i + 0.5);
-    final tint = (i.isEven ? _coral : _cream).shade(
-      0.04 - 0.1 * math.cos(m) - 0.02 * math.sin(m),
-    );
-    final a = rim(i.toDouble());
-    final b = rim(i + 1.0);
-    final sag = rim(i + 0.5, 0.1 * open);
-    final control = sag * 2 - (a + b) / 2;
-    s.canvas.drawPath(
-      Path()
-        ..moveTo(apex.dx, apex.dy)
-        ..lineTo(a.dx, a.dy)
-        ..quadraticBezierTo(control.dx, control.dy, b.dx, b.dy)
-        ..close(),
-      s.fill(tint),
-    );
-  }
-  s.sphere(x, y, apexZ + 0.03, 0.04, _cream);
+    for (var i = 0; i < n; i++) {
+      final m = angle(i + 0.5);
+      final tint = (i.isEven ? _coral : _cream).shade(
+        0.04 - 0.1 * math.cos(m) - 0.02 * math.sin(m),
+      );
+      final a = rim(i.toDouble());
+      final b = rim(i + 1.0);
+      final sag = rim(i + 0.5, 0.1 * open);
+      final control = sag * 2 - (a + b) / 2;
+      s.canvas.drawPath(
+        Path()
+          ..moveTo(apex.dx, apex.dy)
+          ..lineTo(a.dx, a.dy)
+          ..quadraticBezierTo(control.dx, control.dy, b.dx, b.dy)
+          ..close(),
+        s.fill(tint),
+      );
+    }
+    s.sphere(x, y, apexZ + 0.03, 0.04, _cream);
+  });
 }
 
 // ----------------------------------------------------------------- flowers --
 
-/// Flowers about the meadow. They open one after another from the back.
+/// Flowers about the meadow, most of them round the garden in front of the
+/// cottage, where the sun lands.
 const List<({double x, double y, Tint tint})> _beds = [
-  (x: 2.75, y: 4.35, tint: _petalGold),
+  // Off to the side of the picnic basket, clear of the cat behind it.
+  (x: 3.0, y: 4.1, tint: _petalGold),
   (x: 2.75, y: 3.35, tint: _petalPink),
   (x: 3.6, y: 3.5, tint: _petalLilac),
+  (x: 3.95, y: 3.75, tint: _petalGold),
+  (x: 3.85, y: 4.2, tint: _petalPink),
   (x: 5.6, y: 3.45, tint: _petalGold),
+  (x: 5.85, y: 4.3, tint: _petalLilac),
   (x: 0.95, y: 5.75, tint: _petalLilac),
   (x: 1.2, y: 5.6, tint: _petalPink),
   (x: 5.8, y: 5.0, tint: _petalPink),
+  (x: 4.05, y: 5.4, tint: _petalLilac),
   (x: 4.35, y: 5.6, tint: _petalGold),
   (x: 5.3, y: 5.45, tint: _petalLilac),
 ];
 
+/// The flowers: their stems come up as buds while the meadow assembles, and
+/// they burst open, one after another, as the sun breaks through.
 void _flowers(IsoStage s) {
   final ordered = [..._beds]..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
-  for (var i = 0; i < ordered.length; i++) {
-    final bed = ordered[i];
-    s.flower(
-      bed.x,
-      bed.y,
-      bed.tint,
-      _stem,
-      grow: s.pop(0.58 + i * 0.025, 0.76 + i * 0.025),
+  final grown = [
+    for (var i = 0; i < ordered.length; i++)
+      s.pop(0.5 + i * 0.025, 0.68 + i * 0.025),
+  ];
+  s.story(() {
+    for (var i = 0; i < ordered.length; i++) {
+      final bed = ordered[i];
+      _flower(
+        s,
+        bed.x,
+        bed.y,
+        bed.tint,
+        grow: grown[i],
+        open: s.pop(_sunOut - 0.01 + i * 0.005, _sunOut + 0.07 + i * 0.005),
+      );
+    }
+  });
+}
+
+/// A flower at [x], [y], its stem [grow] of the way up: a green bud until
+/// it is [open], then a head of [petals].
+void _flower(
+  IsoStage s,
+  double x,
+  double y,
+  Tint petals, {
+  required double grow,
+  required double open,
+}) {
+  if (grow <= 0) return;
+  final u = s.unit;
+  final head = s.at(x, y, 0.28 * grow);
+  s.canvas.drawLine(s.at(x, y), head, s.stroke(_stem, 0.035));
+  if (open < 0.4) {
+    s.canvas.drawOval(
+      Rect.fromCenter(
+        center: head.translate(0, -0.025 * u * grow),
+        width: 0.07 * u * grow,
+        height: 0.11 * u * grow,
+      ),
+      s.fill(_stem.shade(0.14)),
     );
   }
+  if (open <= 0) return;
+  s.canvas
+    ..drawCircle(head, 0.1 * u * open, s.fill(petals))
+    ..drawCircle(head, 0.04 * u * open, s.fill(petals.shade(0.3)));
 }
 
 // ------------------------------------------------------------------ picnic --
@@ -820,6 +1030,9 @@ void _basket(IsoStage s, double x, double y, double lift) {
       s.stroke(_wicker.shade(-0.12), 0.015),
     );
   }
+  // The cat behind it: after the basket, and before the handle, which is in
+  // front of it.
+  _cat(s, (x: x - 0.02, y: y - 0.02, z: z + h + 0.035), w + 0.04, d + 0.04);
   final a = s.at(x + 0.06, y + d / 2, z + h + 0.035);
   final b = s.at(x + w - 0.06, y + d / 2, z + h + 0.035);
   final top = s.at(x + w / 2, y + d / 2, z + h + 0.44);
@@ -828,6 +1041,29 @@ void _basket(IsoStage s, double x, double y, double lift) {
       ..moveTo(a.dx, a.dy)
       ..quadraticBezierTo(top.dx, top.dy, b.dx, b.dy),
     s.stroke(_wicker.shade(-0.14), 0.03),
+  );
+}
+
+/// The set's black cat, hiding behind the picnic basket: crouched on the
+/// grass behind it, only the tips of its ears show over the lid. It sits up
+/// to look over the basket, and ducks back down. [lid] is the back corner of
+/// the lid's top, which is [w] by [d].
+void _cat(IsoStage s, V3 lid, double w, double d) {
+  // Only once the basket has landed.
+  if (s.t < 0.8) return;
+  final back = s.at(lid.x, lid.y, lid.z);
+  final up = back.translate(0, -s.unit);
+  s.hidingCat(
+    hidden: back.translate(0, 0.72 * s.unit),
+    // Sitting up, it is on the grass just behind the basket - the ground
+    // that the lid's back corner stands in front of on screen - and seen
+    // whole over it.
+    out: back,
+    reveal: Path.combine(
+      PathOperation.union,
+      s.beyond(s.at(lid.x, lid.y + d, lid.z), back, of: up),
+      s.beyond(back, s.at(lid.x + w, lid.y, lid.z), of: up),
+    ),
   );
 }
 
@@ -841,8 +1077,9 @@ const _bands = [
   Tint(206, 0.65, 0.64),
 ];
 
-/// A sprinkler watering the front flowers: it pops up, the jets arc out,
-/// and last a small rainbow opens in the spray.
+/// A sprinkler watering the front flowers: it pops up and the jets arc out
+/// while the meadow assembles, and when the sun breaks through, a small
+/// rainbow opens in the spray.
 void _sprinkler(IsoStage s, double x, double y) {
   final grow = s.pop(0.68, 0.8);
   if (grow <= 0) return;
@@ -885,31 +1122,39 @@ void _sprinkler(IsoStage s, double x, double y) {
       ..sphere(x, y, 0.14, 0.035, _petalGold);
   });
 
-  // The rainbow, opening from left to right across the spray.
-  final arc = s.phase(0.86, 0.98, Curves.easeInOutCubic);
-  if (arc <= 0) return;
-  final c = s.at(x, y, 0.05);
-  for (var i = 0; i < _bands.length; i++) {
-    final r = (0.6 - i * 0.05) * s.unit;
-    s.canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r),
-      math.pi,
-      math.pi * arc,
-      false,
-      s.stroke(_bands[i], 0.05)..strokeCap = StrokeCap.butt,
-    );
-  }
+  // The rainbow, opening from left to right across the spray as the sun
+  // comes out on it.
+  s.story(() {
+    final arc = s.phase(_sunOut - 0.005, _sunOut + 0.07);
+    if (arc <= 0) return;
+    final c = s.at(x, y, 0.05);
+    for (var i = 0; i < _bands.length; i++) {
+      final r = (0.7 - i * 0.055) * s.unit;
+      s.canvas.drawArc(
+        Rect.fromCircle(center: c, radius: r),
+        math.pi,
+        math.pi * arc,
+        false,
+        s.stroke(_bands[i], 0.055)..strokeCap = StrokeCap.butt,
+      );
+    }
+  });
 }
 
 // -------------------------------------------------------------- butterflies --
 
-/// Two butterflies flutter in from off the island and settle on flowers.
+/// Two butterflies flutter in from off the island once the day is going,
+/// and settle on flowers.
 void _butterflies(IsoStage s) {
   for (final (i, b) in const [
     (from: (x: -1.6, y: 2.8, z: 2.4), to: (x: 1.2, y: 5.6), tint: _petalGold),
     (from: (x: 7.4, y: 1.4, z: 2.6), to: (x: 5.8, y: 5.0), tint: _wingBlue),
   ].indexed) {
-    final p = s.phase(0.7 + i * 0.05, 0.92 + i * 0.04, Curves.easeInOutSine);
+    final p = s.phase(
+      _dayOn + 0.03 + i * 0.03,
+      _dayOn + 0.15 + i * 0.03,
+      Curves.easeInOutSine,
+    );
     if (p <= 0) continue;
     final rest = (x: b.to.x, y: b.to.y, z: 0.34);
     final x = b.from.x + (rest.x - b.from.x) * p;

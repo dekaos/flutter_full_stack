@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: a town crossing on a fresh, clear day. Blue and mint for the
 // sky and the far city, slate for the road, warm sand for the pavements,
@@ -34,6 +36,8 @@ const _redLamp = Tint(0, 1, 0.74);
 const _redRing = Tint(2, 0.95, 0.56);
 const _redHalo = Tint(2, 0.85, 0.4);
 const _redHot = Tint(8, 0.7, 0.95);
+// What the red lamp throws on the street round it as it comes on.
+const _redGlow = Tint(6, 0.9, 0.86);
 const _amber = Tint(40, 1, 0.72);
 const _green = Tint(150, 0.85, 0.72);
 const List<Tint> _lamps = [_green, _amber, _redLamp];
@@ -50,7 +54,6 @@ const _petalPink = Tint(330, 0.6, 0.58);
 const _petalGold = Tint(44, 0.9, 0.66);
 const _petalLilac = Tint(272, 0.5, 0.58);
 const _wood = Tint(28, 0.5, 0.46);
-const _ginger = Tint(28, 0.75, 0.56);
 const _coat = Tint(40, 0.8, 0.6);
 const _skin = Tint(26, 0.5, 0.78);
 const _bird = Tint(26, 0.5, 0.4);
@@ -77,138 +80,196 @@ const double _poleY = _r1 + 0.28;
 const _poleH = 1.05;
 const _headH = 1.5;
 
-/// "The red car stopped at the traffic light": a crossroads on a floating
-/// island. The island rises, the shops and the house drop onto their
-/// corners and the traffic light springs up showing green; the red car lands
-/// at the end of the road and drives in, the light turns amber, then red, and
-/// the car brakes to a stop at the line, rocking on its springs, brake lights
-/// on. A sparrow lands on the light to watch.
+/// "The red car stopped at the traffic light", in two acts.
+///
+/// The crossroads assembles first: the island rises, the shops and the house
+/// drop onto their corners and the traffic light springs up showing green.
+/// Then the story, in a pool of light at the junction while the rest of the
+/// town sinks back: the red car lands at the end of the road and drives in
+/// (*red car*), the light goes amber and then red (*traffic light*), and the
+/// car brakes and stops at the line, rocking on its springs, brake lights on
+/// (*stopped*). A sparrow lands on the light to watch.
+const trafficScene = SceneScript(
+  paintTraffic,
+  cues: [
+    Cue('red car', _carLands),
+    Cue('traffic light', _turnsRed),
+    Cue('stopped', _stops),
+  ],
+  sounds: [SceneSound(Sound.horn, _carLands)],
+);
+
+// The story's beats, on the arrival's clock. The light turns red before the
+// car stops - it stops *because* of it - so the cues are in that order
+// too.
+const _carLands = 0.42;
+const _turnsAmber = 0.53;
+const _turnsRed = 0.6;
+const _stops = 0.74;
+
+/// Paints [trafficScene].
 void paintTraffic(IsoStage s) {
-  // A small sun climbs to its place on the right, beside the subtitle like
-  // the rest of the set, kept modest so it never competes with the red lamp.
-  final climb = s.phase(0.1, 0.8);
-  s
-    ..sky(_skyTop, _skyLow)
-    ..sun(0.84, 0.21 - 0.06 * climb, 0.62, _sunBody, _sunHalo, rings: 2);
-
-  // The far city climbs out of the haze while the island rises.
-  final rise = s.phase(0.05, 0.6);
-  s
-    ..canvas.save()
-    ..canvas.translate(0, (1 - rise) * s.unit * 2.5);
-  _skyline(s, 0.8, 3.6, _farCity, seed: 3);
-  _skyline(s, 0.85, 2.4, _nearCity, seed: 8, lights: _cityLights);
-  s
-    ..canvas.restore()
-    ..ridge(0.88, 0.8, _hill, seed: 4);
-
-  final drift = s.phase(0.2, 1);
-  s
-    ..cloud(s.screen(0.74 + 0.5 * (1 - drift), 0.21), 2.4, _cloud)
-    ..cloud(s.screen(0.1 - 0.5 * (1 - drift), 0.19), 1.9, _cloud)
-    ..cloud(s.screen(0.08 - 0.4 * (1 - drift), 0.555), 1.1, _cloud);
-
-  s.rising(0, 0.42, () {
-    s.island(grass: _grass, earth: _earth, stone: _stone);
-    _roads(s);
-    _blocks(s);
-
-    // Standing things, back to front.
+  s.setting(() {
+    // A small sun climbs to its place on the right, beside the subtitle like
+    // the rest of the set, kept modest so it never competes with the red
+    // lamp.
+    final climb = s.phase(0.1, 0.8);
     s
-      ..bush(0.5, 0.75, _leaves, size: 0.8, grow: s.pop(0.46, 0.66))
-      ..bush(0.85, 0.4, _leavesLight, size: 0.6, grow: s.pop(0.5, 0.7))
-      ..dropping(0.26, 0.6, (lift) => _shopBlue(s, lift))
-      ..dropping(0.32, 0.66, (lift) => _house(s, lift))
-      ..dropping(0.38, 0.7, (lift) => _cafe(s, lift))
-      // On the lawn in front of the house's side wall, so after the house.
-      ..bush(1.18, 3.62, _leaves, size: 0.55, grow: s.pop(0.56, 0.76))
-      ..tree(
-        0.75,
-        5.5,
-        leaves: _leavesLight,
-        bark: _bark,
-        ground: _grass,
-        h: 1.6,
-        grow: s.pop(0.5, 0.7),
-      );
-    // Someone waits on the far corner to cross.
-    _walker(s, _r1 + 0.25, _r0 - 0.18);
-    _streetLamp(s, 5.7, 1.32);
+      ..sky(_skyTop, _skyLow)
+      ..sun(0.84, 0.21 - 0.06 * climb, 0.62, _sunBody, _sunHalo, rings: 2);
 
-    // The light springs up on green, goes amber, then red.
-    final stage = s.t < 0.5
-        ? 0
-        : s.t < 0.68
-        ? 1
-        : s.t < 0.76
-        ? 2
-        : 3;
-    _signal(s, grow: s.pop(0.4, 0.54), stage: stage);
+    // The far city climbs out of the haze while the island rises.
+    final rise = s.phase(0.05, 0.6);
+    s
+      ..canvas.save()
+      ..canvas.translate(0, (1 - rise) * s.unit * 2.5);
+    _skyline(s, 0.8, 3.6, _farCity, seed: 3);
+    _skyline(s, 0.85, 2.4, _nearCity, seed: 8, lights: _cityLights);
+    s
+      ..canvas.restore()
+      ..ridge(0.88, 0.8, _hill, seed: 4);
 
-    // The car lands at the end of the road, then brakes to the line: still
-    // rolling on amber, the last stretch on red.
-    if (s.t >= 0.48) {
-      final drive = s.phase(0.56, 0.88, Curves.easeOutQuad);
-      final run = s.phase(0.56, 0.88, Curves.linear);
-      final speed = run > 0 ? 2 * (1 - run) : 0.0;
-      final travel = (_startAt - _stopAt) * drive;
-      final settle = s.phase(0.86, 0.98, Curves.linear);
-      s.faded(s.phase(0.48, 0.52), () {
-        _car(
-          s,
-          nose: _startAt - travel,
-          lift: s.drop(0.48, 0.6, from: 4),
-          roll: -travel / _wheelR,
-          bob: 0.04 * math.sin(settle * math.pi * 2) * (1 - settle),
-          speed: speed,
-          braking: s.t >= 0.74,
+    final drift = s.phase(0.2, 1);
+    s
+      ..cloud(s.screen(0.74 + 0.5 * (1 - drift), 0.21), 2.4, _cloud)
+      ..cloud(s.screen(0.1 - 0.5 * (1 - drift), 0.19), 1.9, _cloud)
+      ..cloud(s.screen(0.08 - 0.4 * (1 - drift), 0.555), 1.1, _cloud);
+
+    s.rising(0, 0.42, () {
+      s.island(grass: _grass, earth: _earth, stone: _stone);
+      _roads(s);
+      _blocks(s);
+      // The stage: the junction's corner, where the car will stop under the
+      // light. Lit once the story starts, and it stays lit.
+      s.pool(_stopAt + 0.3, _mid + 0.75, 1.5, strength: s.storyLight);
+
+      // Standing things, back to front.
+      s
+        ..bush(0.5, 0.75, _leaves, size: 0.8, grow: s.pop(0.46, 0.66))
+        ..bush(0.85, 0.4, _leavesLight, size: 0.6, grow: s.pop(0.5, 0.7))
+        ..dropping(0.26, 0.6, (lift) => _shopBlue(s, lift))
+        ..dropping(0.32, 0.66, (lift) => _house(s, lift))
+        ..dropping(0.38, 0.7, (lift) => _cafe(s, lift))
+        // On the lawn in front of the house's side wall, so after the house.
+        ..bush(1.18, 3.62, _leaves, size: 0.55, grow: s.pop(0.56, 0.76))
+        ..tree(
+          0.75,
+          5.5,
+          leaves: _leavesLight,
+          bark: _bark,
+          ground: _grass,
+          h: 1.6,
+          grow: s.pop(0.5, 0.7),
         );
-      });
-    }
+      // Someone waits on the far corner to cross.
+      _walker(s, _r1 + 0.25, _r0 - 0.18);
+      _streetLamp(s, 5.7, 1.32);
 
-    // The little park in front: the bench and the flower beds, then the
-    // trees, which stand in front of them all.
-    _bench(s, 5.2, 4);
-    const beds = [
-      (x: 4.3, y: 4.0, tint: _petalPink),
-      (x: 4.7, y: 4.25, tint: _petalGold),
-      (x: 4.15, y: 4.5, tint: _petalLilac),
-      (x: 4.0, y: 3.9, tint: _petalGold),
-      (x: 4.55, y: 4.75, tint: _petalPink),
-      (x: 5.6, y: 4.7, tint: _petalLilac),
-      (x: 5.3, y: 5.15, tint: _petalGold),
-      (x: 3.9, y: 4.85, tint: _petalPink),
-    ];
-    final ordered = [...beds]..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
-    for (var i = 0; i < ordered.length; i++) {
-      final bed = ordered[i];
-      s.flower(
-        bed.x,
-        bed.y,
-        bed.tint,
-        _stem,
-        grow: s.pop(0.64 + i * 0.025, 0.8 + i * 0.025),
+      // The light springs up on green with the rest of the street; what it
+      // does next is the story's.
+      final grow = s.pop(0.4, 0.54);
+      s.story(() {
+        final stage = s.t < _turnsAmber
+            ? 1
+            : s.t < _turnsRed
+            ? 2
+            : 3;
+        // The red lamp blazes as it comes on - the moment the sentence
+        // turns on - and settles to a steady glow.
+        final blaze = s.phase(_turnsRed, _turnsRed + 0.04);
+        final settle = s.phase(_turnsRed + 0.06, _turnsRed + 0.2);
+        s.glow(
+          s.at(_poleX + 0.13, _poleY, _poleH + 0.29 + 2 * 0.46),
+          1.1,
+          strength: blaze * (1 - 0.45 * settle) * s.storyLight,
+          light: _redGlow,
+        );
+        _signal(
+          s,
+          grow: grow,
+          stage: stage,
+          glows: [
+            1,
+            s.pop(_turnsAmber, _turnsAmber + 0.06),
+            s.pop(_turnsRed, _turnsRed + 0.1),
+          ],
+        );
+
+        // The car lands at the end of the road, then brakes to the line:
+        // still rolling on amber, the last stretch on red.
+        if (s.t >= _carLands - 0.05) {
+          final drive = s.phase(_carLands + 0.04, _stops, Curves.easeOutQuad);
+          final run = s.phase(_carLands + 0.04, _stops, Curves.linear);
+          final speed = run > 0 && run < 1 ? 2 * (1 - run) : 0.0;
+          final travel = (_startAt - _stopAt) * drive;
+          final settle = s.phase(_stops, _stops + 0.12, Curves.linear);
+          s.faded(s.phase(_carLands - 0.05, _carLands - 0.02), () {
+            _car(
+              s,
+              nose: _startAt - travel,
+              lift: s.drop(_carLands - 0.05, _carLands + 0.04, from: 4),
+              roll: -travel / _wheelR,
+              bob: 0.05 * math.sin(settle * math.pi * 2) * (1 - settle),
+              speed: speed,
+              braking: s.t >= _turnsRed + 0.02,
+            );
+          });
+        }
+      });
+
+      // The little park in front: the bench and the flower beds, then the
+      // trees, which stand in front of them all.
+      _bench(s, 5.2, 4);
+      const beds = [
+        (x: 4.3, y: 4.0, tint: _petalPink),
+        (x: 4.7, y: 4.25, tint: _petalGold),
+        (x: 4.15, y: 4.5, tint: _petalLilac),
+        (x: 4.0, y: 3.9, tint: _petalGold),
+        (x: 4.55, y: 4.75, tint: _petalPink),
+        (x: 5.6, y: 4.7, tint: _petalLilac),
+        (x: 5.3, y: 5.15, tint: _petalGold),
+        (x: 3.9, y: 4.85, tint: _petalPink),
+      ];
+      final ordered = [...beds]
+        ..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
+      for (var i = 0; i < ordered.length; i++) {
+        final bed = ordered[i];
+        s.flower(
+          bed.x,
+          bed.y,
+          bed.tint,
+          _stem,
+          grow: s.pop(0.64 + i * 0.025, 0.8 + i * 0.025),
+        );
+      }
+      s
+        ..tree(
+          3.8,
+          5.62,
+          leaves: _leaves,
+          bark: _bark,
+          ground: _grass,
+          grow: s.pop(0.52, 0.74),
+        )
+        ..bush(4.65, 5.7, _leaves, size: 0.8, grow: s.pop(0.62, 0.84))
+        ..tree(
+          5.45,
+          5.35,
+          leaves: _leavesLight,
+          bark: _bark,
+          ground: _grass,
+          h: 1.4,
+          grow: s.pop(0.58, 0.8),
+        );
+
+      // The rest of the town steps back while the car and the light have
+      // the stage.
+      s.spotlight(
+        s.at(_stopAt + 0.2, _mid + 0.9, 0.8),
+        radius: 2.1,
+        strength: s.storyLight,
       );
-    }
-    s
-      ..tree(
-        3.8,
-        5.62,
-        leaves: _leaves,
-        bark: _bark,
-        ground: _grass,
-        grow: s.pop(0.52, 0.74),
-      )
-      ..bush(4.65, 5.7, _leaves, size: 0.8, grow: s.pop(0.62, 0.84))
-      ..tree(
-        5.45,
-        5.35,
-        leaves: _leavesLight,
-        bark: _bark,
-        ground: _grass,
-        h: 1.4,
-        grow: s.pop(0.58, 0.8),
-      );
+    });
   });
 }
 
@@ -514,14 +575,14 @@ void _cafe(IsoStage s, double lift) {
   _awningLeft(s, y + d, x + 0.06, 0.66, z + 0.76);
 }
 
-/// The yellow house on the left-hand block, [lift] tiles up, with the cat
-/// on its step.
+/// The yellow house on the left-hand block, [lift] tiles up.
 void _house(IsoStage s, double lift) {
   const x = 0.15;
   const y = 3.6;
   const w = 0.9;
   const d = 1.5;
   const h = 1.05;
+  const rise = 0.55;
   final z = lift;
   if (lift < 0.05) _footprint(s, x, y, w, d, _grass);
   s
@@ -532,41 +593,28 @@ void _house(IsoStage s, double lift) {
     ..onRight(x + w, y + 1.06, z + 0.4, 0.3, 0.34, _glass.shade(-0.1))
     ..box(x + w, y + 0.54, z, 0.16, 0.46, 0.06, _pavement)
     ..box(x + 0.2, y + 0.3, z + h, 0.22, 0.22, 0.75, _slate.shade(0.1))
-    ..roof(x, y, z + h, w, d, 0.55, _slate, alongX: false);
-  _cat(s, x + w + 0.09, y + 0.92, z + 0.06);
+    ..roof(x, y, z + h, w, d, rise, _slate, alongX: false);
+  _cat(s, ridge: x + w / 2, top: z + h + rise);
 }
 
-/// A ginger cat sitting at [x], [y], [z], looking down the road.
-void _cat(IsoStage s, double x, double y, double z) {
-  final grow = s.pop(0.7, 0.84);
-  if (grow <= 0) return;
-  final head = s.at(x, y, z + 0.2 * grow);
-  final r = 0.055 * s.unit * grow;
-  s
-    ..sphere(x, y, z + 0.08 * grow, 0.075 * grow, _ginger)
-    ..sphere(x, y, z + 0.2 * grow, 0.055 * grow, _ginger.shade(0.04));
-  final tailFoot = s.at(x, y - 0.06, z + 0.02);
-  final tailBend = s.at(x, y - 0.22, z + 0.04);
-  final tailTip = s.at(x, y - 0.2, z + 0.16 * grow);
-  s.canvas
-    ..drawPath(
-      Path()
-        ..moveTo(head.dx - r * 0.95, head.dy - r * 0.3)
-        ..lineTo(head.dx - r * 0.75, head.dy - r * 1.55)
-        ..lineTo(head.dx - r * 0.15, head.dy - r * 0.9)
-        ..close()
-        ..moveTo(head.dx + r * 0.95, head.dy - r * 0.3)
-        ..lineTo(head.dx + r * 0.75, head.dy - r * 1.55)
-        ..lineTo(head.dx + r * 0.15, head.dy - r * 0.9)
-        ..close(),
-      s.fill(_ginger),
-    )
-    ..drawPath(
-      Path()
-        ..moveTo(tailFoot.dx, tailFoot.dy)
-        ..quadraticBezierTo(tailBend.dx, tailBend.dy, tailTip.dx, tailTip.dy),
-      s.stroke(_ginger.shade(-0.06), 0.03)..style = PaintingStyle.stroke,
-    );
+/// The black cat, on the yellow house's roof - the scene's easter egg (see
+/// `HidingCat`). It keeps to the far slope, out of sight behind the ridge
+/// but for its ear tips, and when it has a reason it climbs up to sit on
+/// the ridge beside the chimney, and slips back down. [ridge] is where the
+/// ridge runs along x, [top] how high it is.
+void _cat(IsoStage s, {required double ridge, required double top}) {
+  // Only once the house has landed.
+  if (s.t < 0.7) return;
+  // A cat's width along the ridge from the chimney, its tail on the open
+  // side; low enough behind it at rest that its eyes stay hidden.
+  final seat = s.at(ridge, 4.76, top);
+  final along = s.at(ridge, 4, top);
+  s.hidingCat(
+    hidden: seat.translate(0, 0.6 * s.unit),
+    out: seat,
+    reveal: s.beyond(seat, along, of: seat.translate(0, -1)),
+    flip: true,
+  );
 }
 
 /// A pedestrian standing at [x], [y]: legs, a coat with its arms, a head -
@@ -606,9 +654,14 @@ void _streetLamp(IsoStage s, double x, double y) {
 }
 
 /// The traffic light on the corner, [grow] of the way up. [stage] is which
-/// lamp is lit - none, green, amber, red; each one's glow spreads as it
-/// comes on. A sparrow drops onto it at the end.
-void _signal(IsoStage s, {required double grow, required int stage}) {
+/// lamp is lit - none, green, amber, red - and [glows] how far each lamp's
+/// glow has spread since it came on. A sparrow drops onto it at the end.
+void _signal(
+  IsoStage s, {
+  required double grow,
+  required int stage,
+  required List<double> glows,
+}) {
   const x = _poleX;
   const y = _poleY;
   const h = _poleH;
@@ -617,7 +670,6 @@ void _signal(IsoStage s, {required double grow, required int stage}) {
   const top = h + _headH;
   const pitch = 0.46;
   const r = 0.18;
-  final glows = [s.pop(0.5, 0.58), s.pop(0.68, 0.75), s.pop(0.76, 0.88)];
   double lampZ(int i) => h + 0.29 + i * pitch;
   s.scaled(s.at(x, y), grow, () {
     s
@@ -691,8 +743,8 @@ void _signal(IsoStage s, {required double grow, required int stage}) {
   });
   // The sparrow lands on top once the car has stopped.
   s.dropping(
-    0.86,
-    0.98,
+    _stops + 0.08,
+    _stops + 0.18,
     (lift) => _sparrow(s, face, y + 0.12, top + 0.1 + lift),
     from: 2,
   );

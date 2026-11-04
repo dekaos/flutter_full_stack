@@ -4,7 +4,25 @@ import 'dart:ui' as ui;
 import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/cat.dart';
 import 'package:flutter_full_stack_flutter/theme/scene_tone.dart';
+
+/// The two acts every scene plays, as fractions of the arrival.
+///
+/// A scene exists to show the learner what the sentence says, so the world
+/// it happens in is not the show: it assembles quickly, in [setting], and
+/// then the sentence is acted out on its own, in the light, beat by beat.
+/// Every scene keeps to the same two acts so that moving through the deck
+/// has one rhythm to learn.
+abstract final class Act {
+  /// Act one ends here: the island has risen and everything on it has
+  /// landed. Nothing the sentence is about should happen before it.
+  static const setting = 0.34;
+
+  /// Act two, the story, is told by here. What is left of the arrival is
+  /// the light settling to the gentler level it rests at.
+  static const told = 0.92;
+}
 
 /// A colour intent: a hue, how vivid, and how bright within the scene's band.
 ///
@@ -63,17 +81,40 @@ class IsoStage {
   IsoStage(
     this.canvas,
     this.size,
-    this.t,
+    this.clock,
     this.tone, {
+    required this.haze,
     this.clear = EdgeInsets.zero,
+    this.cat = CatPose.hidden,
+    this.catWalks = false,
     SceneTone? world,
-  }) : world = world ?? tone;
+  }) : world = world ?? tone,
+       _t = clock;
 
   final Canvas canvas;
   final Size size;
 
-  /// How far the arrival is, `0` to `1`. A scene at `1` is at rest.
-  final double t;
+  /// How far the whole arrival is, `0` to `1`. A scene at `1` is at rest.
+  final double clock;
+
+  /// How far the timeline being drawn is, `0` to `1`: the [clock], except
+  /// inside [setting], where act one's own timeline runs `0` to `1` over the
+  /// first [Act.setting] of the arrival. Every beat helper reads this.
+  double get t => _t;
+  double _t;
+
+  /// What the world sinks back into outside the [spotlight]: the colour of
+  /// the page itself, so the veil only ever moves the scene away from the
+  /// text - lighter under dark text, darker under light.
+  final Color haze;
+
+  /// Where the hiding cat is: behind its bush, or out on a visit to the
+  /// learner. See [hidingCat].
+  final CatPose cat;
+
+  /// Whether the cat comes out on foot - the scene's `SceneScript.catWalks`,
+  /// which is also what times its sounds to its gesture.
+  final bool catWalks;
 
   /// The band the backdrop - sky, sun, clouds, far hills - is painted in.
   final SceneTone tone;
@@ -234,6 +275,45 @@ class IsoStage {
     canvas.restore();
   }
 
+  /// Runs [draw] on act one's timeline: inside, [t] runs `0` to `1` while
+  /// the arrival runs to [Act.setting]. The world's whole choreography -
+  /// the island rising, things dropping, trees springing up - is written
+  /// once against `0..1` and played inside the first act, quick and out of
+  /// the story's way.
+  void setting(void Function() draw) => _on<void>(
+    (clock / Act.setting).clamp(0.0, 1.0),
+    draw,
+  );
+
+  /// Runs [draw] on the arrival's own clock, for the story's parts that are
+  /// drawn inside [setting] - the car among the shops, say, since things
+  /// must still be painted back to front. Its beats are its cues' times.
+  /// Returns what [draw] does, so a beat can also be read from there: how
+  /// lit a window drawn with the house already is.
+  T story<T>(T Function() draw) => _on(clock, draw);
+
+  T _on<T>(double time, T Function() draw) {
+    final outer = _t;
+    _t = time;
+    try {
+      return draw();
+    } finally {
+      _t = outer;
+    }
+  }
+
+  /// How brightly the story is lit: dark while the world assembles, full
+  /// while the sentence is acted, then easing to the gentler light that
+  /// stays on the subject at rest. Read off the [clock], wherever it is
+  /// called from.
+  double get storyLight {
+    double span(double begin, double end) => Curves.easeInOut.transform(
+      ((clock - begin) / (end - begin)).clamp(0.0, 1.0),
+    );
+    return span(Act.setting - 0.02, Act.setting + 0.06) *
+        (1 - 0.35 * span(Act.told, 1));
+  }
+
   /// Runs [draw] scaled by [scale] about [anchor]; nothing when it is zero.
   void scaled(Offset anchor, double scale, void Function() draw) {
     if (scale <= 0) return;
@@ -255,6 +335,440 @@ class IsoStage {
       Paint()..color = Color.fromRGBO(0, 0, 0, opacity),
     );
     draw();
+    canvas.restore();
+  }
+
+  // ----------------------------------------------------------------- light --
+
+  /// The warm light the story's subject stands in.
+  static const keyLight = Tint(46, 1, 0.94);
+
+  /// A pool of warm light on the ground at [x], [y], [r] tiles across: the
+  /// stage light the sentence's subject stands in. Draw it before the
+  /// subject, so the subject stands on it.
+  void pool(
+    double x,
+    double y,
+    double r, {
+    double strength = 1,
+    Tint light = keyLight,
+  }) {
+    if (strength <= 0) return;
+    final rect = disc(x, y, 0.003, r);
+    final c = colour(light);
+    final radius = rect.width / 2;
+    // A round glow, squashed to the ground's ellipse.
+    canvas
+      ..save()
+      ..translate(rect.center.dx, rect.center.dy)
+      ..scale(1, rect.height / rect.width)
+      ..drawCircle(
+        Offset.zero,
+        radius,
+        Paint()
+          ..shader = ui.Gradient.radial(
+            Offset.zero,
+            radius,
+            [
+              c.withValues(alpha: 0.62 * strength),
+              c.withValues(alpha: 0.34 * strength),
+              c.withValues(alpha: 0),
+            ],
+            [0, 0.55, 1],
+          ),
+      )
+      ..restore();
+  }
+
+  /// A soft round glow at screen point [c], [radius] tiles out: a lamp
+  /// coming on, the sun breaking through, an idea. Draw it before what it
+  /// lights.
+  void glow(
+    Offset c,
+    double radius, {
+    double strength = 1,
+    Tint light = keyLight,
+  }) {
+    if (strength <= 0) return;
+    final colour = this.colour(light);
+    canvas.drawCircle(
+      c,
+      radius * unit,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          c,
+          radius * unit,
+          [
+            colour.withValues(alpha: 0.7 * strength),
+            colour.withValues(alpha: 0.3 * strength),
+            colour.withValues(alpha: 0),
+          ],
+          [0, 0.4, 1],
+        ),
+    );
+  }
+
+  /// Lets everything but the story sink back: the world further than
+  /// [radius] tiles from screen point [focus] is veiled in the [haze], more
+  /// the further out it is. Draw it last, over everything, at
+  /// [storyLight] - so the eye goes to what the sentence says, and the
+  /// world around it stays a place instead of becoming a crowd.
+  ///
+  /// Gentle on purpose: the island must stay a vivid place, and the veil is
+  /// only there to tip the balance towards the subject - the light on it
+  /// and its moving do the rest. A pale veil washes colour out far sooner
+  /// than a dark one dims it, so on a light page it is a third as strong:
+  /// there the day stays bright and the key light carries the focus.
+  void spotlight(Offset focus, {double radius = 2.6, double strength = 1}) {
+    if (strength <= 0) return;
+    final reach = radius * unit * 3;
+    final veil = strength * (haze.computeLuminance() > 0.5 ? 0.35 : 1);
+    canvas.drawPaint(
+      Paint()
+        ..shader = ui.Gradient.radial(
+          focus,
+          reach,
+          [
+            haze.withValues(alpha: 0),
+            haze.withValues(alpha: 0),
+            haze.withValues(alpha: 0.22 * veil),
+            haze.withValues(alpha: 0.42 * veil),
+          ],
+          [0, 1 / 3, 0.62, 1],
+        ),
+    );
+  }
+
+  // ------------------------------------------------------------------- cat --
+
+  /// The hiding cat's colours: fur as black as the band allows - true black
+  /// on a dark page, charcoal on a light one, where a score pane may come
+  /// down over it - yellow eyes, a pink nose, and on a dark page a fine
+  /// lighter edge that keeps it a cat rather than a hole.
+  static const _fur = Tint(240, 0.06, 0);
+  static const _edge = Tint(240, 0.08, 0.42);
+  static const _eyes = Tint(66, 0.95, 0.84);
+  static const _blush = Tint(345, 0.55, 0.72);
+
+  /// The set's black cat, hiding in the scene - the one easter egg every
+  /// scene has, each in a hiding place of its own: round the corner of a
+  /// building, out of a toolbox, from behind a tree.
+  ///
+  /// Its feet are at screen point [hidden] until [cat] brings it out to
+  /// [out], and it goes back the same way. Only what of it lies inside
+  /// [reveal] is drawn - the rest is behind whatever it hides behind, so
+  /// draw it after that, and let a little of it (a tail tip, an ear) show
+  /// at rest as a clue. [flip] curls its tail to the other side.
+  ///
+  /// With [catWalks] it comes out on foot, as a cat does across the ground:
+  /// it gets up, walks out side on, slows, turns round to face the learner
+  /// as it sits down, and gives its gesture; then it gets up and turns
+  /// about as it walks off, in a curve, back the way it came and out of
+  /// sight, where it sits down again. One cat, turning - never one picture
+  /// swapped for another, and the same size whichever way it faces.
+  /// Without it, it rises straight out of its hiding place - out of a
+  /// basket, from behind a rim - and sinks back.
+  void hidingCat({
+    required Offset hidden,
+    required Offset out,
+    required Path reveal,
+    bool flip = false,
+  }) {
+    final tail = flip ? -1.0 : 1.0;
+    canvas
+      ..save()
+      ..clipPath(reveal);
+    if (catWalks && cat.gesture != null) {
+      _onFoot(hidden, out, tail: tail);
+    } else {
+      _drawCat(
+        Offset.lerp(hidden, out, cat.out)!,
+        CatBody.gesturing(
+          cat.gesture,
+          cat.through(walks: false),
+          tail: tail,
+        ),
+      );
+    }
+    canvas.restore();
+  }
+
+  /// A visit on foot from [hidden] to [out] and back, as one continuous
+  /// movement. The legs keep pace with the ground covered - a stride every
+  /// third of a tile - so the cat walks rather than skates.
+  void _onFoot(Offset hidden, Offset out, {required double tail}) {
+    final t = cat.t;
+    double span(double begin, double end, [Curve curve = Curves.linear]) =>
+        curve.transform(((t - begin) / (end - begin)).clamp(0.0, 1.0));
+    final stride = unit / 3;
+    final distance = (out - hidden).distance;
+    // Facing where it goes: 0 is screen right, pi screen left, pi / 2 the
+    // learner.
+    final outward = out.dx < hidden.dx ? math.pi : 0.0;
+    final homeward = math.pi - outward;
+    const front = math.pi / 2;
+    // Sat down facing the learner by the time its gesture begins, and up
+    // again as soon as it ends.
+    final gesture = CatPose.gestureSpan(walks: true);
+
+    if (t < 0.24) {
+      // Up from where it sits, round to face the way out, and out, side
+      // on, slowing to a stop.
+      final p = span(0.04, 0.24, Curves.easeOutSine);
+      final round = span(0, 0.05, Curves.easeInOut);
+      _drawCat(
+        Offset.lerp(hidden, out, p)!,
+        CatBody(
+          yaw: front + (outward - front) * round,
+          sit: 1 - span(0, 0.05),
+          phase: 2 * math.pi * p * distance / stride,
+          step: span(0.03, 0.07) * (1 - span(0.17, 0.24)),
+          tail: tail,
+        ),
+      );
+    } else if (t < gesture.begin) {
+      // Turns round to the learner, sitting down as it does.
+      final u = span(0.24, gesture.begin, Curves.easeInOut);
+      _drawCat(
+        out,
+        CatBody(
+          yaw: outward + (front - outward) * u,
+          sit: u,
+          tail: tail,
+        ),
+      );
+    } else if (t < gesture.end) {
+      _drawCat(
+        out,
+        CatBody.gesturing(cat.gesture, cat.through(walks: true), tail: tail),
+      );
+    } else if (t < 0.93) {
+      // Up, and about: it turns as it starts off, walking a curve that
+      // swings out towards the learner and back to where it came from.
+      final up = span(gesture.end, 0.8, Curves.easeInOut);
+      final turn = span(gesture.end, 0.84, Curves.easeInOut);
+      final p = span(0.75, 0.93, Curves.easeInOutSine);
+      final bulge = math.sin(math.pi * p) * 0.18 * unit;
+      final along = Offset.lerp(out, hidden, p)!;
+      _drawCat(
+        along.translate(0, bulge),
+        CatBody(
+          yaw: front + (homeward - front) * turn,
+          sit: 1 - up,
+          phase: 2 * math.pi * p * (distance + 0.3 * unit) / stride,
+          step: span(0.74, 0.8) * (1 - span(0.89, 0.93)),
+          tail: tail,
+        ),
+      );
+    } else {
+      // Out of sight again, it turns back round and sits down where it
+      // started, as it was before it came out.
+      _drawCat(
+        hidden,
+        CatBody(
+          yaw:
+              homeward +
+              (front - homeward) * span(0.93, 0.97, Curves.easeInOut),
+          sit: span(0.93, 0.97),
+          tail: tail,
+        ),
+      );
+    }
+  }
+
+  /// The part of the canvas on [of]'s side of the line through screen
+  /// points [a] and [b]: what is past an edge, or above a rim.
+  Path beyond(Offset a, Offset b, {required Offset of}) {
+    final along = (b - a) / (b - a).distance;
+    var across = Offset(-along.dy, along.dx);
+    final side = (of - a).dx * across.dx + (of - a).dy * across.dy;
+    if (side < 0) across = -across;
+    const far = 1e4;
+    return Path()
+      ..moveTo(a.dx - along.dx * far, a.dy - along.dy * far)
+      ..lineTo(a.dx + along.dx * far, a.dy + along.dy * far)
+      ..lineTo(
+        a.dx + along.dx * far + across.dx * far,
+        a.dy + along.dy * far + across.dy * far,
+      )
+      ..lineTo(
+        a.dx - along.dx * far + across.dx * far,
+        a.dy - along.dy * far + across.dy * far,
+      )
+      ..close();
+  }
+
+  /// The cat, its feet at screen point [foot], in the pose [body] says, four
+  /// fifths of a tile tall. [CatFigure] has its shape; this paints it.
+  void _drawCat(Offset foot, CatBody body) {
+    final cat = CatFigure(body);
+    final k = unit * 0.8 / 112;
+    final lightPage = haze.computeLuminance() > 0.5;
+    final furPaint = fill(_fur);
+    final edgeTint = lightPage ? _fur : _edge;
+    final edge = stroke(edgeTint, 0)..strokeWidth = 2.4;
+    void solid(Path path) => canvas
+      ..drawPath(path, edge)
+      ..drawPath(path, furPaint);
+    void limb(Path path, double width) => canvas
+      ..drawPath(path, stroke(edgeTint, 0)..strokeWidth = width + 2.4)
+      ..drawPath(path, stroke(_fur, 0)..strokeWidth = width);
+    void leg(CatLeg leg) {
+      limb(
+        Path()
+          ..moveTo(leg.hip.dx, leg.hip.dy)
+          ..quadraticBezierTo(
+            leg.knee.dx,
+            leg.knee.dy,
+            leg.paw.dx,
+            leg.paw.dy,
+          ),
+        7.6,
+      );
+      solid(
+        Path()..addOval(
+          Rect.fromCenter(
+            center: leg.paw,
+            width: leg.pawSize.width,
+            height: leg.pawSize.height,
+          ),
+        ),
+      );
+    }
+
+    canvas
+      ..save()
+      ..translate(foot.dx, foot.dy)
+      ..scale(k, k)
+      ..translate(-50, -110);
+
+    final tail = cat.tail;
+    limb(
+      Path()
+        ..moveTo(tail[0].dx, tail[0].dy)
+        ..cubicTo(
+          tail[1].dx,
+          tail[1].dy,
+          tail[2].dx,
+          tail[2].dy,
+          tail[3].dx,
+          tail[3].dy,
+        ),
+      8,
+    );
+    cat.farLegs.forEach(leg);
+    solid(
+      Path()
+        ..addOval(cat.haunch)
+        ..addOval(cat.barrel)
+        ..addOval(cat.chest),
+    );
+    cat.nearLegs.forEach(leg);
+
+    // The head, tipped about the neck.
+    canvas
+      ..save()
+      ..translate(cat.neck.dx, cat.neck.dy)
+      ..rotate(cat.tilt)
+      ..translate(-cat.neck.dx, -cat.neck.dy);
+    solid(
+      Path()
+        ..addOval(cat.head)
+        ..addOval(cat.muzzle)
+        ..addPolygon(cat.ears[0], true)
+        ..addPolygon(cat.ears[1], true),
+    );
+    final inner = fill(_blush.shade(-0.1));
+    for (final inside in cat.earInsides) {
+      canvas.drawPath(Path()..addPolygon(inside, true), inner);
+    }
+
+    // Open, two yellow lamps with slits; shutting, the lids come down;
+    // shut, a contented curve.
+    final open = 1 - body.lid;
+    for (final eye in cat.eyes) {
+      if (open > 0.12) {
+        canvas
+          ..drawOval(
+            Rect.fromCenter(
+              center: eye.center,
+              width: eye.width,
+              height: eye.height * open,
+            ),
+            fill(_eyes),
+          )
+          ..drawOval(
+            Rect.fromCenter(
+              center: eye.center,
+              width: math.min(2.6, eye.width * 0.3),
+              height: eye.height * 0.82 * open,
+            ),
+            furPaint,
+          );
+      } else {
+        canvas.drawArc(
+          Rect.fromCenter(
+            center: eye.center.translate(0, -1),
+            width: eye.width,
+            height: 6,
+          ),
+          0.15,
+          math.pi - 0.3,
+          false,
+          stroke(_eyes, 0)..strokeWidth = 2,
+        );
+      }
+    }
+    final nose = cat.nose;
+    final half = cat.noseWidth / 2;
+    canvas
+      ..drawPath(
+        Path()..addPolygon([
+          nose.translate(-half, -1.5),
+          nose.translate(half, -1.5),
+          nose.translate(0, 2),
+        ], true),
+        fill(_blush),
+      )
+      ..restore();
+
+    // The washing paw, up at its mouth in front of its face, and the tongue
+    // out to it with each lick.
+    if (cat.washing case final washing?) {
+      limb(
+        Path()
+          ..moveTo(washing.hip.dx, washing.hip.dy)
+          ..quadraticBezierTo(
+            washing.knee.dx,
+            washing.knee.dy,
+            washing.paw.dx,
+            washing.paw.dy,
+          ),
+        7.6,
+      );
+      final pad = Rect.fromCenter(
+        center: washing.paw,
+        width: washing.pawSize.width,
+        height: washing.pawSize.height,
+      );
+      solid(Path()..addOval(pad));
+      // Outlined on any page once it is up at the face: black on black, it
+      // would vanish.
+      final up = ((body.paw - 0.4) / 0.4).clamp(0.0, 1.0);
+      if (up > 0.05) {
+        canvas.drawOval(pad, stroke(_edge, 0)..strokeWidth = 1.8 * up);
+      }
+      if (body.tongue > 0.05) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: washing.paw.translate(4, -5.5 + 1.5 * body.tongue),
+            width: 6,
+            height: 5 * body.tongue,
+          ),
+          fill(_blush),
+        );
+      }
+    }
     canvas.restore();
   }
 

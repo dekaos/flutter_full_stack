@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: a rose-and-blue late afternoon over a building site where
 // the job is a giant jigsaw.
@@ -46,7 +48,6 @@ const _overalls = Tint(168, 0.45, 0.4);
 const _metal = Tint(212, 0.45, 0.42);
 const _bubble = Tint(220, 0.3, 1);
 const _ink = Tint(225, 0.4, 0.22);
-const _ginger = Tint(26, 0.72, 0.54);
 
 // The jigsaw: four by four pieces, each [_p] tiles square, its back corner
 // at [_px], [_py], [_th] tiles thick. The piece at [_slotI], [_slotJ] is
@@ -93,126 +94,252 @@ final double _reach = math.sqrt(
 );
 final double _aim = math.atan2(_slotY - _mastY, _slotX - _mastX);
 
-// Who asks, and who helps.
-const _askerX = 2.35;
+// Who asks, and who helps. The one asking stands at the front edge of the
+// board, near enough to the gap to point at it.
+const _askerX = 3.1;
 const _askerY = 5.45;
 const _helperX = 5.6;
 const _helperY = 2.65;
 
-/// "Can you help me with this problem": a giant jigsaw on a meadow island
-/// with one piece missing. Someone stands at the gap, puzzled; a tower crane
-/// lands, swings the missing piece round, lowers it, and it clicks into
-/// place with a burst - and the question over their head becomes a heart.
+// Where the crane's jib points while it waits: back over the far edge of
+// the island, so the piece it holds swings in towards us, into the light.
+const double _idle = math.pi + 0.12;
+
+/// "Can you help me with this problem", in two acts.
+///
+/// The building site assembles first: the island rises with the giant
+/// jigsaw on it, one piece missing, the trees spring up round it and the
+/// tower crane lands in its corner, the missing piece hanging from its hook
+/// over the back of the island. Then the story, in a pool of light at the
+/// gap while the rest of the meadow sinks back: the one asking points at
+/// the empty slot, which pulses, and a question pops up over their head
+/// (*this problem*); the crane hand raises an arm and the crane swings the
+/// piece round over the board (*help*), lets it settle and lowers it; it
+/// clicks into place with a burst, the one asking cheers and jumps, and the
+/// question becomes a heart (*me*).
+const helpScene = SceneScript(
+  paintHelp,
+  cues: [
+    Cue('this problem', _problem),
+    Cue('help', _help),
+    Cue('me', _solved),
+  ],
+  sounds: [
+    SceneSound(Sound.click, _solved),
+    SceneSound(Sound.sparkle, _solved),
+  ],
+  catWalks: true,
+);
+
+// The story's beats, on the arrival's clock: the problem shown, the help
+// coming, and the piece in. The crane swings at its fastest just after the
+// word lights, then lowers the piece so that it clicks in on *me*.
+const _problem = 0.42;
+const _help = 0.56;
+const _solved = 0.74;
+const double _slewFrom = _help - 0.02;
+const double _slewTo = _help + 0.1;
+
+/// Paints [helpScene].
 void paintHelp(IsoStage s) {
-  s.sky(_skyTop, _skyLow);
+  s.setting(() {
+    s.sky(_skyTop, _skyLow);
 
-  final climb = s.phase(0.1, 0.8);
-  s
-    ..sun(0.8, 0.17 - 0.05 * climb, 0.7, _sunBody, _sunHalo)
-    // The dusk steps down from rose through mauve and periwinkle to the
-    // sage meadows under the island.
-    ..ridge(0.76, 1.4, _farHill, seed: 3)
-    ..ridge(0.85, 1, _nearHill, seed: 7)
-    ..ridge(0.93, 0.7, _meadowHill, seed: 11);
-
-  final drift = s.phase(0.2, 1);
-  s
-    ..cloud(s.screen(0.2 - 0.5 * (1 - drift), 0.22), 2.4, _cloud)
-    ..cloud(s.screen(0.74 + 0.5 * (1 - drift), 0.36), 1.8, _cloud)
-    ..cloud(s.screen(0.1 - 0.4 * (1 - drift), 0.5), 1.4, _cloud);
-
-  s.rising(0, 0.42, () {
+    final climb = s.phase(0.1, 0.8);
     s
-      ..island(grass: _grass, earth: _earth, stone: _stone)
-      // The crane's yard, a patch of gravel in the right corner.
-      ..patch(5.02, 0.2, 0.9, 1.08, _gravel);
-    _jigsaw(s);
+      ..sun(0.8, 0.17 - 0.05 * climb, 0.7, _sunBody, _sunHalo)
+      // The dusk steps down from rose through mauve and periwinkle to the
+      // sage meadows under the island.
+      ..ridge(0.76, 1.4, _farHill, seed: 3)
+      ..ridge(0.85, 1, _nearHill, seed: 7)
+      ..ridge(0.93, 0.7, _meadowHill, seed: 11);
 
-    // The back row, behind the crane. Only low things at the back corner,
-    // which on a phone sits behind the record button; the pine frames the
-    // puzzle from the left corner, opposite the crane.
+    final drift = s.phase(0.2, 1);
     s
-      ..bush(0.8, 1.2, _leaves, size: 1.1, grow: s.pop(0.42, 0.62))
-      ..bush(2.3, 0.6, _leavesLight, grow: s.pop(0.48, 0.66))
-      ..tree(
-        0.75,
-        3,
-        leaves: _leavesLight,
-        bark: _bark,
-        ground: _grass,
-        h: 1.6,
-        grow: s.pop(0.46, 0.66),
-      )
-      ..tree(
-        3.6,
-        0.5,
-        leaves: _leaves,
-        bark: _bark,
-        ground: _grass,
-        grow: s.pop(0.5, 0.7),
-      )
-      ..pine(
-        0.4,
-        4.9,
-        needles: _leaves,
-        bark: _bark,
-        ground: _grass,
-        grow: s.pop(0.52, 0.72),
+      ..cloud(s.screen(0.2 - 0.5 * (1 - drift), 0.22), 2.4, _cloud)
+      ..cloud(s.screen(0.74 + 0.5 * (1 - drift), 0.36), 1.8, _cloud)
+      ..cloud(s.screen(0.1 - 0.4 * (1 - drift), 0.5), 1.4, _cloud);
+
+    s.rising(0, 0.42, () {
+      s
+        ..island(grass: _grass, earth: _earth, stone: _stone)
+        // The crane's yard, a patch of gravel in the right corner.
+        ..patch(5.02, 0.2, 0.9, 1.08, _gravel);
+      // The one asking stands in the light too, on the grass in front of
+      // the board - under it, so the board's edge covers the pool's back.
+      _islandPool(s, _askerX + 0.1, _askerY - 0.1, 0.8);
+      _jigsaw(s);
+      // The stage: the gap. Lit once the story starts, and it stays lit.
+      s.story(() => _gapLight(s));
+
+      // The back row, behind the crane. Only low things at the back corner,
+      // which on a phone sits behind the record button; the pine frames the
+      // puzzle from the left corner, opposite the crane.
+      s
+        ..bush(0.8, 1.2, _leaves, size: 1.1, grow: s.pop(0.42, 0.62))
+        ..bush(2.3, 0.6, _leavesLight, grow: s.pop(0.48, 0.66))
+        ..tree(
+          0.75,
+          3,
+          leaves: _leavesLight,
+          bark: _bark,
+          ground: _grass,
+          h: 1.6,
+          grow: s.pop(0.46, 0.66),
+        )
+        ..tree(
+          3.6,
+          0.5,
+          leaves: _leaves,
+          bark: _bark,
+          ground: _grass,
+          grow: s.pop(0.5, 0.7),
+        )
+        ..pine(
+          0.4,
+          4.9,
+          needles: _leaves,
+          bark: _bark,
+          ground: _grass,
+          grow: s.pop(0.52, 0.72),
+        );
+
+      // The crane lands with the piece already on its hook, the jib turned
+      // away; what it does with it is the story's.
+      late double turn;
+      late double sway;
+      late double lift;
+      late double release;
+      s.story(() {
+        final slew = s.phase(_slewFrom, _slewTo, Curves.easeInOutCubic);
+        turn = _idle + (_aim - _idle) * slew;
+        // The load swings on a little as the jib stops, and has settled
+        // before it goes down.
+        final settle = s.phase(_slewTo - 0.01, _slewTo + 0.07, Curves.linear);
+        sway = settle >= 1
+            ? 0
+            : 0.26 * math.sin(math.pi * settle) * (1 - settle);
+        // Lowered steadily, then the last of it drops in: the click.
+        lift = 0.8 * (1 - s.phase(_slewTo, _solved, Curves.easeInCubic));
+        release = s.phase(_solved + 0.06, _solved + 0.16);
+      });
+      s.dropping(
+        0.36,
+        0.7,
+        (drop) => _craneAndLoad(s, drop, turn, sway, lift, release),
       );
+      _cat(s);
 
-    // The crane lands with the piece already on its hook, swings round to
-    // the gap, and lowers it.
-    final slew = s.phase(0.56, 0.74, Curves.easeInOutCubic);
-    final angle = _aim + (1 - slew) * -1.9;
-    final lowered = s.phase(0.72, 0.88, Curves.bounceOut);
-    final lift = 0.8 * (1 - lowered);
-    s.dropping(0.3, 0.56, (drop) => _craneAndLoad(s, drop, angle, lift));
+      s.story(() {
+        _burst(s, s.phase(_solved - 0.005, _solved + 0.14, Curves.linear));
+        _twinkles(s, s.pop(_solved + 0.03, _solved + 0.13));
+      });
 
-    _burst(s, s.phase(0.775, 0.95));
-    _twinkles(s, s.pop(0.82, 0.98));
+      _toolbox(s, 1.5, 5.15, s.pop(0.58, 0.72));
 
-    _asker(s);
-    _person(
-      s,
-      _helperX,
-      _helperY,
-      grow: s.pop(0.5, 0.62),
-      body: _overalls,
-      hat: _crane,
-      left: 0.4,
-      right: 2.6,
-    );
+      _asker(s, s.pop(0.46, 0.58));
+      // The crane hand: when asked, an arm goes up - lift it - and the
+      // crane swings.
+      final grow = s.pop(0.5, 0.62);
+      s.story(() {
+        final wave = s.phase(_help - 0.02, _help + 0.03, Curves.easeOutBack);
+        _person(
+          s,
+          _helperX,
+          _helperY,
+          grow: grow,
+          body: _overalls,
+          hat: _crane,
+          left: 0.4,
+          right: 0.45 + 2.35 * wave,
+        );
+      });
 
-    _toolbox(s, 3.45, 5.35, s.pop(0.58, 0.72));
-    // The cat hops up onto the toolbox to watch.
-    s.dropping(0.64, 0.8, (up) => _catAt(s, 3.66, 5.47, 0.25 + up), from: 1);
+      s
+        ..bush(5.45, 5.5, _leavesLight, size: 0.9, grow: s.pop(0.6, 0.78))
+        ..bush(1.1, 5.55, _leavesLight, size: 0.7, grow: s.pop(0.62, 0.8));
 
-    s
-      ..bush(5.45, 5.5, _leavesLight, size: 0.9, grow: s.pop(0.6, 0.78))
-      ..bush(1.1, 5.55, _leavesLight, size: 0.7, grow: s.pop(0.62, 0.8));
+      const beds = [
+        (x: 5.55, y: 3.55, tint: _petalGold),
+        (x: 5.8, y: 4.15, tint: _petalBlue),
+        (x: 5.5, y: 4.7, tint: _petalLilac),
+        (x: 4.4, y: 5.55, tint: _petalBlue),
+        (x: 4.95, y: 5.75, tint: _petalGold),
+        (x: 1.6, y: 5.75, tint: _petalLilac),
+        (x: 0.6, y: 5.3, tint: _petalGold),
+        (x: 5.75, y: 2.0, tint: _petalLilac),
+      ];
+      final ordered = [...beds]
+        ..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
+      for (var i = 0; i < ordered.length; i++) {
+        final bed = ordered[i];
+        s.flower(
+          bed.x,
+          bed.y,
+          bed.tint,
+          _stem,
+          grow: s.pop(0.6 + i * 0.025, 0.78 + i * 0.025),
+        );
+      }
 
-    const beds = [
-      (x: 5.55, y: 3.55, tint: _petalGold),
-      (x: 5.8, y: 4.15, tint: _petalBlue),
-      (x: 5.5, y: 4.7, tint: _petalLilac),
-      (x: 4.4, y: 5.55, tint: _petalBlue),
-      (x: 4.95, y: 5.75, tint: _petalGold),
-      (x: 1.6, y: 5.75, tint: _petalLilac),
-      (x: 0.6, y: 5.3, tint: _petalGold),
-      (x: 5.75, y: 2.0, tint: _petalLilac),
-    ];
-    final ordered = [...beds]..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
-    for (var i = 0; i < ordered.length; i++) {
-      final bed = ordered[i];
-      s.flower(
-        bed.x,
-        bed.y,
-        bed.tint,
-        _stem,
-        grow: s.pop(0.6 + i * 0.025, 0.78 + i * 0.025),
+      // The rest of the meadow steps back while the gap, the one asking and
+      // the piece coming have the stage.
+      s.spotlight(
+        s.at(_slotX - 0.3, _slotY + 0.8, 0.7),
+        radius: 2.3,
+        strength: s.storyLight,
       );
-    }
+    });
   });
+}
+
+/// A pool of the key light on the grass at [x], [y], [r] tiles across,
+/// kept to the island's top so none of it spills down the soil.
+void _islandPool(IsoStage s, double x, double y, double r) {
+  s.canvas
+    ..save()
+    ..clipPath(
+      s.face([
+        (x: 0, y: 0, z: 0),
+        (x: IsoStage.span, y: 0, z: 0),
+        (x: IsoStage.span, y: IsoStage.span, z: 0),
+        (x: 0, y: IsoStage.span, z: 0),
+      ]),
+    );
+  s
+    ..pool(x, y, r, strength: s.storyLight)
+    ..canvas.restore();
+}
+
+/// The light on the gap: a pool on the board round it, and, as it becomes
+/// *this problem*, the empty slot lighting up from inside, its rim pulsing
+/// twice. The piece covers it all once it is in.
+void _gapLight(IsoStage s) {
+  // The board's top is [_th] above the ground, so its pool is the ground's
+  // raised by as much.
+  s.canvas
+    ..save()
+    ..translate(0, -_th * s.unit);
+  s
+    ..pool(_slotX, _slotY, 1.35, strength: s.storyLight)
+    ..canvas.restore();
+
+  final lit = s.phase(_problem - 0.015, _problem + 0.03);
+  if (lit <= 0 || s.t >= _solved) return;
+  final beat = s.phase(_problem - 0.015, _problem + 0.15, Curves.linear);
+  final pulse = (1 - math.cos(beat * 4 * math.pi)) / 2;
+  final gap = _outline(_slotI, _slotJ, (x, y) => s.at(x, y, _th));
+  s.canvas
+    ..save()
+    ..clipPath(gap);
+  s
+    ..glow(
+      s.at(_slotX, _slotY),
+      0.8,
+      strength: lit * (0.65 + 0.35 * pulse),
+    )
+    ..canvas.restore()
+    ..canvas.drawPath(gap, s.stroke(_spark, lit * (0.03 + 0.05 * pulse)));
 }
 
 // ------------------------------------------------------------------ jigsaw --
@@ -404,6 +531,28 @@ void _twinkles(IsoStage s, double grow) {
 
 // ------------------------------------------------------------------- crane --
 
+/// The black cat, behind the crane - the scene's easter egg (see
+/// `HidingCat`). It sits on the crane's footing in the lee of the mast, the
+/// tip of its tail showing past the mast's edge, and when it has a reason
+/// it pads out along the footing to its corner, and back.
+void _cat(IsoStage s) {
+  // Only once the crane has landed.
+  if (s.t < 0.7) return;
+  // The mast is 0.34 tiles square and stands on a footing 0.16 tall (see
+  // [_craneAndLoad]); its left edge, from the footing up.
+  const top = 0.16;
+  final edge = s.at(_mastX - 0.17, _mastY + 0.17, top);
+  // Along the footing's left strip, beside the mast: from behind it, down
+  // towards us to the footing's corner.
+  const x = _mastX - 0.3;
+  s.hidingCat(
+    hidden: s.at(x, _mastY - 0.22, top),
+    out: s.at(x, _mastY + 0.3, top),
+    reveal: s.beyond(edge, edge.translate(0, -1), of: edge.translate(-1, 0)),
+    flip: true,
+  );
+}
+
 /// A box turned [turn] radians about the vertical through ([cx], [cy]),
 /// [len] long along its turn and [wid] across, from [z] up [h]: the faces
 /// that look our way, shaded by how much they face the light.
@@ -490,8 +639,17 @@ void _truss(IsoStage s, double z, double turn, double length, double depth) {
 }
 
 /// The tower crane, [drop] tiles above where it stands, its jib along
-/// [turn], with the key piece hanging [lift] tiles above its gap.
-void _craneAndLoad(IsoStage s, double drop, double turn, double lift) {
+/// [turn], with the key piece hanging [lift] tiles above its gap and swung
+/// [sway] tiles on past its trolley the way the jib was turning - or, once
+/// it is in, the hook [release] of the way back up, its slings let go.
+void _craneAndLoad(
+  IsoStage s,
+  double drop,
+  double turn,
+  double sway,
+  double lift,
+  double release,
+) {
   const half = 0.17;
   final z = drop;
   if (drop < 0.05) s.shadow(_mastX, _mastY, 0.55, _grass);
@@ -519,39 +677,52 @@ void _craneAndLoad(IsoStage s, double drop, double turn, double lift) {
     ..drawPath(left, s.stroke(_brace, 0.022))
     ..drawPath(right, s.stroke(_brace, 0.022));
 
-  // The counter-jib and its weight point away from us, so they go first.
+  // The slewing deck and the cab on it, the tower head above. Whichever
+  // arm points away from us - the jib while it waits turned to the back,
+  // the counter-jib once the jib is over the board - goes behind them.
   final back = turn + math.pi;
-  _truss(s, head, back, _tail, 0.2);
-  _turnedBox(
-    s,
-    _mastX + math.cos(back) * (_tail - 0.2),
-    _mastY + math.sin(back) * (_tail - 0.2),
-    head - 0.18,
-    0.36,
-    0.4,
-    0.36,
-    turn,
-    _concrete.shade(-0.06),
-  );
+  final ux = math.cos(turn);
+  final uy = math.sin(turn);
+  final peak = s.at(_mastX, _mastY, head + 0.75);
+  void jib() {
+    final tie = s.at(
+      _mastX + ux * _jib * 0.72,
+      _mastY + uy * _jib * 0.72,
+      head + 0.16,
+    );
+    _truss(s, head, turn, _jib, 0.24);
+    s.canvas.drawLine(peak, tie, s.stroke(_cable, 0.018));
+  }
 
-  // The slewing deck and the cab on it, the tower head above.
+  void counter() {
+    final tie = s.at(
+      _mastX + math.cos(back) * _tail,
+      _mastY + math.sin(back) * _tail,
+      head + 0.12,
+    );
+    _truss(s, head, back, _tail, 0.2);
+    _turnedBox(
+      s,
+      _mastX + math.cos(back) * (_tail - 0.2),
+      _mastY + math.sin(back) * (_tail - 0.2),
+      head - 0.18,
+      0.36,
+      0.4,
+      0.36,
+      turn,
+      _concrete.shade(-0.06),
+    );
+    s.canvas.drawLine(tie, peak, s.stroke(_cable, 0.018));
+  }
+
+  final jibToUs = ux + uy > 0;
+  jibToUs ? counter() : jib();
+
   s.cylinder(_mastX, _mastY, head, 0.24, 0.1, _crane.shade(-0.1));
   final side = turn + math.pi / 2;
-  final cabX = _mastX + math.cos(side) * 0.3 + math.cos(turn) * 0.1;
-  final cabY = _mastY + math.sin(side) * 0.3 + math.sin(turn) * 0.1;
-  final peak = s.at(_mastX, _mastY, head + 0.75);
-  final jibTie = s.at(
-    _mastX + math.cos(turn) * _jib * 0.72,
-    _mastY + math.sin(turn) * _jib * 0.72,
-    head + 0.16,
-  );
-  final tailTie = s.at(
-    _mastX + math.cos(back) * _tail,
-    _mastY + math.sin(back) * _tail,
-    head + 0.12,
-  );
+  final cabX = _mastX + math.cos(side) * 0.3 + ux * 0.1;
+  final cabY = _mastY + math.sin(side) * 0.3 + uy * 0.1;
   s.canvas
-    ..drawLine(tailTie, peak, s.stroke(_cable, 0.018))
     ..drawLine(s.at(_mastX, _mastY, head), peak, s.stroke(_crane, 0.07))
     // A pennant on the tower head, in the colour of the piece it brings.
     ..drawPath(
@@ -563,38 +734,40 @@ void _craneAndLoad(IsoStage s, double drop, double turn, double lift) {
       s.fill(_keyPiece),
     );
   _turnedBox(s, cabX, cabY, head - 0.42, 0.34, 0.3, 0.38, turn, _crane);
-  // The cab's window, on the face that looks along the jib.
-  final ux = math.cos(turn);
-  final uy = math.sin(turn);
-  V3 pane(double b, double zz) => (
-    x: cabX + ux * 0.171 - uy * b,
-    y: cabY + uy * 0.171 + ux * b,
-    z: zz,
-  );
-  s.canvas.drawPath(
-    s.face([
-      pane(-0.11, head - 0.26),
-      pane(0.11, head - 0.26),
-      pane(0.11, head - 0.1),
-      pane(-0.11, head - 0.1),
-    ]),
-    s.fill(_glass),
-  );
-  _truss(s, head, turn, _jib, 0.24);
-  s.canvas.drawLine(peak, jibTie, s.stroke(_cable, 0.018));
+  // The cab's window, on the face that looks along the jib - when that
+  // face looks our way.
+  if (jibToUs) {
+    V3 pane(double b, double zz) => (
+      x: cabX + ux * 0.171 - uy * b,
+      y: cabY + uy * 0.171 + ux * b,
+      z: zz,
+    );
+    s.canvas.drawPath(
+      s.face([
+        pane(-0.11, head - 0.26),
+        pane(0.11, head - 0.26),
+        pane(0.11, head - 0.1),
+        pane(-0.11, head - 0.1),
+      ]),
+      s.fill(_glass),
+    );
+  }
+  jibToUs ? jib() : counter();
 
   // The trolley, the cable down to the hook block, and the load.
   final tx = _mastX + math.cos(turn) * _reach;
   final ty = _mastY + math.sin(turn) * _reach;
   s.box(tx - 0.1, ty - 0.1, head - 0.12, 0.2, 0.2, 0.12, _brace);
 
-  final release = s.phase(0.88, 1);
+  // Where the load hangs: under the trolley, or swung on past it.
+  final lx = tx + sway * uy;
+  final ly = ty - sway * ux;
   final hookZ = z + _th + _proud + lift + 0.6 + 0.7 * release;
-  final hook = s.at(tx, ty, hookZ);
+  final hook = s.at(lx, ly, hookZ);
   s.canvas.drawLine(s.at(tx, ty, head - 0.12), hook, s.stroke(_cable, 0.02));
 
   if (release <= 0) {
-    _keyPieceAt(s, lift + z + _proud, turn - _aim, tx - _slotX, ty - _slotY);
+    _keyPieceAt(s, lift + z + _proud, turn - _aim, lx - _slotX, ly - _slotY);
     // Four slings from the hook to the corners of the piece.
     final slings = s.stroke(_cable, 0.014);
     for (final (a, b) in const [(-1, -1), (1, -1), (1, 1), (-1, 1)]) {
@@ -605,8 +778,8 @@ void _craneAndLoad(IsoStage s, double drop, double turn, double lift) {
       s.canvas.drawLine(
         hook,
         s.at(
-          tx + ox * c - oy * n,
-          ty + ox * n + oy * c,
+          lx + ox * c - oy * n,
+          ly + ox * n + oy * c,
           z + _th + _proud + lift,
         ),
         slings,
@@ -642,9 +815,10 @@ void _craneAndLoad(IsoStage s, double drop, double turn, double lift) {
 
 // ------------------------------------------------------------------ people --
 
-/// A small figure at [x], [y], [grow] of the way popped up: a body, a head,
-/// two arms at [left] and [right] radians out from hanging straight down,
-/// and [hair] or a hard hat ([hat]) if it has them.
+/// A small figure at [x], [y], [grow] of the way popped up and [jump] tiles
+/// off the ground: a body, a head, two arms at [left] and [right] radians
+/// out from hanging straight down, and [hair] or a hard hat ([hat]) if it
+/// has them.
 void _person(
   IsoStage s,
   double x,
@@ -655,10 +829,13 @@ void _person(
   Tint? hair,
   double left = 0.3,
   double right = 0.3,
+  double jump = 0,
 }) {
   s.scaled(s.at(x, y), grow, () {
     s
-      ..shadow(x, y, 0.3, _grass)
+      ..shadow(x, y, 0.3 * (1 - 0.3 * jump), _grass)
+      ..canvas.save()
+      ..canvas.translate(0, -jump * s.unit)
       ..cylinder(x, y, 0, 0.17, 0.62, body);
     final shoulder = s.at(x, y, 0.57);
     final out = 0.15 * s.unit;
@@ -714,37 +891,52 @@ void _person(
           s.fill(hat),
         );
     }
+    s.canvas.restore();
   });
 }
 
-/// The one asking: puzzled at the gap, a question over their head, until
-/// the piece clicks in - then both arms go up and the question becomes a
-/// heart.
-void _asker(IsoStage s) {
-  final cheer = s.phase(0.8, 0.92, Curves.easeOutBack);
-  _person(
-    s,
-    _askerX,
-    _askerY,
-    grow: s.pop(0.46, 0.58),
-    body: _shirt,
-    hair: _hair,
-    // One hand on the head while puzzled; both up when it clicks.
-    left: 0.35 + cheer * 2.25,
-    right: 2.75 - cheer * 0.15,
-  );
+/// The one asking, [grow] of the way popped up. As the story turns to
+/// *this problem* they point at the gap, the other hand on their head, and
+/// a question pops up over them; when the piece clicks in - the help is
+/// for *me* - both arms go up, they jump, and the question becomes a heart.
+void _asker(IsoStage s, double grow) {
+  s.story(() {
+    final point = s.phase(
+      _problem - 0.015,
+      _problem + 0.035,
+      Curves.easeOutBack,
+    );
+    final cheer = s.phase(_solved - 0.005, _solved + 0.05, Curves.easeOutBack);
+    // Up and down once, and exactly on the ground again once it is over.
+    final leap = s.phase(_solved - 0.005, _solved + 0.08, Curves.linear);
+    _person(
+      s,
+      _askerX,
+      _askerY,
+      grow: grow,
+      body: _shirt,
+      hair: _hair,
+      // The far hand goes to the head, the near one points across at the
+      // gap; both go up when it clicks.
+      left: 0.3 + 2.45 * point - 0.3 * cheer,
+      right: 0.3 + 1.32 * point + 0.83 * cheer,
+      jump: leap >= 1 ? 0 : 0.22 * math.sin(math.pi * leap),
+    );
 
-  final over = s.at(_askerX, _askerY, 1.85);
-  // The bubble pops up, and gives a little hop when the piece clicks.
-  // Exactly still once it is over, not a hair off from rounding.
-  final bounce = s.phase(0.8, 0.94, Curves.linear);
-  final hop = bounce >= 1 ? 0.0 : math.sin(math.pi * bounce);
-  s.scaled(over, s.pop(0.52, 0.64) * (1 + 0.16 * hop), () {
-    _bubbleAt(s, over);
-    final ask = 1 - s.phase(0.8, 0.86, Curves.easeInBack);
-    s
-      ..scaled(over, ask, () => _question(s, over))
-      ..scaled(over, s.pop(0.84, 0.96), () => _heart(s, over));
+    final over = s.at(_askerX, _askerY, 1.85);
+    // The bubble pops up with the problem, and gives a little hop when the
+    // piece clicks. Exactly still once it is over, not a hair off.
+    final bounce = s.phase(_solved, _solved + 0.1, Curves.linear);
+    final hop = bounce >= 1 ? 0.0 : math.sin(math.pi * bounce);
+    final popped = s.pop(_problem - 0.012, _problem + 0.05);
+    s.scaled(over, popped * (1 + 0.16 * hop), () {
+      _bubbleAt(s, over);
+      final ask =
+          1 - s.phase(_solved - 0.01, _solved + 0.02, Curves.easeInBack);
+      s
+        ..scaled(over, ask, () => _question(s, over))
+        ..scaled(over, s.pop(_solved, _solved + 0.06), () => _heart(s, over));
+    });
   });
 }
 
@@ -836,42 +1028,4 @@ void _toolbox(IsoStage s, double x, double y, double grow) {
         s.stroke(_metal.shade(0.2), 0.02),
       );
   });
-}
-
-/// A cat sitting at [x], [y], [z], facing us: a round body, a head, two
-/// ears and a tail curled round to the right. Drawn half as big again as
-/// its geometry, so it still reads as a cat at phone size.
-void _catAt(IsoStage s, double x, double y, double z) =>
-    s.scaled(s.at(x, y, z), 1.5, () => _seatedCat(s, x, y, z));
-
-void _seatedCat(IsoStage s, double x, double y, double z) {
-  final body = s.at(x, y, z + 0.1);
-  final head = s.at(x - 0.02, y + 0.02, z + 0.25);
-  final u = s.unit;
-  final ear = s.fill(_ginger.shade(-0.06));
-  s.canvas.drawPath(
-    Path()
-      ..moveTo(body.dx + 0.06 * u, body.dy + 0.08 * u)
-      ..quadraticBezierTo(
-        body.dx + 0.26 * u,
-        body.dy + 0.06 * u,
-        body.dx + 0.2 * u,
-        body.dy - 0.12 * u,
-      ),
-    s.stroke(_ginger.shade(-0.1), 0.045),
-  );
-  s
-    ..sphere(x, y, z + 0.1, 0.1, _ginger)
-    ..sphere(x - 0.02, y + 0.02, z + 0.25, 0.075, _ginger.shade(0.04));
-  for (final side in const [-1.0, 1.0]) {
-    final base = head.translate(side * 0.055 * u, -0.05 * u);
-    s.canvas.drawPath(
-      Path()
-        ..moveTo(base.dx - 0.035 * u, base.dy)
-        ..lineTo(base.dx + side * 0.02 * u, base.dy - 0.09 * u)
-        ..lineTo(base.dx + 0.035 * u, base.dy)
-        ..close(),
-      ear,
-    );
-  }
 }

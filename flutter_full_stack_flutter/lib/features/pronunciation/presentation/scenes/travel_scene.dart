@@ -3,7 +3,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: a bright morning at a little airfield over the sea. Blue for
 // the sky, the sea and the globe's oceans, sage for the grass and the land,
@@ -55,6 +57,8 @@ const _case = Tint(176, 0.45, 0.46);
 const _wood = Tint(28, 0.45, 0.42);
 const _balloon = Tint(176, 0.5, 0.62);
 const _sail = Tint(40, 0.3, 1);
+// The line round her thought bubble.
+const _ink = Tint(214, 0.3, 0.4);
 
 /// Where the sea meets the sky, as a fraction of the screen's height.
 const _horizon = 0.68;
@@ -80,14 +84,12 @@ const double _rest = 2 * math.pi + math.pi / 4 - 0.12;
 // The runway along the back of the island, and the take-off run on it:
 // the part of it to the right of the globe, so the take-off is in view.
 const _runY = 0.82;
-const _taxiFrom = 2.6;
-const _liftOff = 3.7;
+const _taxiFrom = 3.0;
+const _liftOffX = 4.05;
 
-// When the plane drops onto the runway, and when it sets off: early, so the
-// trip round the world has time enough for the eye to follow it.
+// When the plane drops onto the runway in act one, on act one's timeline.
 const _planeIn = 0.1;
-const _tripFrom = 0.22;
-const _tripTo = 0.98;
+const _planeDown = 0.3;
 
 // Where she stands: on the front rim of the plaza, her back to us, looking
 // up at the globe - the subject of the sentence, centre stage.
@@ -100,86 +102,190 @@ typedef _Item = ({double depth, void Function() draw});
 /// Where the plane is on its trip and which way it is going.
 typedef _Pose = ({V3 p, V3 v});
 
-/// "She wants to travel around the world": a little airfield on an island
-/// over the sea, a balloon rising beside it. The island rises, the terminal,
-/// the tower and the plane drop onto it, the runway lights come on one by
-/// one and the globe pops up spinning. Then the plane rolls, lifts off and
-/// flies a full lap round the world, leaving its route behind it, while she
-/// arrives with her suitcase by a signpost whose arrows spin round to point
-/// every way, cases land on the baggage cart and the far lighthouse lights.
+/// "She wants to travel around the world", in two acts.
+///
+/// The airfield assembles first: the island rises out of the sea, the
+/// terminal and the tower drop onto it, the plane lands on the runway, its
+/// lights come on and the globe pops up spinning on the plaza. Then the
+/// story, in the light while the rest of the island sinks back: she lands
+/// on the plaza with her suitcase, looking up at the globe, and a thought
+/// bubble rises from her with a little plane in it (*She wants*); the plane
+/// on the runway rolls and lifts off (*travel*); and it swings onto a ring
+/// round the globe and flies a whole lap of it, leaving its route behind it
+/// (*around the world*), coming to rest in front of the oceans.
+const travelScene = SceneScript(
+  paintTravel,
+  cues: [
+    Cue('She wants', _wishes),
+    Cue('travel', _takesOff),
+    Cue('around the world', _rounds),
+  ],
+  sounds: [SceneSound(Sound.takeoff, _rolls)],
+);
+
+// The story's beats, on the arrival's clock: her wish first, then the plane
+// doing what she wishes - taking off, and flying round the world.
+const _wishes = 0.39;
+const _takesOff = 0.5;
+const _rounds = 0.61;
+// She drops in just before her words light, the bubble opens as they do.
+const double _sheLands = _wishes - 0.03;
+// The plane starts its roll a hair before "travel" and is off the ground
+// while the word is lit; it joins the ring as "around the world" lights,
+// and is home from its lap before the story is told.
+const double _rolls = _takesOff - 0.015;
+const double _airborne = _takesOff + 0.035;
+const _home = 0.9;
+
+/// Paints [travelScene].
 void paintTravel(IsoStage s) {
-  _backdrop(s);
+  s.setting(() {
+    _backdrop(s);
 
-  s.rising(0, 0.42, () {
-    s.island(grass: _grass, earth: _earth, stone: _stone);
-    _ground(s);
-    _lights(s);
+    s.rising(0, 0.42, () {
+      s.island(grass: _grass, earth: _earth, stone: _stone);
+      _ground(s);
+      _lights(s);
 
-    final trip = _Trip(s);
-    final plane = trip.pose;
-    if (s.t >= _planeIn) _planeShadow(s, plane.p);
+      late final _Trip trip;
+      late final double halo;
+      s.story(() {
+        trip = _Trip(s);
+        // The light follows the story: onto her as she lands, down the
+        // runway for the take-off, then over the globe for the lap - where
+        // it stays, with hers, at rest.
+        final light = s.storyLight;
+        final onGlobe = s.phase(_rounds - 0.05, _rounds + 0.02);
+        s
+          ..pool(
+            _herX + 0.05,
+            _herY - 0.05,
+            0.95,
+            strength: light * s.phase(_sheLands, _wishes + 0.02),
+          )
+          ..pool(
+            _liftOffX - 0.2,
+            _runY,
+            1.35,
+            strength:
+                light *
+                s.phase(_rolls - 0.04, _rolls) *
+                (1 - s.phase(_rounds, _rounds + 0.12)),
+          )
+          ..pool(_gx, _gy, 1.8, strength: light * onGlobe);
+        // The world itself lights up as the plane comes round it.
+        final blaze = s.phase(_rounds - 0.01, _rounds + 0.04);
+        final settle = s.phase(_rounds + 0.06, _rounds + 0.2);
+        halo = light * blaze * (1 - 0.5 * settle);
+      });
 
-    final items = <_Item>[
-      (
-        depth: 4.0,
-        draw: () => s.dropping(0.2, 0.52, (lift) => _terminal(s, lift)),
-      ),
-      (
-        depth: 5.8,
-        draw: () => s.dropping(0.26, 0.58, (lift) => _tower(s, lift)),
-      ),
-      (depth: 1.9 + 3.9, draw: () => _baggageCart(s, 1.6, 3.7)),
-      (depth: _gx + _gy, draw: () => _globe(s)),
-      (depth: _herX + _herY, draw: () => _traveller(s, _herX, _herY)),
-      (
-        depth: _herX + 0.44 + _herY - 0.03,
-        draw: () => s.dropping(
-          0.62,
-          0.84,
-          (lift) => _suitcase(s, _herX + 0.22, _herY - 0.13, lift),
-          from: 3,
-        ),
-      ),
-      (depth: 3.05 + 5.75, draw: () => _signpost(s, 3.05, 5.75)),
-      (depth: 5.55 + 1.65, draw: () => _windsock(s, 5.55, 1.65)),
-      (
-        depth: 5.55 + 4.4,
-        draw: () => _palm(s, 5.55, 4.4, h: 1.6, grow: s.pop(0.5, 0.72)),
-      ),
-      (
-        depth: 1.9 + 5.85,
-        draw: () => _palm(s, 1.9, 5.85, h: 1.35, grow: s.pop(0.56, 0.78)),
-      ),
-      (
-        depth: 5.8 + 5.55,
-        draw: () => s.bush(5.8, 5.55, _leavesLight, grow: s.pop(0.6, 0.8)),
-      ),
-      (
-        depth: 1.5 + 5.4,
-        draw: () =>
-            s.bush(1.5, 5.4, _leaves, size: 0.8, grow: s.pop(0.64, 0.84)),
-      ),
-      ..._flowers(s),
-      ...trip.trail(),
-      if (s.t >= _planeIn)
+      final plane = trip.pose;
+      if (s.t >= _planeIn) _planeShadow(s, plane.p);
+
+      final items = <_Item>[
         (
-          depth: plane.p.x + plane.p.y,
-          draw: () => s.dropping(
-            _planeIn,
-            _tripFrom,
-            (lift) => _plane(
-              s,
-              (x: plane.p.x, y: plane.p.y, z: plane.p.z + lift),
-              plane.v,
-              trip.bank,
+          depth: 4.0,
+          draw: () => s.dropping(0.2, 0.52, (lift) => _terminal(s, lift)),
+        ),
+        (
+          depth: 5.8,
+          draw: () => s.dropping(0.26, 0.58, (lift) => _tower(s, lift)),
+        ),
+        // Out of the way at the foot of the tower, so the space between the
+        // terminal and the plaza is clear for her wish.
+        (depth: 0.65 + 5.5, draw: () => _baggageCart(s, 0.3, 5.3)),
+        (depth: _gx + _gy, draw: () => _globe(s, halo: halo)),
+        (
+          depth: _herX + _herY,
+          draw: () => s.story(
+            () => s.dropping(
+              _sheLands,
+              _wishes + 0.02,
+              (lift) => _traveller(s, _herX, _herY, lift),
+              from: 2.5,
             ),
-            from: 3,
           ),
         ),
-    ]..sort((a, b) => a.depth.compareTo(b.depth));
-    for (final item in items) {
-      item.draw();
-    }
+        (
+          depth: _herX + 0.44 + _herY - 0.03,
+          draw: () => s.story(
+            () => s.dropping(
+              _sheLands + 0.005,
+              _wishes + 0.025,
+              (lift) => _suitcase(s, _herX + 0.22, _herY - 0.13, lift),
+              from: 2.5,
+            ),
+          ),
+        ),
+        (depth: 3.05 + 5.75, draw: () => _signpost(s, 3.05, 5.75)),
+        // Past the far end of the runway, clear of the climb out.
+        (depth: 5.8 + 0.25, draw: () => _windsock(s, 5.8, 0.25)),
+        (
+          depth: 5.55 + 4.4,
+          draw: () => _palm(s, 5.55, 4.4, h: 1.6, grow: s.pop(0.5, 0.72)),
+        ),
+        (
+          depth: 1.9 + 5.85,
+          draw: () => _palm(s, 1.9, 5.85, h: 1.35, grow: s.pop(0.56, 0.78)),
+        ),
+        (
+          depth: 5.8 + 5.55,
+          draw: () => s.bush(5.8, 5.55, _leavesLight, grow: s.pop(0.6, 0.8)),
+        ),
+        (
+          depth: 1.5 + 5.4,
+          draw: () =>
+              s.bush(1.5, 5.4, _leaves, size: 0.8, grow: s.pop(0.64, 0.84)),
+        ),
+        ..._flowers(s),
+        ...trip.trail(),
+        if (s.t >= _planeIn)
+          (
+            depth: plane.p.x + plane.p.y,
+            draw: () => s.dropping(
+              _planeIn,
+              _planeDown,
+              (lift) => _plane(
+                s,
+                (x: plane.p.x, y: plane.p.y, z: plane.p.z + lift),
+                plane.v,
+                trip.bank,
+              ),
+              from: 3,
+            ),
+          ),
+      ]..sort((a, b) => a.depth.compareTo(b.depth));
+      for (final item in items) {
+        item.draw();
+      }
+
+      s.story(() {
+        // Her wish floats over everything round her.
+        _wish(
+          s,
+          s.at(_herX, _herY, 1.2),
+          puffs: [
+            s.pop(_wishes - 0.005, _wishes + 0.025),
+            s.pop(_wishes + 0.005, _wishes + 0.035),
+          ],
+          open: s.pop(_wishes + 0.012, _wishes + 0.06),
+        );
+
+        // The rest of the airfield steps back while she, then the plane,
+        // then the globe have the stage; at rest the light sits between
+        // her and the world she wants to go round.
+        final her = s.at(_herX, _herY, 0.7);
+        final runway = s.at(_liftOffX + 0.3, _runY + 0.8, 0.4);
+        final globe = s.at(_gx + 0.1, _gy + 0.1, 1.5);
+        final toRunway = s.phase(_rolls - 0.05, _takesOff, Curves.easeInOut);
+        final toGlobe = s.phase(_rounds - 0.05, _rounds, Curves.easeInOut);
+        final toRest = s.phase(_home - 0.08, Act.told, Curves.easeInOut);
+        var focus = Offset.lerp(her, runway, toRunway)!;
+        focus = Offset.lerp(focus, globe, toGlobe)!;
+        focus = Offset.lerp(focus, Offset.lerp(her, globe, 0.6), toRest)!;
+        s.spotlight(focus, radius: 2.4, strength: s.storyLight);
+      });
+    });
   });
 }
 
@@ -602,6 +708,34 @@ void _baggageCart(IsoStage s, double x, double y) {
       from: 2.5,
     );
   }
+
+  // The stowaway in the little case on top, once that has landed.
+  final top = cases[1];
+  if (s.t < top.at + 0.16) return;
+  final lid = top.z + top.h;
+  _cat(
+    s,
+    s.at(x + top.dx, y + top.dy + top.d, lid),
+    s.at(x + top.dx + top.w, y + top.dy, lid),
+  );
+}
+
+/// The black cat, stowed away in the little case on top of the baggage -
+/// the scene's easter egg (see `HidingCat`). Curled up inside it, only the
+/// tips of its ears show over the lid; when it has a reason it sits up out
+/// of the case onto the lid, and settles back down into it.
+///
+/// [left] and [right] are the lid's side corners; it shows only above the
+/// line between them.
+void _cat(IsoStage s, Offset left, Offset right) {
+  final middle = Offset.lerp(left, right, 0.5)!;
+  s.hidingCat(
+    hidden: middle.translate(0, 0.59 * s.unit),
+    out: middle,
+    reveal: s.beyond(left, right, of: middle.translate(0, -1)),
+    // Its tail on the side away from the palm.
+    flip: true,
+  );
 }
 
 // ------------------------------------------------------------------ globe --
@@ -643,8 +777,9 @@ const List<_Land> _lands = [
   (lon: 146, lat: -33, w: 0.07, h: 0.06),
 ];
 
-/// The globe on its plinth, popping up and spinning to a stop.
-void _globe(IsoStage s) {
+/// The globe on its plinth, popping up and spinning to a stop, in a warm
+/// [halo] of light that blooms as the plane comes round it.
+void _globe(IsoStage s, {required double halo}) {
   final grow = s.pop(0.34, 0.56);
   if (grow <= 0) return;
   final spin = 0.5 - (1 - s.phase(0.34, 0.95)) * math.pi * 3;
@@ -654,6 +789,7 @@ void _globe(IsoStage s) {
     const radius = _globeR * 1.15;
     const ring = radius * 1.14;
     s
+      ..glow(s.at(_gx, _gy, _globeZ), radius * 1.9, strength: halo)
       ..shadow(_gx, _gy, 0.66, _paving)
       ..cylinder(_gx, _gy, 0, 0.6, base, _plinth)
       ..cylinder(_gx, _gy, base, 0.42, cap, _plinth.shade(0.1))
@@ -785,6 +921,10 @@ void _continents(IsoStage s, double rho, double spin) {
 
 /// The plane's trip: parked on the runway, a take-off run, a
 /// climbing turn onto the route, and a lap of the globe that slows to rest.
+///
+/// Built on the story's clock. Each leg is timed to its beat - off the
+/// ground just after [_takesOff], onto the ring at [_rounds], home by
+/// [_home] - and the speed runs on smoothly from one leg into the next.
 class _Trip {
   _Trip(this.s) {
     var length = 0.0;
@@ -796,14 +936,45 @@ class _Trip {
     }
     climb = length;
     total = roll + climb + _orbitR * (_rest - _merge);
-    travelled = total * s.phase(_tripFrom, _tripTo, Curves.easeInOutSine);
+    travelled = _along(s.t);
   }
 
   final IsoStage s;
-  static const double roll = _liftOff - _taxiFrom;
+  static const double roll = _liftOffX - _taxiFrom;
   late final double climb;
   late final double total;
   late final double travelled;
+
+  /// How far along the trip the plane is at [t] of the arrival.
+  double _along(double t) {
+    // When it is how far along, and how fast it is going then: it gathers
+    // speed down the runway, keeps it through the climb, and swings round
+    // the world faster still before easing to a stop.
+    const lift = 2 * roll / (_airborne - _rolls);
+    final keys = [
+      (t: _rolls, d: 0.0, v: 0.0),
+      (t: _airborne, d: roll, v: lift),
+      (t: _rounds, d: roll + climb, v: lift),
+      (t: _home, d: total, v: 0.0),
+    ];
+    if (t <= keys.first.t) return 0;
+    if (t >= keys.last.t) return total;
+    var i = 0;
+    while (t > keys[i + 1].t) {
+      i++;
+    }
+    final a = keys[i];
+    final b = keys[i + 1];
+    final span = b.t - a.t;
+    final u = (t - a.t) / span;
+    // A cubic Hermite step from a to b, leaving and arriving at their speeds.
+    final u2 = u * u;
+    final u3 = u2 * u;
+    return a.d +
+        (u3 - 2 * u2 + u) * a.v * span +
+        (-2 * u3 + 3 * u2) * (b.d - a.d) +
+        (u3 - u2) * b.v * span;
+  }
 
   /// Where the plane is now.
   _Pose get pose => _at(travelled);
@@ -857,8 +1028,8 @@ class _Trip {
   /// cubic curve that leaves along the runway and arrives along the ring.
   _Pose _climbAt(double q) {
     final end = _orbitAt(_merge);
-    const start = (x: _liftOff, y: _runY, z: 0.0);
-    const out = (x: _liftOff + 0.7, y: _runY, z: 0.08);
+    const start = (x: _liftOffX, y: _runY, z: 0.0);
+    const out = (x: _liftOffX + 0.7, y: _runY, z: 0.08);
     final into = (
       x: end.p.x - end.v.x * 0.3,
       y: end.p.y - end.v.y * 0.3,
@@ -1015,41 +1186,148 @@ void _plane(IsoStage s, V3 p, V3 v, double bank) {
 
 // ----------------------------------------------------------------- people --
 
-/// Her, at [x], [y], looking up at the globe with her back to us.
-void _traveller(IsoStage s, double x, double y) {
-  final grow = s.pop(0.58, 0.78);
-  if (grow <= 0) return;
+/// Her, at [x], [y], [lift] tiles above the ground, looking up at the globe
+/// with her back to us.
+void _traveller(IsoStage s, double x, double y, double lift) {
+  if (lift < 0.6) s.shadow(x, y, 0.28 * (1 - lift / 0.6), _paving);
   // Over life size, so the subject of the sentence reads at a glance on a
   // phone.
-  s.scaled(s.at(x, y), grow * 1.4, () {
+  s.scaled(s.at(x, y, lift), 1.4, () {
+    final z = lift;
     s
-      ..shadow(x, y, 0.2, _paving)
       ..canvas.drawLine(
-        s.at(x + 0.04, y - 0.03),
-        s.at(x + 0.04, y - 0.03, 0.26),
+        s.at(x + 0.04, y - 0.03, z),
+        s.at(x + 0.04, y - 0.03, z + 0.26),
         s.stroke(_skin.shade(-0.12), 0.045),
       )
       ..canvas.drawLine(
-        s.at(x - 0.03, y + 0.04),
-        s.at(x - 0.03, y + 0.04, 0.26),
+        s.at(x - 0.03, y + 0.04, z),
+        s.at(x - 0.03, y + 0.04, z + 0.26),
         s.stroke(_skin, 0.045),
       )
-      ..cone(x, y, 0.2, 0.17, 0.55, _coral)
-      ..cylinder(x, y, 0.5, 0.075, 0.16, _coral.shade(0.06))
+      ..cone(x, y, z + 0.2, 0.17, 0.55, _coral)
+      ..cylinder(x, y, z + 0.5, 0.075, 0.16, _coral.shade(0.06))
       // Her arm, reaching to the suitcase's handle.
       ..canvas.drawLine(
-        s.at(x + 0.05, y - 0.02, 0.62),
-        s.at(x + 0.2, y - 0.04, 0.48),
+        s.at(x + 0.05, y - 0.02, z + 0.62),
+        s.at(x + 0.2, y - 0.04, z + 0.48),
         s.stroke(_skin, 0.04),
       )
-      ..sphere(x, y, 0.8, 0.1, _skin)
+      ..sphere(x, y, z + 0.8, 0.1, _skin)
       // Her hair, seen from behind, and a ponytail down her back.
-      ..sphere(x + 0.03, y + 0.03, 0.8, 0.095, _hair)
-      ..sphere(x + 0.08, y + 0.08, 0.7, 0.05, _hair.shade(0.04))
+      ..sphere(x + 0.03, y + 0.03, z + 0.8, 0.095, _hair)
+      ..sphere(x + 0.08, y + 0.08, z + 0.7, 0.05, _hair.shade(0.04))
       // A sun hat.
-      ..canvas.drawOval(s.disc(x, y, 0.87, 0.18), s.fill(_straw))
-      ..cylinder(x, y, 0.87, 0.09, 0.08, _straw.shade(0.06))
-      ..cylinder(x, y, 0.87, 0.092, 0.03, _coral);
+      ..canvas.drawOval(s.disc(x, y, z + 0.87, 0.18), s.fill(_straw))
+      ..cylinder(x, y, z + 0.87, 0.09, 0.08, _straw.shade(0.06))
+      ..cylinder(x, y, z + 0.87, 0.092, 0.03, _coral);
+  });
+}
+
+/// Her wish: a thought bubble rising from her [head], two small [puffs] of
+/// it first, then the bubble itself, [open] of the way, with a little plane
+/// climbing across it. It glows a little, the way an idea does.
+void _wish(
+  IsoStage s,
+  Offset head, {
+  required List<double> puffs,
+  required double open,
+}) {
+  final u = s.unit;
+  // Up and to her left, clear of the globe above her and the plane that
+  // comes to rest in front of it.
+  final c = head.translate(-1.05 * u, -0.8 * u);
+  for (var i = 0; i < puffs.length; i++) {
+    final grow = puffs[i];
+    if (grow <= 0) continue;
+    final at = Offset.lerp(head, c, 0.2 + 0.22 * i)!;
+    final r = (0.05 + 0.035 * i) * u * grow;
+    s.canvas
+      ..drawCircle(at, r + 0.03 * u, s.fill(_ink))
+      ..drawCircle(at, r, s.fill(_sail));
+  }
+  if (open <= 0) return;
+  s.glow(c, 1.1, strength: 0.7 * open * s.storyLight);
+  s.scaled(c, open, () {
+    // A puffed-up oval: lobes round an ellipse, outlined, its underside in
+    // shade.
+    const a = 0.52;
+    const b = 0.33;
+    const lobes = 8;
+    Path body(double grow, double dy) {
+      final path = Path()
+        ..addOval(
+          Rect.fromCenter(
+            center: c.translate(0, dy),
+            width: 2 * (a + grow) * u,
+            height: 2 * (b + grow) * u,
+          ),
+        );
+      for (var i = 0; i < lobes; i++) {
+        final angle = i * 2 * math.pi / lobes + 0.2;
+        path.addOval(
+          Rect.fromCircle(
+            center: c.translate(
+              a * math.cos(angle) * u,
+              b * math.sin(angle) * u + dy,
+            ),
+            radius: (0.16 + grow) * u,
+          ),
+        );
+      }
+      return path;
+    }
+
+    s.canvas
+      ..drawPath(body(0.03, 0), s.fill(_ink))
+      ..drawPath(body(0, 0), s.fill(_sail.shade(-0.14)))
+      ..drawPath(body(0, -0.035 * u), s.fill(_sail));
+
+    // The little plane, climbing to the upper right.
+    s.canvas
+      ..save()
+      ..translate(c.dx, c.dy)
+      ..rotate(-0.38);
+    // The plane's length, in tiles and in pixels.
+    const k = 0.78;
+    final l = k * u;
+    Path shape(List<Offset> points) =>
+        Path()..addPolygon([for (final p in points) p * l], true);
+    s.canvas
+      ..drawPath(
+        shape(const [
+          Offset(-0.34, 0),
+          Offset(-0.5, -0.27),
+          Offset(-0.4, -0.27),
+          Offset(-0.18, 0),
+        ]),
+        s.fill(_coral),
+      )
+      ..drawLine(
+        const Offset(-0.44, 0) * l,
+        const Offset(0.4, 0) * l,
+        s.stroke(_hull.shade(-0.24), 0.17 * k),
+      )
+      ..drawLine(
+        const Offset(-0.44, -0.015) * l,
+        const Offset(0.4, -0.015) * l,
+        s.stroke(_hull, 0.12 * k),
+      )
+      ..drawPath(
+        shape(const [
+          Offset(0.1, 0.02),
+          Offset(-0.14, 0.34),
+          Offset(-0.26, 0.34),
+          Offset(-0.12, 0.02),
+        ]),
+        s.fill(_wing.shade(-0.18)),
+      )
+      ..drawLine(
+        const Offset(-0.3, -0.02) * l,
+        const Offset(0.26, -0.02) * l,
+        s.stroke(_coral, 0.025 * k),
+      )
+      ..restore();
   });
 }
 
@@ -1082,8 +1360,8 @@ void _suitcase(IsoStage s, double x, double y, double lift) {
 typedef _Arrow = ({double z, double heading, Tint tint});
 
 final List<_Arrow> _arrows = [
-  (z: 1.06, heading: -math.pi / 4 + 0.15, tint: _slate.shade(0.2)),
-  (z: 0.84, heading: 3 * math.pi / 4 - 0.2, tint: _gold),
+  (z: 1.06, heading: 3 * math.pi / 4 - 0.2, tint: _slate.shade(0.2)),
+  (z: 0.84, heading: -math.pi / 4 + 0.15, tint: _gold),
   (z: 0.62, heading: 0.35, tint: _ocean),
 ];
 

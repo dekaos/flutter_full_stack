@@ -190,6 +190,16 @@ melos:
         dart run melos:melos run size:measure --no-select &&
         dart run tool/size_budget.dart --update
 
+    # ------------------------------------------------------------- branding --
+    branding:
+      description: >-
+        Redraw every launcher icon and native splash image, for every platform
+        and size, from the mark in lib/app/app_mark.dart. Run it after changing
+        the mark; the images it writes are never edited by hand.
+      exec: flutter test tool/render_branding.dart
+      packageFilters:
+        scope: flutter_full_stack_flutter
+
     # ------------------------------------------------------------- coverage --
     coverage:measure:
       description: Run the Flutter tests with coverage, writing coverage/lcov.info.

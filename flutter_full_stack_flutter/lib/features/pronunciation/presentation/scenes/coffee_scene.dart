@@ -3,7 +3,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: a corner café on a warm morning. Named for what they are, so
 // the drawing below reads as a description of the place.
@@ -41,9 +43,10 @@ const _chalk = Tint(40, 0.25, 0.97);
 const _iron = Tint(210, 0.14, 0.2);
 const _bulbOff = Tint(38, 0.3, 0.5);
 const _bulbOn = Tint(46, 0.95, 0.9);
-const _ginger = Tint(26, 0.7, 0.56);
 const _burlap = Tint(34, 0.36, 0.62);
 const _skin = Tint(26, 0.5, 0.72);
+// The guest's jumper: a cornflower blue that stands out on the terracotta.
+const _jumper = Tint(222, 0.6, 0.52);
 const _petalPink = Tint(344, 0.6, 0.62);
 const _petalGold = Tint(44, 0.9, 0.66);
 const _stem = Tint(110, 0.42, 0.3);
@@ -69,6 +72,25 @@ const _cafeH = 1.6;
 const _cupX = 4.8;
 const _cupY = 3.7;
 
+// The guest's table, a table for one at the terrace's edge, looking out on
+// the lawn where the coffee will land; and the chair the guest sits on.
+const _tableX = 3.1;
+const _tableY = 3.85;
+const double _guestX = _tableX - 0.42;
+const double _guestY = _tableY;
+
+// The guest is drawn a size up from the furniture, so the sentence's "I"
+// reads on a phone; and the seat they sit on, which they are scaled about.
+const _guestSize = 1.3;
+const double _seat = _deckH + 0.3;
+
+// Where the story is lit: on the guest as they ask, then, once the coffee
+// lands, between the guest and the cup.
+const _askX = 2.95;
+const _askY = 3.85;
+const _stageX = 3.7;
+const _stageY = 3.8;
+
 // The lamp post at the terrace's front corner, and how tall it is.
 const _lampX = 0.45;
 const _lampY = 4.55;
@@ -76,135 +98,204 @@ const _lampH = 1.4;
 
 typedef _Item = ({double depth, void Function() draw});
 
-/// "I would like a cup of coffee please": a corner café on a warm morning.
-/// The island rises, the café drops onto its terrace, lights its windows and
-/// unrolls its awnings, the tables and the parasol pop up, a waiter carries
-/// a cup out to the guest and the string lights come on one by one. To
-/// close, a giant cup lands on its saucer and fills, a heart blooms in the
-/// crema, the steam curls up and the cat steps out onto the doorstep.
+/// "I would like a cup of coffee please", in two acts.
+///
+/// The corner café assembles first: the island rises, the café drops onto
+/// its terrace, lights its windows and unrolls its awnings, the tables, the
+/// parasol and the string lights come up, the waiter steps out and a guest
+/// sits down at a table by the lawn. Then the story, in a pool of light on
+/// the guest while the rest of the café sinks back: the guest raises a hand
+/// and a speech bubble with a cup in it pops up over them (*would like*);
+/// a giant cup drops onto its saucer on the lawn beside them and fills with
+/// coffee, the light widening to take it in and the steam curling up (*cup
+/// of coffee*); and a heart joins the cup in the bubble as another blooms
+/// in the crema, and the guest gives a happy little bounce (*please*). At
+/// rest the guest
+/// still has their bubble - a cup and a heart - beside the giant cup.
+const coffeeScene = SceneScript(
+  paintCoffee,
+  cues: [
+    Cue('would like', _asks),
+    Cue('cup of coffee', _served),
+    Cue('please', _please),
+  ],
+  sounds: [
+    SceneSound(Sound.pop, _asks),
+    SceneSound(Sound.clink, _served),
+  ],
+);
+
+// The story's beats, on the arrival's clock, in the order the sentence
+// says them, which is the order they happen in too: the asking, the
+// coffee, the kind word. The cup lands on *cup of coffee* and is full a
+// moment later; the hand comes down once it has landed.
+const _asks = 0.42;
+const _served = 0.56;
+const _please = 0.72;
+
+/// Paints [coffeeScene].
 void paintCoffee(IsoStage s) {
-  _dawn(s);
+  s.setting(() {
+    _dawn(s);
 
-  final climb = s.phase(0.08, 0.75);
-  s.sun(0.8, 0.26 - 0.08 * climb, 0.8, _sunBody, _sunHalo);
-  _birds(s, s.phase(0.25, 0.9));
+    final climb = s.phase(0.08, 0.75);
+    s.sun(0.8, 0.26 - 0.08 * climb, 0.8, _sunBody, _sunHalo);
+    _birds(s, s.phase(0.25, 0.9));
 
-  // Clouds drift in from either side and stop.
-  final drift = s.phase(0.15, 0.95);
-  s
-    ..cloud(s.screen(0.2 - 0.5 * (1 - drift), 0.26), 2.4, _cloud)
-    ..cloud(s.screen(0.86 + 0.4 * (1 - drift), 0.55), 1.8, _cloud)
-    ..cloud(s.screen(0.1 - 0.4 * (1 - drift), 0.6), 1.3, _cloud);
-  _skyline(s, 0.8, _town);
-  s.ridge(0.88, 0.8, _hill, seed: 3);
-
-  s.rising(0, 0.4, () {
+    // Clouds drift in from either side and stop.
+    final drift = s.phase(0.15, 0.95);
     s
-      ..island(grass: _grass, earth: _earth, stone: _stone)
-      ..box(_deckX, _deckY, 0, _deckW, _deckD, _deckH, _paver);
-    _pavers(s);
-    _steppingStones(s);
+      ..cloud(s.screen(0.2 - 0.5 * (1 - drift), 0.26), 2.4, _cloud)
+      ..cloud(s.screen(0.86 + 0.4 * (1 - drift), 0.55), 1.8, _cloud)
+      ..cloud(s.screen(0.1 - 0.4 * (1 - drift), 0.6), 1.3, _cloud);
+    _skyline(s, 0.8, _town);
+    s.ridge(0.88, 0.8, _hill, seed: 3);
 
-    s.dropping(0.22, 0.56, (lift) => _cafe(s, lift));
+    // How far the light has moved from the guest alone to the guest and
+    // the coffee.
+    final widen = s.story(
+      () => s.phase(_served - 0.06, _served + 0.04, Curves.easeInOut),
+    );
+    s.rising(0, 0.4, () {
+      s
+        ..island(grass: _grass, earth: _earth, stone: _stone)
+        ..box(_deckX, _deckY, 0, _deckW, _deckD, _deckH, _paver);
+      _pavers(s);
+      _steppingStones(s);
+      // The stage: lit on the guest once the story starts, then widening
+      // to take in the lawn beside them as the coffee lands. It stays lit.
+      s
+        ..pool(
+          _askX + (_stageX - _askX) * widen,
+          _askY + (_stageY - _askY) * widen,
+          1.15 + 0.6 * widen,
+          strength: s.storyLight,
+        )
+        ..dropping(0.22, 0.56, (lift) => _cafe(s, lift));
 
-    final items = <_Item>[
-      // The garden around the terrace.
-      (
-        depth: 5.3,
-        draw: () => s.tree(
-          4.6,
-          0.7,
-          leaves: _leaves,
-          bark: _bark,
-          ground: _grass,
-          h: 2.1,
-          grow: s.pop(0.4, 0.62),
+      final items = <_Item>[
+        // The garden around the terrace.
+        (
+          depth: 5.3,
+          draw: () => s.tree(
+            4.6,
+            0.7,
+            leaves: _leaves,
+            bark: _bark,
+            ground: _grass,
+            h: 2.1,
+            grow: s.pop(0.4, 0.62),
+          ),
         ),
-      ),
-      (
-        depth: 7.4,
-        draw: () => s.tree(
-          5.5,
-          1.9,
-          leaves: _leavesLight,
-          bark: _bark,
-          ground: _grass,
-          h: 1.45,
-          grow: s.pop(0.46, 0.68),
+        (
+          depth: 7.4,
+          draw: () => s.tree(
+            5.5,
+            1.9,
+            leaves: _leavesLight,
+            bark: _bark,
+            ground: _grass,
+            h: 1.45,
+            grow: s.pop(0.46, 0.68),
+          ),
         ),
-      ),
-      (
-        depth: 6.2,
-        draw: () => s.pine(
-          0.5,
-          5.6,
-          needles: _leaves,
-          bark: _bark,
-          ground: _grass,
-          h: 1.9,
-          grow: s.pop(0.44, 0.66),
+        (
+          depth: 6.2,
+          draw: () => s.pine(
+            0.5,
+            5.6,
+            needles: _leaves,
+            bark: _bark,
+            ground: _grass,
+            h: 1.9,
+            grow: s.pop(0.44, 0.66),
+          ),
         ),
-      ),
-      (
-        depth: 11,
-        draw: () =>
-            s.bush(5.5, 5.5, _leavesLight, size: 0.9, grow: s.pop(0.6, 0.8)),
-      ),
-      (
-        depth: 9.2,
-        draw: () =>
-            s.bush(3.4, 5.8, _leaves, size: 0.7, grow: s.pop(0.62, 0.8)),
-      ),
-      // Clipped bay trees in pots either side of the door.
-      (depth: 4.2, draw: () => _pot(s, 1.72, 2.48, s.pop(0.56, 0.7))),
-      (depth: 4.98, draw: () => _pot(s, 2.5, 2.48, s.pop(0.58, 0.72))),
-      // Box hedges along the front of the terrace, either side of the path.
-      (depth: 6.1, draw: () => _hedge(s, 0.3, 1.75, 0.5)),
-      (depth: 8.2, draw: () => _hedge(s, 2.78, 0.9, 0.56)),
-      // The day's beans, delivered and waiting by the side wall.
-      (depth: 4.8, draw: () => _beans(s, s.pop(0.52, 0.66))),
-      // Someone's delivery bike, parked by the flowers.
-      (depth: 9.95, draw: () => _bicycle(s, 4.1, 5.5, s.pop(0.64, 0.78))),
-      // The menu, out by the path where passers-by will see it.
-      (depth: 7.3, draw: () => _chalkboard(s, 2.75, 4.55, s.pop(0.6, 0.74))),
-      // The tables, each with its chairs.
-      ..._tableSet(s, 1, 3.2, 0.5, guest: true),
-      // The waiter brings the guest a cup.
-      _waiter(s, s.pop(0.6, 0.68), s.phase(0.66, 0.92, Curves.easeInOut)),
-      ..._tableSet(s, 2.55, 3.35, 0.54, pastry: true),
-      ..._tableSet(s, 1.3, 4.3, 0.58, parasol: true),
-      (depth: 5.0, draw: () => _lamp(s, s.pop(0.5, 0.66))),
-      // The centrepiece: a saucer pops up, the cup drops onto it.
-      (depth: 8.5, draw: () => _centrepiece(s)),
-    ];
+        (
+          depth: 11,
+          draw: () =>
+              s.bush(5.5, 5.5, _leavesLight, size: 0.9, grow: s.pop(0.6, 0.8)),
+        ),
+        (
+          depth: 9.2,
+          draw: () =>
+              s.bush(3.4, 5.8, _leaves, size: 0.7, grow: s.pop(0.62, 0.8)),
+        ),
+        // Clipped bay trees in pots either side of the door.
+        (depth: 4.2, draw: () => _pot(s, 1.72, 2.48, s.pop(0.56, 0.7))),
+        (depth: 4.98, draw: () => _pot(s, 2.5, 2.48, s.pop(0.58, 0.72))),
+        // Box hedges along the front of the terrace, either side of the path.
+        (depth: 6.1, draw: () => _hedge(s, 0.3, 1.75, 0.5)),
+        (depth: 8.2, draw: () => _hedge(s, 2.78, 0.9, 0.56)),
+        // The day's beans, delivered and waiting by the side wall.
+        (depth: 4.8, draw: () => _beans(s, s.pop(0.52, 0.66))),
+        // Someone's delivery bike, parked by the flowers.
+        (depth: 9.95, draw: () => _bicycle(s, 4.1, 5.5, s.pop(0.64, 0.78))),
+        // The menu, out by the path where passers-by will see it.
+        (depth: 7.05, draw: () => _chalkboard(s, 2.45, 4.6, s.pop(0.6, 0.74))),
+        // The waiter, out by the door with a tray, ready.
+        _waiter(s, 1.5, 2.66, s.pop(0.6, 0.72)),
+        // The tables, each with its chairs; the guest's is a table for one.
+        ..._tableSet(s, 1, 3.2, 0.5, pastry: true),
+        ..._tableSet(
+          s,
+          _tableX,
+          _tableY,
+          0.54,
+          guest: true,
+          opposite: false,
+        ),
+        ..._tableSet(s, 1.3, 4.3, 0.58, parasol: true),
+        (depth: 5.0, draw: () => _lamp(s, s.pop(0.5, 0.66))),
+        // The coffee: a saucer pops up, the cup drops onto it and fills.
+        (depth: 8.5, draw: () => s.story(() => _centrepiece(s))),
+      ];
 
-    // Flowers in the lawn, opening one after another from the back.
-    const beds = [
-      (x: 1.1, y: 5.55, tint: _petalPink),
-      (x: 1.8, y: 5.75, tint: _petalGold),
-      (x: 3.05, y: 5.6, tint: _petalPink),
-      (x: 5.0, y: 5.3, tint: _petalGold),
-      (x: 4.85, y: 5.85, tint: _petalPink),
-      (x: 3.3, y: 5.2, tint: _petalGold),
-      (x: 5.85, y: 5.05, tint: _petalPink),
-      (x: 5.75, y: 2.35, tint: _petalGold),
-      (x: 5.9, y: 2.6, tint: _petalPink),
-    ];
-    final ordered = [...beds]..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
-    for (var i = 0; i < ordered.length; i++) {
-      final bed = ordered[i];
-      final grow = s.pop(0.6 + i * 0.025, 0.78 + i * 0.025);
-      items.add((
-        depth: bed.x + bed.y,
-        draw: () => s.flower(bed.x, bed.y, bed.tint, _stem, grow: grow),
-      ));
-    }
-    items.sort((a, b) => a.depth.compareTo(b.depth));
-    for (final item in items) {
-      item.draw();
-    }
+      // Flowers in the lawn, opening one after another from the back.
+      const beds = [
+        (x: 1.1, y: 5.55, tint: _petalPink),
+        (x: 1.8, y: 5.75, tint: _petalGold),
+        (x: 3.05, y: 5.6, tint: _petalPink),
+        (x: 5.0, y: 5.3, tint: _petalGold),
+        (x: 4.85, y: 5.85, tint: _petalPink),
+        (x: 3.3, y: 5.2, tint: _petalGold),
+        (x: 5.85, y: 5.05, tint: _petalPink),
+        (x: 5.75, y: 2.35, tint: _petalGold),
+        (x: 5.9, y: 2.6, tint: _petalPink),
+      ];
+      final ordered = [...beds]
+        ..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
+      for (var i = 0; i < ordered.length; i++) {
+        final bed = ordered[i];
+        final grow = s.pop(0.6 + i * 0.025, 0.78 + i * 0.025);
+        items.add((
+          depth: bed.x + bed.y,
+          draw: () => s.flower(bed.x, bed.y, bed.tint, _stem, grow: grow),
+        ));
+      }
+      items.sort((a, b) => a.depth.compareTo(b.depth));
+      for (final item in items) {
+        item.draw();
+      }
 
-    _stringLights(s);
+      _stringLights(s);
+
+      // What the guest says, over everything: it is speech, not a thing on
+      // the terrace.
+      s.story(() => _order(s));
+
+      // The rest of the café steps back while the guest and the coffee have
+      // the stage.
+      s.spotlight(
+        s.at(
+          _askX + (_stageX - 0.1 - _askX) * widen,
+          _askY + (_stageY - 0.1 - _askY) * widen,
+          0.8,
+        ),
+        radius: 1.7 + 0.5 * widen,
+        strength: s.storyLight,
+      );
+    });
   });
 }
 
@@ -411,9 +502,6 @@ void _cafe(IsoStage s, double lift) {
   // The awnings unroll once the café has landed.
   _awningRight(s, side, y + 0.12, y + d - 0.3, z + 1.38, s.phase(0.54, 0.7));
   _awningFront(s, front, x + 0.1, x + w - 0.1, z + 1.38, s.phase(0.5, 0.66));
-
-  // The cat comes out onto the step last of all.
-  _cat(s, x + 1.6, front + 0.1, z + 0.07, s.pop(0.86, 0.98));
 }
 
 /// A window on a left-facing wall at plane [y]: a dark frame, [glass], a
@@ -560,43 +648,12 @@ void _awningRight(
   }
 }
 
-/// A ginger cat sitting on the step at [x], [y], [z], [grow] of the way out.
-void _cat(IsoStage s, double x, double y, double z, double grow) {
-  if (grow <= 0) return;
-  final foot = s.at(x, y, z);
-  s.scaled(foot, grow, () {
-    final head = s.at(x - 0.02, y + 0.02, z + 0.3);
-    final r = 0.09 * s.unit * 1.15;
-    final tail = Path()
-      ..moveTo(s.at(x + 0.06, y - 0.04, z + 0.03).dx, foot.dy - 0.03 * s.unit)
-      ..quadraticBezierTo(
-        s.at(x + 0.24, y - 0.1, z).dx,
-        foot.dy,
-        s.at(x + 0.22, y - 0.12, z + 0.16).dx,
-        foot.dy - 0.2 * s.unit,
-      );
-    s
-      ..canvas.drawPath(tail, s.stroke(_ginger.shade(-0.08), 0.035))
-      ..sphere(x, y, z + 0.12, 0.12, _ginger)
-      ..canvas.drawPath(
-        Path()
-          ..moveTo(head.dx - r, head.dy - r * 0.3)
-          ..lineTo(head.dx - r * 0.75, head.dy - r * 1.45)
-          ..lineTo(head.dx - r * 0.1, head.dy - r * 0.8)
-          ..lineTo(head.dx + r * 0.75, head.dy - r * 1.45)
-          ..lineTo(head.dx + r, head.dy - r * 0.3)
-          ..close(),
-        s.fill(_ginger.shade(-0.06)),
-      )
-      ..sphere(x - 0.02, y + 0.02, z + 0.3, 0.09, _ginger.shade(0.04));
-  });
-}
-
 // --------------------------------------------------------------- terrace --
 
-/// A bistro table at [x], [y] with a chair either side, popping up from
-/// [begin]: one may have a [guest] in it, a croissant ([pastry]) or a
-/// [parasol] over it. Returned as items to be sorted into the scene.
+/// A bistro table at [x], [y] with a chair either side - or, without an
+/// [opposite] one, a table for one - popping up from [begin]: one may have
+/// the [guest] in it, a croissant ([pastry]) or a [parasol] over it.
+/// Returned as items to be sorted into the scene.
 List<_Item> _tableSet(
   IsoStage s,
   double x,
@@ -605,6 +662,7 @@ List<_Item> _tableSet(
   bool guest = false,
   bool pastry = false,
   bool parasol = false,
+  bool opposite = true,
 }) {
   final grow = s.pop(begin, begin + 0.16);
   final behind = s.pop(begin + 0.03, begin + 0.19);
@@ -616,25 +674,33 @@ List<_Item> _tableSet(
       depth: x + y - 0.42,
       draw: () => at(x - 0.42, y, behind, () {
         _chair(s, x - 0.42, y, 1);
-        if (guest) _guest(s, x - 0.42, y, s.pop(0.62, 0.76));
+        if (guest) _guest(s, x - 0.42, y, s.pop(begin + 0.1, begin + 0.24));
       }),
     ),
     (
       depth: x + y,
       draw: () => at(x, y, grow, () {
-        _table(s, x, y, pastry: pastry);
+        // The guest's table waits for their order.
+        _table(s, x, y, pastry: pastry, set: !guest);
         if (parasol) _parasol(s, x, y, s.pop(0.68, 0.84));
       }),
     ),
-    (
-      depth: x + y + 0.42,
-      draw: () => at(x + 0.42, y, before, () => _chair(s, x + 0.42, y, -1)),
-    ),
+    if (opposite)
+      (
+        depth: x + y + 0.42,
+        draw: () => at(x + 0.42, y, before, () => _chair(s, x + 0.42, y, -1)),
+      ),
   ];
 }
 
-/// A round marble-topped table on an iron stem, set with two cups.
-void _table(IsoStage s, double x, double y, {bool pastry = false}) {
+/// A round marble-topped table on an iron stem, [set] with two cups.
+void _table(
+  IsoStage s,
+  double x,
+  double y, {
+  bool pastry = false,
+  bool set = true,
+}) {
   const top = _deckH + 0.44;
   s
     ..canvas.drawOval(
@@ -644,6 +710,7 @@ void _table(IsoStage s, double x, double y, {bool pastry = false}) {
     ..canvas.drawOval(s.disc(x, y, _deckH + 0.004, 0.1), s.fill(_iron))
     ..cylinder(x, y, _deckH, 0.025, 0.4, _iron)
     ..cylinder(x, y, top - 0.04, 0.3, 0.04, _porcelain.shade(-0.06));
+  if (!set) return;
   _smallCup(s, x - 0.1, y + 0.1, top);
   if (pastry) {
     // A croissant on a little plate.
@@ -706,25 +773,19 @@ void _chair(IsoStage s, double x, double y, double facing) {
   if (facing < 0) s.canvas.drawPath(back, s.stroke(_caramel, 0.04));
 }
 
-/// The waiter: out of the door, [out] of the way, and across to the guest's
-/// table with a cup on a tray, [walk] of the way. Returned as an item, its
-/// depth wherever the waiter has got to.
-_Item _waiter(IsoStage s, double out, double walk) {
-  const from = (x: 2.11, y: 2.62);
-  const to = (x: 1.2, y: 2.8);
-  final x = from.x + (to.x - from.x) * walk;
-  final y = from.y + (to.y - from.y) * walk;
-  // A little bob in the step, gone by the time the waiter arrives.
-  final z = _deckH + 0.04 * math.sin(walk * math.pi * 6).abs();
+/// The waiter standing at [x], [y] with a cup on a tray, [grow] of the way
+/// out. Returned as an item, to be sorted into the scene.
+_Item _waiter(IsoStage s, double x, double y, double grow) {
+  const z = _deckH;
   return (
     depth: x + y,
     draw: () {
-      if (out <= 0) return;
-      s.scaled(s.at(x, y, _deckH), out, () {
+      if (grow <= 0) return;
+      s.scaled(s.at(x, y, z), grow, () {
         final tray = s.at(x - 0.06, y + 0.16, z + 0.56);
         s
           ..canvas.drawOval(
-            s.disc(x + 0.03, y + 0.03, _deckH + 0.003, 0.14),
+            s.disc(x + 0.03, y + 0.03, z + 0.003, 0.14),
             s.fill(_paver.shade(-0.14)),
           )
           ..cylinder(x, y, z, 0.07, 0.22, _iron.shade(0.06))
@@ -747,18 +808,166 @@ _Item _waiter(IsoStage s, double out, double walk) {
   );
 }
 
-/// Someone sitting on the chair at [x], [y], facing the table, [grow] of the
-/// way there.
+/// The guest on the chair at [x], [y], facing the table, [grow] of the way
+/// there. On the story's clock they raise a hand to order, lower it to the
+/// table once the coffee has landed, and give a happy little bounce at
+/// *please*.
 void _guest(IsoStage s, double x, double y, double grow) {
   if (grow <= 0) return;
-  const seat = _deckH + 0.3;
-  s.scaled(s.at(x, y, seat), grow, () {
+  final (:raise, :hop) = s.story(
+    () => (
+      raise:
+          s.phase(_asks - 0.02, _asks + 0.04, Curves.easeOutBack) *
+          (1 - s.phase(_served + 0.05, _served + 0.11, Curves.easeInOut)),
+      hop: _hop(s),
+    ),
+  );
+  final z = _seat + hop;
+  // The near arm, from the shoulder to a hand resting on the table, or
+  // raised above the head to catch the waiter's eye.
+  final shoulder = s.at(x + 0.01, y + 0.1, z + 0.27);
+  final rest = s.at(x + 0.2, y + 0.1, z + 0.13);
+  final up = s.at(x - 0.02, y + 0.21, z + 0.8);
+  final hand = Offset.lerp(rest, up, raise)!;
+  s.scaled(s.at(x, y, _seat), grow * _guestSize, () {
     s
-      ..box(x, y - 0.08, seat, 0.26, 0.16, 0.07, _iron.shade(0.12))
-      ..cylinder(x, y, seat, 0.11, 0.32, _terracotta.shade(0.08))
-      ..sphere(x - 0.03, y - 0.02, seat + 0.47, 0.085, _espresso)
-      ..sphere(x, y, seat + 0.44, 0.09, _skin);
+      ..box(x, y - 0.08, z, 0.26, 0.16, 0.07, _iron.shade(0.12))
+      ..cylinder(x, y, z, 0.11, 0.32, _jumper)
+      ..sphere(x - 0.03, y - 0.02, z + 0.47, 0.085, _espresso)
+      ..sphere(x, y, z + 0.44, 0.09, _skin)
+      ..canvas.drawLine(
+        shoulder,
+        hand,
+        s.stroke(_jumper.shade(0.06), 0.06),
+      )
+      ..canvas.drawCircle(hand, 0.05 * s.unit, s.fill(_skin));
   });
+}
+
+/// How high the guest bounces for joy at *please*, in tiles.
+double _hop(IsoStage s) =>
+    0.08 * math.sin(math.pi * s.phase(_please, _please + 0.1, Curves.linear));
+
+/// The guest's order, in a speech bubble over their head: it pops up with a
+/// cup in it as they ask, and a heart joins the cup as they say *please*,
+/// the bubble widening to make room for it.
+void _order(IsoStage s) {
+  final grow = s.pop(_asks - 0.01, _asks + 0.06);
+  if (grow <= 0) return;
+  final kind = s.pop(_please - 0.01, _please + 0.06);
+  final widen = kind.clamp(0.0, 1.0);
+  // A size up from the world, like the guest, so it reads on a phone.
+  final u = s.unit * 1.12;
+  // The tail's point, at the guest's face, on the side they face, on their
+  // scaled figure.
+  final seat = s.at(_guestX, _guestY, _seat);
+  final tip =
+      seat +
+      (s.at(_guestX + 0.07, _guestY - 0.07, _seat + 0.5 + _hop(s)) - seat) *
+          _guestSize;
+  final left = tip.dx - 0.2 * u;
+  final bottom = tip.dy - 0.26 * u;
+  final width = (0.94 + 0.46 * widen) * u;
+  final height = 0.84 * u;
+  final body = RRect.fromRectAndRadius(
+    Rect.fromLTWH(left, bottom - height, width, height),
+    Radius.circular(height / 2),
+  );
+  final tail = Path()
+    ..moveTo(left + 0.2 * u, bottom - 0.04 * u)
+    ..lineTo(tip.dx, tip.dy)
+    ..lineTo(left + 0.48 * u, bottom - 0.04 * u)
+    ..close();
+  final cupAt = Offset(left + 0.47 * u, bottom - height / 2 + 0.05 * u);
+  final heartAt = Offset(left + width - 0.36 * u, bottom - height / 2);
+
+  s.scaled(tip, grow, () {
+    // A rim round the whole bubble, then its paper over the rim's inside
+    // half, so the tail joins the body without a seam.
+    final rim = s.stroke(_espresso.shade(0.2), 0.06);
+    final paper = s.fill(_porcelain);
+    s.canvas
+      ..drawRRect(body, rim)
+      ..drawPath(tail, rim)
+      ..drawRRect(body, paper)
+      ..drawPath(tail, paper);
+    _cupIcon(s, cupAt, u * 1.1);
+    if (kind > 0) _heart(s, heartAt, 0.19 * u * kind, _petalPink);
+  });
+}
+
+/// A little cup of coffee on its saucer, steaming, drawn flat at [c] - the
+/// picture of one, for the speech bubble. [u] is the size of a tile.
+void _cupIcon(IsoStage s, Offset c, double u) {
+  Offset p(double dx, double dy) => c.translate(dx * u, dy * u);
+  final body = Path()
+    ..moveTo(p(-0.16, -0.06).dx, p(-0.16, -0.06).dy)
+    ..lineTo(p(0.16, -0.06).dx, p(0.16, -0.06).dy)
+    ..lineTo(p(0.12, 0.1).dx, p(0.12, 0.1).dy)
+    ..quadraticBezierTo(
+      p(0.1, 0.15).dx,
+      p(0.1, 0.15).dy,
+      p(0.05, 0.15).dx,
+      p(0.05, 0.15).dy,
+    )
+    ..lineTo(p(-0.05, 0.15).dx, p(-0.05, 0.15).dy)
+    ..quadraticBezierTo(
+      p(-0.1, 0.15).dx,
+      p(-0.1, 0.15).dy,
+      p(-0.12, 0.1).dx,
+      p(-0.12, 0.1).dy,
+    )
+    ..close();
+  final handle = Path()
+    ..moveTo(p(0.14, -0.01).dx, p(0.14, -0.01).dy)
+    ..quadraticBezierTo(
+      p(0.27, -0.01).dx,
+      p(0.27, -0.01).dy,
+      p(0.12, 0.09).dx,
+      p(0.12, 0.09).dy,
+    );
+  Path wisp(double dx) => Path()
+    ..moveTo(p(dx, -0.11).dx, p(dx, -0.11).dy)
+    ..cubicTo(
+      p(dx - 0.06, -0.16).dx,
+      p(dx - 0.06, -0.16).dy,
+      p(dx + 0.06, -0.2).dx,
+      p(dx + 0.06, -0.2).dy,
+      p(dx, -0.27).dx,
+      p(dx, -0.27).dy,
+    );
+  final steam = s.stroke(_iron.shade(0.42), 0.035);
+  s.canvas
+    ..drawOval(
+      Rect.fromCenter(center: p(0, 0.16), width: 0.46 * u, height: 0.08 * u),
+      s.fill(_caramel.shade(0.1)),
+    )
+    ..drawPath(handle, s.stroke(_teal, 0.045))
+    ..drawPath(body, s.fill(_teal))
+    ..drawOval(
+      Rect.fromCenter(center: p(0, -0.06), width: 0.32 * u, height: 0.08 * u),
+      s.fill(_crema),
+    )
+    ..drawPath(wisp(-0.06), steam)
+    ..drawPath(wisp(0.06), steam);
+}
+
+/// A heart drawn flat at [c], [size] from its middle to its sides.
+void _heart(IsoStage s, Offset c, double size, Tint tint) {
+  final path = Path();
+  for (var k = 0; k <= 32; k++) {
+    final a = k / 32 * 2 * math.pi;
+    final hx = math.pow(math.sin(a), 3).toDouble();
+    final hy =
+        (13 * math.cos(a) -
+            5 * math.cos(2 * a) -
+            2 * math.cos(3 * a) -
+            math.cos(4 * a)) /
+        16;
+    final o = c.translate(size * hx, -size * (hy + 0.2));
+    k == 0 ? path.moveTo(o.dx, o.dy) : path.lineTo(o.dx, o.dy);
+  }
+  s.canvas.drawPath(path..close(), s.fill(tint));
 }
 
 /// A parasol over the table at [x], [y], [open] of the way open: striped
@@ -941,8 +1150,18 @@ void _bicycle(IsoStage s, double x, double y, double grow) {
       ),
   ]);
 
+  // The basket on the front: where it starts along the bike, how long,
+  // wide and deep it is, and how high its floor.
+  const bu = 0.52;
+  const bl = 0.24;
+  const bw = 0.2;
+  const bh = 0.15;
+  const floor = 0.42;
+
   // A size up from life, so it still reads as a bicycle on a phone.
-  s.scaled(p(base / 2, 0), grow * 1.25, () {
+  final anchor = p(base / 2, 0);
+  final size = grow * 1.25;
+  s.scaled(anchor, size, () {
     final tyre = s.stroke(_iron, 0.035);
     final tube = s.stroke(_terracotta.shade(0.08), 0.04);
     s.canvas
@@ -967,9 +1186,49 @@ void _bicycle(IsoStage s, double x, double y, double grow) {
       )
       ..drawLine(p(0.13, 0.5), p(0.25, 0.5), s.stroke(_espresso, 0.06));
     s
-      ..box(x + 0.52, y - 0.1, 0.42, 0.24, 0.2, 0.15, _caramel)
+      ..box(x + bu, y - bw / 2, floor, bl, bw, bh, _caramel)
       ..sphere(x + 0.63, y, 0.62, 0.09, _caramel.shade(0.18));
   });
+
+  // The cat, in the basket: drawn after the bike, at the bike's size-up.
+  Offset sized(double u, double v, double z) =>
+      anchor + (s.at(x + u, y + v, z) - anchor) * size;
+  _cat(
+    s,
+    left: sized(bu, bw / 2, floor + bh),
+    front: sized(bu + bl, bw / 2, floor + bh),
+    right: sized(bu + bl, -bw / 2, floor + bh),
+    // A little back from the middle of the floor, clear of the saucer.
+    seat: sized(0.6, 0.02, floor),
+  );
+}
+
+/// The black cat, in the delivery bike's basket - the scene's easter egg
+/// (see `HidingCat`). It sits low in the basket, the tips of its ears over
+/// the rim; when it has a reason it sits up in the basket, and settles back
+/// down. [left], [front] and [right] are the corners of the basket's near
+/// rim on the screen, and [seat] the spot on its floor the cat sits on.
+void _cat(
+  IsoStage s, {
+  required Offset left,
+  required Offset front,
+  required Offset right,
+  required Offset seat,
+}) {
+  // Only once the bike has popped up and settled.
+  if (s.t < 0.8) return;
+  final above = front.translate(0, -s.unit);
+  s.hidingCat(
+    hidden: seat.translate(0, 0.5 * s.unit),
+    out: seat,
+    reveal: Path.combine(
+      PathOperation.intersect,
+      s.beyond(left, front, of: above),
+      s.beyond(front, right, of: above),
+    ),
+    // Its tail on the side away from the cup.
+    flip: true,
+  );
 }
 
 /// The lamp post at the terrace's corner: its lantern lights with the
@@ -1037,12 +1296,20 @@ void _stringLights(IsoStage s) {
 
 // ------------------------------------------------------------- centrepiece --
 
-/// The giant cup: a saucer pops up on the lawn, the cup drops onto it, fills
-/// with coffee, a heart opens in the crema and the steam curls up.
+/// The giant cup, on the story's clock: a saucer pops up on the lawn, the
+/// cup drops onto it and fills with coffee, the steam curls up, and a heart
+/// opens in the crema at *please*, the cup glowing warm round it.
 void _centrepiece(IsoStage s) {
   const x = _cupX;
   const y = _cupY;
-  final saucer = s.pop(0.6, 0.7);
+  final warm = s.phase(_please - 0.01, _please + 0.05);
+  final settle = s.phase(_please + 0.06, _please + 0.2);
+  s.glow(
+    s.at(x, y, 1.15),
+    1.6,
+    strength: warm * (1 - 0.4 * settle) * s.storyLight,
+  );
+  final saucer = s.pop(_served - 0.04, _served + 0.01);
   if (saucer > 0) {
     s
       ..shadow(x + 0.1, y + 0.1, 1.25 * saucer, _grass)
@@ -1054,21 +1321,22 @@ void _centrepiece(IsoStage s) {
         );
       });
   }
-  s.dropping(0.64, 0.86, from: 4, (lift) {
+  // It lands on the *cup of coffee* beat, and is full a moment later.
+  s.dropping(_served - 0.04, _served + 0.07, from: 4, (lift) {
     _giantCup(
       s,
       x,
       y,
       0.12 + lift,
-      fill: s.phase(0.8, 0.92, Curves.easeInOut),
-      heart: s.pop(0.9, 0.98),
+      fill: s.phase(_served, _served + 0.07, Curves.easeInOut),
+      heart: s.pop(_please, _please + 0.07),
     );
   });
-  final steam = s.phase(0.86, 1, Curves.easeInOut);
+  final steam = s.phase(_served + 0.03, _served + 0.2, Curves.easeInOut);
   if (steam > 0) {
     // From the back of the cup, so the heart in the crema stays clear.
     final from = s.at(x - 0.3, y - 0.3, 1.3);
-    const curls = [(dx: -0.32, h: 1.7, ph: 0.0), (dx: 0.05, h: 2.2, ph: 2.1)];
+    const curls = [(dx: -0.24, h: 1.7, ph: 0.0), (dx: 0.07, h: 2.2, ph: 2.1)];
     for (final c in [...curls, (dx: 0.36, h: 1.5, ph: 4.0)]) {
       _steamCurl(
         s,

@@ -8,6 +8,7 @@ import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
 import 'package:flutter_full_stack_flutter/theme/app_tokens.dart';
 import 'package:flutter_full_stack_flutter/theme/aurora_backdrop.dart';
 import 'package:flutter_full_stack_flutter/theme/glass_surface.dart';
+import 'package:flutter_full_stack_flutter/theme/reveal.dart';
 import 'package:flutter_full_stack_flutter/theme/rise_in.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -167,7 +168,9 @@ class _Response extends StatelessWidget {
       duration: const Duration(milliseconds: 320),
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeIn,
-      transitionBuilder: (child, animation) => FadeTransition(
+      // A reveal, not a fade: the answer is glass, and glass under a fade
+      // arrives clear and frosts with a jump at the end.
+      transitionBuilder: (child, animation) => Reveal(
         opacity: animation,
         child: SlideTransition(
           position: Tween<Offset>(

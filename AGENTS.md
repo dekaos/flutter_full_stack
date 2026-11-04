@@ -117,9 +117,14 @@ back to per-process in every run mode. See [docs/caching.md](docs/caching.md).
 - every `*.g.dart` in `flutter_full_stack_flutter`
 - `flutter_full_stack_flutter/assets/lexicons/*.json`, built by
   `scorer/tool/build_lexicon.py` — not by `melos run generate`
+- the launcher icons and native splash images (`AppIcon.appiconset`,
+  `LaunchImage.imageset`, `mipmap-*`, `drawable-*/splash_mark*.png`,
+  `web/favicon.png`, `web/icons/*`), drawn from `lib/app/app_mark.dart` by
+  `melos run branding` — see [docs/branding.md](docs/branding.md)
 
 Change the *source* instead: a `.spy.yaml` model, an endpoint class, a
-`@riverpod` annotation, or a prompt in `scorer/exercises/<lang>.json`.
+`@riverpod` annotation, a prompt in `scorer/exercises/<lang>.json`, or the
+mark in `app_mark.dart`.
 
 **Always use `melos run generate`, never `serverpod generate` on its own.**
 Both generators emit code that `dart format` rejects on this language version,
@@ -163,6 +168,17 @@ versions are pinned in `Podfile.lock` as well as in `Package.resolved`. Prefer
 a SwiftPM-capable plugin where one exists — `flutter_onnxruntime`, which runs
 the acoustic model, was chosen partly for that — and revisit this if `record`
 ever ships a Swift Package.
+
+**Nothing plays while the microphone is open.** A sound in the recording is a
+sound in its score. Everything practice plays goes through `SoundBoard`:
+the scenes' and the cat's sounds, the score's chime, and the sentence read
+aloud. `PracticeController` silences the board and waits for silence before it
+starts the recorder, and gives the speakers back on every way the microphone
+closes. A new sound goes through the board too, never straight to a player.
+iOS has one audio session that the sounds, the reading and `record` each
+reconfigure, so each sets its category again before every use. Why, and how to
+add or tune a sound (they are synthesised, not recorded files), is in
+[docs/sound.md](docs/sound.md).
 
 **iOS deploys to 16.0 or later.** `flutter_onnxruntime` links ONNX Runtime
 statically and requires it. Below that the build fails in Xcode rather than at

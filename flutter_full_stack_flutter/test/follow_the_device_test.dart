@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_client/flutter_full_stack_client.dart';
 import 'package:flutter_full_stack_flutter/app/app.dart';
-import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
+import 'package:flutter_full_stack_flutter/app/locale_controller.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/features/greetings/providers/greeting_controller.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
@@ -14,22 +14,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'support/practice.dart';
+
 class _NoGreeting extends GreetingController {
   @override
   FutureOr<Greeting?> build() => null;
-}
-
-/// The landing screen is practice, and its controller would reach for the
-/// support directory to see whether the language pack is downloaded — a
-/// platform channel that does not exist in a widget test.
-class _StubPractice extends PracticeController {
-  @override
-  FutureOr<PracticeState> build(String lang) => const PracticeState(
-    stage: PracticeStage.needsModel,
-    kind: ExerciseKind.phrase,
-    items: [Exercise(id: 'x', text: 'hello', words: [], phones: [])],
-    index: 0,
-  );
 }
 
 /// The real [App], because the defect being pinned here lives in the wiring
@@ -38,7 +27,7 @@ class _StubPractice extends PracticeController {
 Widget _app() => ProviderScope(
   overrides: [
     greetingControllerProvider.overrideWith(_NoGreeting.new),
-    practiceControllerProvider.overrideWith2((_) => _StubPractice()),
+    practiceControllerProvider.overrideWith2((_) => StubPracticeController()),
     modelStoreProvider.overrideWithValue(
       ModelStore(directory: Directory.systemTemp),
     ),
@@ -51,6 +40,17 @@ Brightness _showing(WidgetTester tester) =>
 
 Future<void> _tap(WidgetTester tester, String key) async {
   await tester.tap(find.byKey(Key(key)));
+  await tester.pumpAndSettle();
+}
+
+/// What the language button does, done directly: the button is not offered
+/// for now (`AppBarActions.language`), and what is pinned here is the wiring
+/// between the device, the controller and `MaterialApp`, not the button.
+Future<void> _nextLanguage(WidgetTester tester) async {
+  final screen = tester.element(find.byType(LanguageScreen));
+  ProviderScope.containerOf(
+    screen,
+  ).read(localeControllerProvider.notifier).cycle(deviceLocaleOf(screen));
   await tester.pumpAndSettle();
 }
 
@@ -126,7 +126,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(deviceCopy), findsOneWidget);
 
-        await _tap(tester, 'app-language');
+        await _nextLanguage(tester);
 
         // The same regression: stepping to supportedLocales.first re-rendered
         // identical copy whenever the device was already English.
@@ -144,13 +144,18 @@ void main() {
       await tester.pumpAndSettle();
 
       // Two languages, so: device → the other one → the device's own → device.
-      await _tap(tester, 'app-language');
+      await _nextLanguage(tester);
       expect(find.text('What are you practising?'), findsOneWidget);
-      await _tap(tester, 'app-language');
+      await _nextLanguage(tester);
       expect(find.text('O que você vai praticar?'), findsOneWidget);
-      await _tap(tester, 'app-language');
+      await _nextLanguage(tester);
 
-      expect(find.byIcon(Icons.language_outlined), findsOneWidget);
+      final screen = tester.element(find.byType(LanguageScreen));
+      expect(
+        ProviderScope.containerOf(screen).read(localeControllerProvider),
+        isNull,
+        reason: 'not following the device',
+      );
       tester.platformDispatcher.localesTestValue = const <Locale>[Locale('en')];
       await tester.pumpAndSettle();
       expect(find.text('What are you practising?'), findsOneWidget);

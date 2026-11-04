@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter_full_stack_flutter/core/app_settings.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound_board.dart';
+import 'package:flutter_full_stack_flutter/core/audio/synth.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/attempt_recorder.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/phoneme_model.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_audio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'practice_controller.g.dart';
@@ -54,6 +59,9 @@ class PracticeState {
     this.download,
     this.result,
     this.scoringTime,
+    this.speaking = false,
+    this.attempt,
+    this.replaying,
   });
 
   final PracticeStage stage;
@@ -74,6 +82,18 @@ class PracticeState {
   /// is choosing the model, not for the learner.
   final Duration? scoringTime;
 
+  /// Whether the prompt is being read aloud, for the learner to copy.
+  final bool speaking;
+
+  /// The recording [result] was scored from, at
+  /// [AttemptRecorder.sampleRate], for the learner to hear themselves.
+  /// It goes with the result: a new attempt or another prompt drops both.
+  final Float32List? attempt;
+
+  /// What of [attempt] is being played back, in seconds into it, while it
+  /// is: all of it, or the stretch of the `word` at that place in [result].
+  final ({double from, double to, int? word})? replaying;
+
   Exercise get exercise => items[index];
 
   /// What the prompt on screen is about, for the scene behind the deck.
@@ -91,7 +111,11 @@ class PracticeState {
     DownloadProgress? download,
     PronunciationResult? result,
     Duration? scoringTime,
+    bool? speaking,
+    Float32List? attempt,
+    ({double from, double to, int? word})? replaying,
     bool clearResult = false,
+    bool clearReplaying = false,
   }) => PracticeState(
     stage: stage ?? this.stage,
     kind: kind ?? this.kind,
@@ -100,6 +124,11 @@ class PracticeState {
     download: download ?? this.download,
     result: clearResult ? null : (result ?? this.result),
     scoringTime: clearResult ? null : (scoringTime ?? this.scoringTime),
+    speaking: speaking ?? this.speaking,
+    attempt: clearResult ? null : (attempt ?? this.attempt),
+    replaying: clearResult || clearReplaying
+        ? null
+        : (replaying ?? this.replaying),
   );
 }
 
@@ -178,6 +207,18 @@ class PracticeController extends _$PracticeController {
   AttemptRecorder? _live;
   Timer? _limit;
 
+  /// What the microphone silenced, for as long as it is open.
+  SoundBoard? _silenced;
+
+  /// Counts readings and playbacks, so one cut off by the next does not
+  /// mark the next as finished when it ends.
+  int _readings = 0;
+
+  /// How much either side of a word is played with it when it is played
+  /// back on its own: the alignment puts its edges at the frame, and a
+  /// word cut exactly there sounds clipped.
+  static const _breath = 0.08;
+
   @override
   FutureOr<PracticeState> build(String lang) async {
     final lexicon = await Lexicon.load(lang);
@@ -188,6 +229,7 @@ class PracticeController extends _$PracticeController {
       // indicator - on after the screen is gone.
       _limit?.cancel();
       unawaited(_live?.cancel() ?? Future.value());
+      _releaseSpeakers();
       unawaited(_engine?.dispose() ?? Future.value());
     });
 
@@ -231,6 +273,7 @@ class PracticeController extends _$PracticeController {
     final lexicon = _lexicon;
     if (lexicon == null || kind == _now.kind) return;
     _discardRecording();
+    _stopReading();
     state = AsyncData(
       _now.copyWith(
         kind: kind,
@@ -245,6 +288,7 @@ class PracticeController extends _$PracticeController {
   void goTo(int index) {
     if (index < 0 || index >= _now.items.length || index == _now.index) return;
     _discardRecording();
+    _stopReading();
     state = AsyncData(
       _now.copyWith(index: index, stage: _readyStage(), clearResult: true),
     );
@@ -261,6 +305,101 @@ class PracticeController extends _$PracticeController {
     _limit?.cancel();
     _live = null;
     unawaited(live.cancel());
+    // Thrown away, so nothing heard from here on can reach a score.
+    _releaseSpeakers();
+  }
+
+  /// Silences everything, and returns once it is silent: from here until
+  /// [_releaseSpeakers], the microphone is open, and anything playing would
+  /// be in the recording - and so in its score.
+  Future<void> _silenceSpeakers() async {
+    final board = ref.read(soundBoardProvider);
+    _silenced = board;
+    await board.hush();
+  }
+
+  void _releaseSpeakers() {
+    _silenced?.unhush();
+    _silenced = null;
+  }
+
+  /// Reads the prompt on screen aloud, in the accent it is scored against:
+  /// the model for the learner to copy. While it is reading, stops it.
+  Future<void> listen() async {
+    if (_now.speaking) {
+      await ref.read(soundBoardProvider).voice.stop();
+      return;
+    }
+    await hear(_now.exercise.text);
+  }
+
+  /// Reads [text] aloud - the prompt, or one word of it the learner wants
+  /// to hear again - cutting off whatever was being read.
+  Future<void> hear(String text) => _play(
+    playing: (now) => now.copyWith(speaking: true, clearReplaying: true),
+    play: (board) => board.say(text, lang: lang),
+    played: (now) => now.copyWith(speaking: false),
+  );
+
+  /// Plays the learner's last attempt back to them - all of it, or just
+  /// the word at [word] in the result, cut from it with a breath either
+  /// side - so they can hear what the score heard. While all of it is
+  /// playing, stops it.
+  Future<void> replay({int? word}) async {
+    final samples = _now.attempt;
+    final result = _now.result;
+    if (samples == null || result == null) return;
+    if (word == null && _now.replaying != null) {
+      await ref.read(soundBoardProvider).silence();
+      return;
+    }
+    const rate = AttemptRecorder.sampleRate;
+    final length = samples.length / rate;
+    final span = word == null
+        ? (from: 0.0, to: length, word: null)
+        : (
+            from: math.max<double>(0, result.words[word].start - _breath),
+            to: math.min(length, result.words[word].end + _breath),
+            word: word,
+          );
+    await _play(
+      playing: (now) => now.copyWith(replaying: span, speaking: false),
+      play: (board) => board.replay(
+        excerpt(samples, rate: rate, from: span.from, to: span.to),
+        rate: rate,
+      ),
+      played: (now) => now.copyWith(clearReplaying: true),
+    );
+  }
+
+  /// Plays something the learner asked to hear - a reading, or their own
+  /// attempt - marking it in the state as [playing] while it does, and as
+  /// [played] once it is over: unless something they asked for after it
+  /// has taken over by then, which marks itself.
+  ///
+  /// Never while the microphone is open, nor while the attempt is scored:
+  /// until then the room is the learner's.
+  Future<void> _play({
+    required PracticeState Function(PracticeState now) playing,
+    required Future<void> Function(SoundBoard board) play,
+    required PracticeState Function(PracticeState now) played,
+  }) async {
+    if (_live != null || _now.stage == PracticeStage.scoring) return;
+    final board = ref.read(soundBoardProvider);
+    final turn = ++_readings;
+    state = AsyncData(playing(_now));
+    await play(board);
+    if (!ref.mounted || !state.hasValue || turn != _readings) return;
+    state = AsyncData(played(_now));
+  }
+
+  /// Moving to another prompt stops the reading of the last one, or the
+  /// playback of its attempt; the pending [listen] or [replay] then marks
+  /// it stopped.
+  void _stopReading() {
+    if (_now.speaking || _now.replaying != null) {
+      unawaited(ref.read(soundBoardProvider).silence());
+    }
   }
 
   /// Moving between prompts must not clear a download prompt or a refused
@@ -305,7 +444,13 @@ class PracticeController extends _$PracticeController {
       if (!await recorder.hasPermission()) {
         return _now.copyWith(stage: PracticeStage.noMicrophone);
       }
-      await recorder.start();
+      await _silenceSpeakers();
+      try {
+        await recorder.start();
+      } on Object {
+        _releaseSpeakers();
+        rethrow;
+      }
       _live = recorder;
       _limit = Timer(maxRecording, () => unawaited(stopAndScore()));
       return _now.copyWith(stage: PracticeStage.recording, clearResult: true);
@@ -338,7 +483,12 @@ class PracticeController extends _$PracticeController {
     final exercise = _now.exercise;
     state = AsyncData(_now.copyWith(stage: PracticeStage.scoring));
     await _attempt(PracticeStep.score, PracticeStage.ready, () async {
-      final samples = await recorder.stop();
+      final Float32List samples;
+      try {
+        samples = await recorder.stop();
+      } finally {
+        _releaseSpeakers();
+      }
       final engine = await _ensureEngine();
       final started = Stopwatch()..start();
       final result = await engine.score(exercise: exercise, samples: samples);
@@ -346,6 +496,7 @@ class PracticeController extends _$PracticeController {
         stage: PracticeStage.scored,
         result: result,
         scoringTime: started.elapsed,
+        attempt: samples,
       );
     });
   }

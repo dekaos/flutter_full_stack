@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: golden hour at a small hotel. A dusky rose facade under a
 // verdigris roof, with the house colour - plum, trimmed in gold - on the
@@ -43,7 +45,6 @@ const _bark = Tint(22, 0.45, 0.18);
 const _skin = Tint(26, 0.55, 0.72);
 const _teal = Tint(194, 0.5, 0.42);
 const _mustard = Tint(40, 0.75, 0.58);
-const _ginger = Tint(26, 0.75, 0.54);
 const _stem = Tint(110, 0.5, 0.28);
 const _petalPink = Tint(340, 0.7, 0.6);
 const _petalGold = Tint(44, 0.95, 0.66);
@@ -95,128 +96,198 @@ const _panes = <List<_Pane>>[
   ],
 ];
 
-/// "My brother works at a small hotel": a dusky rose hotel at golden
-/// hour. The island rises and the hotel is stacked onto it - two storeys,
-/// then the dormered roof - while the pool fills; the awning unfolds, the
-/// sign swings out and spells itself in light, the red carpet rolls down
-/// the path, the luggage trolley rolls in with the cases dropping onto it,
-/// and the bellboy - the brother - waves from the carpet while the windows,
-/// the lamps and the string of bulbs by the pool come on as the sun goes
-/// down.
+/// "My brother works at a small hotel", in two acts.
+///
+/// The grounds assemble first: the island rises and the hotel is stacked
+/// onto it - two storeys, then the dormered roof - while the pool fills;
+/// the garden springs up, the awning unfolds over the door, the red carpet
+/// rolls down the path and an empty luggage trolley lands on the lawn
+/// beside it. Then the story, in a pool of light at the entrance while the
+/// rest of the garden sinks back: the sign swings out from the wall and
+/// spells HOTEL in light as the windows warm, one after another - this is
+/// the place (*small hotel*); the door brightens and the bellboy - the
+/// brother - steps out onto the carpet, into the light, and waves
+/// (*brother*); then he gets to work, pushing the trolley along while the
+/// guests' cases drop onto it (*works*). As the story ends, the lamps and
+/// the string of bulbs by the pool come on with the dusk.
+const hotelScene = SceneScript(
+  paintHotel,
+  cues: [
+    Cue('small hotel', _signOut),
+    Cue('brother', _stepsOut),
+    Cue('works', _pushes),
+  ],
+  sounds: [SceneSound(Sound.deskBell, _signOut)],
+  catWalks: true,
+);
+
+// The story's beats, on the arrival's clock: the place, then the man, then
+// what he does there. The lamps come on once the work is done.
+const _signOut = 0.42;
+const _stepsOut = 0.56;
+const _pushes = 0.7;
+const double _dusk = _pushes + 0.12;
+
+// The luggage trolley: where its back end is parked, a little way along the
+// lawn from the carpet so the brother waves clear of it, how big it is, and
+// how far he pushes it. He pushes from [_reach] behind its back end.
+const _cartX = 3.0;
+const _cartY = 4.5;
+const _cartW = 0.62;
+const _cartD = 0.4;
+const _shove = 0.4;
+const _reach = 0.28;
+
+/// The middle of the door and of the carpet that runs down from it.
+const _aisle = 2.5;
+
+/// Paints [hotelScene].
 void paintHotel(IsoStage s) {
-  s.sky(_skyTop, _skyLow);
+  s.setting(() {
+    s.sky(_skyTop, _skyLow);
 
-  final sink = s.phase(0.05, 0.95);
-  s
-    ..sun(0.81, 0.11 + 0.06 * sink, 0.7, _sunBody, _sunHalo)
-    ..ridge(0.77, 1.4, _farHill, seed: 3)
-    ..ridge(0.86, 1, _nearHill, seed: 7);
-
-  final drift = s.phase(0.15, 1);
-  s
-    ..cloud(s.screen(0.2 - 0.5 * (1 - drift), 0.3), 2.6, _cloud)
-    ..cloud(s.screen(0.66 + 0.6 * (1 - drift), 0.47), 1.8, _cloud)
-    ..cloud(s.screen(0.1 - 0.4 * (1 - drift), 0.58), 1.4, _cloud);
-
-  s.rising(0, 0.42, () {
-    s.island(grass: _grass, earth: _earth, stone: _stone);
-    _grounds(s);
-
-    s.pine(
-      0.55,
-      2.4,
-      needles: _leaves,
-      bark: _bark,
-      ground: _grass,
-      h: 2.3,
-      grow: s.pop(0.46, 0.68),
-    );
-
-    _hotel(s);
-    _festoon(s);
-
+    final sink = s.phase(0.05, 0.95);
     s
-      ..tree(
-        5.6,
-        0.3,
-        leaves: _leavesLight,
-        bark: _bark,
-        ground: _grass,
-        h: 1.6,
-        grow: s.pop(0.5, 0.72),
-      )
-      ..pine(
+      ..sun(0.81, 0.11 + 0.06 * sink, 0.7, _sunBody, _sunHalo)
+      ..ridge(0.77, 1.4, _farHill, seed: 3)
+      ..ridge(0.86, 1, _nearHill, seed: 7);
+
+    // The clouds keep to the sides of the sky, beside the island, so
+    // nothing busy sits just under the card and its page dots.
+    final drift = s.phase(0.15, 1);
+    s
+      ..cloud(s.screen(0.08 - 0.45 * (1 - drift), 0.41), 2.2, _cloud)
+      ..cloud(s.screen(0.9 + 0.5 * (1 - drift), 0.44), 1.7, _cloud)
+      ..cloud(s.screen(0.1 - 0.4 * (1 - drift), 0.58), 1.4, _cloud);
+
+    s.rising(0, 0.42, () {
+      s.island(grass: _grass, earth: _earth, stone: _stone);
+      _grounds(s);
+
+      s.pine(
         0.55,
-        4.3,
+        2.4,
         needles: _leaves,
         bark: _bark,
         ground: _grass,
-        h: 2,
-        grow: s.pop(0.52, 0.74),
-      )
-      ..bush(1.45, 4.05, _leavesLight, size: 0.8, grow: s.pop(0.6, 0.8));
-
-    _poolside(s);
-
-    // Low clipped hedges either side of the path, springing up from the
-    // door outwards.
-    final hedge = s.pop(0.6, 0.78);
-    if (hedge > 0) {
-      const from = 4.18;
-      final to = from + 1.12 * hedge;
-      s
-        ..box(2.06, from, 0, 0.14, to - from, 0.16, _leaves)
-        ..box(2.8, from, 0, 0.14, to - from, 0.16, _leaves);
-    }
-
-    // The brother stands on the carpet, out in front of the door, where the
-    // lawn behind him sets his plum jacket off.
-    _bellboy(s, 2.5, 4.45);
-    _trolley(s);
-
-    s.tree(
-      0.85,
-      5.35,
-      leaves: _leaves,
-      bark: _bark,
-      ground: _grass,
-      h: 1.4,
-      grow: s.pop(0.56, 0.78),
-    );
-    _lamp(s, 2.02, 5.6, 0);
-    _lamp(s, 2.98, 5.6, 1);
-
-    // The flower bed on the lawn, opening from the back.
-    const beds = [
-      (x: 3.95, y: 4.5, tint: _petalPink),
-      (x: 4.6, y: 4.5, tint: _petalGold),
-      (x: 4.25, y: 4.85, tint: _cream),
-      (x: 3.9, y: 5.2, tint: _petalGold),
-      (x: 4.7, y: 5.05, tint: _petalPink),
-      (x: 4.35, y: 5.25, tint: _petalPink),
-    ];
-    final ordered = [...beds]..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
-    for (var i = 0; i < ordered.length; i++) {
-      final bed = ordered[i];
-      s.flower(
-        bed.x,
-        bed.y,
-        bed.tint,
-        _stem,
-        grow: s.pop(0.64 + i * 0.03, 0.82 + i * 0.03),
+        h: 2.3,
+        grow: s.pop(0.46, 0.68),
       );
-    }
 
-    // Low planting at the front right, so the entrance is framed, not hidden.
-    s
-      ..bush(5.45, 4.9, _leavesLight, size: 0.8, grow: s.pop(0.58, 0.8))
-      ..bush(5.7, 5.65, _leaves, size: 0.8, grow: s.pop(0.66, 0.86));
+      _hotel(s);
+      _festoon(s);
+      _cat(s);
+
+      s
+        ..tree(
+          5.6,
+          0.3,
+          leaves: _leavesLight,
+          bark: _bark,
+          ground: _grass,
+          h: 1.6,
+          grow: s.pop(0.5, 0.72),
+        )
+        ..pine(
+          0.55,
+          4.3,
+          needles: _leaves,
+          bark: _bark,
+          ground: _grass,
+          h: 2,
+          grow: s.pop(0.52, 0.74),
+        )
+        ..bush(1.45, 4.05, _leavesLight, size: 0.8, grow: s.pop(0.6, 0.8));
+
+      _poolside(s);
+
+      // The brother steps out onto the carpet, then pushes the trolley
+      // along the lawn ahead of him: he is always behind it, so first.
+      final cart = s.story(
+        () =>
+            _cartX +
+            _shove *
+                s.phase(_pushes - 0.01, _pushes + 0.13, Curves.easeOutQuad),
+      );
+      s.story(() => _bellboy(s, cart));
+      _trolley(s, cart);
+
+      s.tree(
+        0.85,
+        5.35,
+        leaves: _leaves,
+        bark: _bark,
+        ground: _grass,
+        h: 1.4,
+        grow: s.pop(0.56, 0.78),
+      );
+      _lamp(s, 2.02, 5.6, 0);
+      _lamp(s, 2.98, 5.6, 1);
+
+      // The flower bed on the lawn, opening from the back.
+      const beds = [
+        (x: 4.3, y: 4.5, tint: _petalPink),
+        (x: 4.95, y: 4.5, tint: _petalGold),
+        (x: 4.6, y: 4.85, tint: _cream),
+        (x: 4.25, y: 5.2, tint: _petalGold),
+        (x: 5.02, y: 5.05, tint: _petalPink),
+        (x: 4.7, y: 5.25, tint: _petalPink),
+      ];
+      final ordered = [...beds]
+        ..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
+      for (var i = 0; i < ordered.length; i++) {
+        final bed = ordered[i];
+        s.flower(
+          bed.x,
+          bed.y,
+          bed.tint,
+          _stem,
+          grow: s.pop(0.64 + i * 0.03, 0.82 + i * 0.03),
+        );
+      }
+
+      // Low planting at the front right, so the entrance is framed, not
+      // hidden.
+      s
+        ..bush(5.45, 4.9, _leavesLight, size: 0.8, grow: s.pop(0.58, 0.8))
+        ..bush(5.7, 5.65, _leaves, size: 0.8, grow: s.pop(0.66, 0.86));
+
+      // The rest of the grounds step back while the brother and his hotel
+      // have the stage.
+      s.spotlight(
+        s.at(3.15, 3.95, 0.6),
+        radius: 2.2,
+        strength: s.storyLight,
+      );
+    });
   });
 }
 
+/// The black cat, behind the hotel - the scene's easter egg (see
+/// `HidingCat`). It sits behind the far corner, the tip of its tail showing
+/// past the wall, and when it has a reason it steps out round the corner
+/// onto the lawn, and back.
+void _cat(IsoStage s) {
+  // Only once the hotel has been built round it.
+  if (s.t < 0.7) return;
+  final corner = s.at(_side, _hy);
+  // On the lawn behind the corner, a stride further back than the wall.
+  final ground = s.at(_side - 0.15, _hy - 0.3).dy;
+  s.hidingCat(
+    hidden: Offset(corner.dx - 0.24 * s.unit, ground),
+    out: Offset(corner.dx + 0.48 * s.unit, ground),
+    reveal: s.beyond(
+      corner,
+      corner.translate(0, -1),
+      of: corner.translate(1, 0),
+    ),
+  );
+}
+
 /// Everything flat on the ground: the path, the red carpet unrolling down
-/// it from the door to the lamps, the flower bed, and the pool deck with its
-/// basin filling.
+/// it from the door to the lamps, the flower bed, the pool deck with its
+/// basin filling - and the stage light on the lawn at the entrance, which
+/// brightens as the brother steps into it.
 void _grounds(IsoStage s) {
   final carpet = s.phase(0.62, 0.8);
   s.patch(2.25, _front, 0.5, 6 - _front, _gravel);
@@ -224,9 +295,13 @@ void _grounds(IsoStage s) {
     s.patch(2.32, _front, 0.36, 2.35 * carpet, _carpet, z: 0.006);
   }
   s
-    ..patch(3.75, 4.35, 1.15, 1.05, _earth.shade(0.16))
+    ..patch(4.1, 4.35, 1.15, 1.05, _earth.shade(0.16))
     ..box(4.1, 0.55, 0, 1.8, 2.7, 0.04, _deck, edge: false);
   _pool(s, s.phase(0.48, 0.76));
+  s.story(() {
+    final arrives = s.phase(_stepsOut - 0.03, _stepsOut + 0.02);
+    s.pool(2.85, 4.65, 1.05, strength: s.storyLight * (0.5 + 0.5 * arrives));
+  });
 }
 
 /// The pool, sunk into the deck: its far walls, then the water rising in it
@@ -285,13 +360,37 @@ void _hotel(IsoStage s) {
   }
   s.dropping(0.44, 0.68, (lift) => _roof(s, lift));
 
+  // The lobby's light spilling out of the door as the brother comes out
+  // of it, under the awning.
+  s.story(() {
+    final open = s.phase(_stepsOut - 0.05, _stepsOut - 0.02);
+    final close = s.phase(_stepsOut + 0.03, _stepsOut + 0.14);
+    s.glow(
+      s.at(_aisle, _front, 0.3),
+      0.8,
+      strength: open * (1 - 0.75 * close) * s.storyLight,
+    );
+  });
+
   // The entrance, which arrives once the hotel stands: a bay tree by the
-  // door, the awning over it, the sign, and a second bay tree at the
-  // corner, clear of the sign's letters and the trolley's lane.
+  // door, the awning over it, and a second bay tree at the corner, clear
+  // of the sign and the trolley's lane.
   final topiary = s.pop(0.62, 0.78);
   _topiary(s, 1.82, 3.28, topiary);
   _awning(s, s.pop(0.56, 0.72));
-  _sign(s, s.pop(0.58, 0.7));
+
+  // The sign is the story's: it swings out from the wall and blazes as its
+  // letters come on, then settles to a steady glow - this is the hotel.
+  s.story(() {
+    final blaze = s.phase(_signOut, _signOut + 0.06);
+    final settle = s.phase(_signOut + 0.1, _signOut + 0.24);
+    s.glow(
+      s.at(3.76, _front + 0.3, 0.85),
+      1.1,
+      strength: blaze * (1 - 0.45 * settle) * s.storyLight,
+    );
+    _sign(s, s.pop(_signOut - 0.02, _signOut + 0.03));
+  });
   _topiary(s, 4.25, 3.4, topiary);
 }
 
@@ -332,10 +431,14 @@ void _storey(IsoStage s, int i, double lift) {
   }
 }
 
-/// How far window number [turn] has come on: the lobby first, the attic
-/// dormer (turn 9) last, just before the arrival ends.
-double _light(IsoStage s, int turn) =>
-    turn < 0 ? 0 : s.pop(0.6 + turn * 0.032, 0.7 + turn * 0.032);
+/// How far window number [turn] has come on: the hotel warms as its sign
+/// lights, the lobby first and the attic dormer (turn 9) last, all of them
+/// before the brother steps out.
+double _light(IsoStage s, int turn) => turn < 0
+    ? 0
+    : s.story(
+        () => s.pop(_signOut + turn * 0.008, _signOut + 0.04 + turn * 0.008),
+      );
 
 /// A window of a storey whose floor is at [floor].
 void _window(IsoStage s, _Pane pane, double floor) {
@@ -538,8 +641,7 @@ void _dormer(IsoStage s, double x, double eaves, double rise, int turn) {
 }
 
 /// The awning over the door, [open] of the way unfolded: plum, with brass
-/// poles at its front corners and a gold edge - and, once it is out, a
-/// ginger cat curled up on it.
+/// poles at its front corners and a gold edge.
 void _awning(IsoStage s, double open) {
   if (open <= 0) return;
   const x0 = 2.05;
@@ -561,43 +663,11 @@ void _awning(IsoStage s, double open) {
       ..lineTo(c.dx, c.dy),
     s.stroke(_gold, 0.03),
   );
-  _cat(s, 2.7, _front + 0.42, z + 0.12, s.pop(0.86, 0.98));
-}
-
-/// A ginger cat curled up at [x], [y] on a surface at [z].
-void _cat(IsoStage s, double x, double y, double z, double grow) {
-  if (grow <= 0) return;
-  s.scaled(s.at(x, y, z), grow, () {
-    final head = s.at(x - 0.08, y + 0.04, z + 0.12);
-    s
-      ..sphere(x, y, z + 0.06, 0.08, _ginger)
-      ..sphere(x - 0.08, y + 0.04, z + 0.12, 0.055, _ginger.shade(0.04));
-    final r = 0.05 * s.unit;
-    s.canvas
-      ..drawPath(
-        Path()
-          ..moveTo(head.dx - r, head.dy - r * 0.4)
-          ..lineTo(head.dx - r * 0.7, head.dy - r * 1.5)
-          ..lineTo(head.dx - r * 0.1, head.dy - r * 0.8)
-          ..close()
-          ..moveTo(head.dx + r * 0.2, head.dy - r * 0.8)
-          ..lineTo(head.dx + r * 0.8, head.dy - r * 1.5)
-          ..lineTo(head.dx + r, head.dy - r * 0.3)
-          ..close(),
-        s.fill(_ginger.shade(-0.06)),
-      )
-      ..drawArc(
-        Rect.fromCircle(center: s.at(x + 0.06, y - 0.02, z + 0.02), radius: r),
-        -0.4,
-        2.2,
-        false,
-        s.stroke(_ginger.shade(-0.04), 0.03),
-      );
-  });
 }
 
 /// The blade sign at the facade's corner, [out] of the way swung out from
-/// the wall, its letters coming on one by one.
+/// the wall, its letters coming on one by one as it does. Drawn on the
+/// arrival's clock.
 void _sign(IsoStage s, double out) {
   if (out <= 0) return;
   const x = 3.68;
@@ -641,7 +711,10 @@ void _sign(IsoStage s, double out) {
   final left = (y0 + y1) / 2 + lw / 2;
   for (var i = 0; i < letters.length; i++) {
     final top = z1 - 0.13 - i * (lh + gap);
-    final on = s.phase(0.66 + i * 0.05, 0.74 + i * 0.05);
+    final on = s.phase(
+      _signOut + 0.005 + i * 0.014,
+      _signOut + 0.035 + i * 0.014,
+    );
     final path = Path();
     for (final stroke in _glyphs[letters[i]]!) {
       for (var j = 0; j < stroke.length; j++) {
@@ -765,7 +838,9 @@ void _festoon(IsoStage s) {
   for (var i = 0; i < 7; i++) {
     final f = 0.1 + i * 0.112;
     if (f > reach) break;
-    final on = s.phase(0.84 + i * 0.018, 0.88 + i * 0.018);
+    final on = s.story(
+      () => s.phase(_dusk - 0.02 + i * 0.012, _dusk + 0.02 + i * 0.012),
+    );
     s.canvas.drawCircle(
       along(f).translate(0, 0.05 * s.unit),
       0.07 * s.unit,
@@ -774,109 +849,164 @@ void _festoon(IsoStage s) {
   }
 }
 
-/// The bellboy - the brother - at [x], [y]: jacket and pillbox cap in the
-/// house colour, a cream shirt-front and gold epaulettes and buttons. He
-/// pops up, then waves and holds his hand up high in welcome.
-void _bellboy(IsoStage s, double x, double y) {
-  final grow = s.pop(0.66, 0.8);
-  if (grow <= 0) return;
-  final wave = s.phase(0.8, 1, Curves.linear);
+/// The bellboy - the brother - a step behind the trolley whose back end is
+/// at [cart]: jacket and pillbox cap in the house colour, a cream
+/// shirt-front and gold epaulettes and buttons. He steps out of the door
+/// onto the carpet and waves; then he takes the trolley's post in both
+/// hands, leans in and pushes it along. Drawn on the arrival's clock.
+void _bellboy(IsoStage s, double cart) {
+  const begin = _stepsOut - 0.04;
+  if (s.t < begin) return;
+  // Out from under the awning, down the carpet to the trolley's side.
+  const from = _front + 0.82;
+  const to = _cartY + _cartD / 2;
+  final y = from + (to - from) * s.phase(begin, _stepsOut + 0.02);
+  // The wave: the arm flies up as he arrives, waves, and comes down to
+  // the trolley as he gets to work.
+  final up = s.phase(_stepsOut + 0.005, _stepsOut + 0.035);
+  final wave = s.phase(_stepsOut + 0.035, _pushes - 0.05, Curves.linear);
+  final grab = s.phase(_pushes - 0.05, _pushes - 0.01);
+  // He waves on the carpet, then steps across to the trolley's back end.
+  final x = _aisle + (cart - _reach - _aisle) * grab;
+  // A little bob in his step while he pushes, and none once he stands.
+  final walk = s.phase(_pushes - 0.01, _pushes + 0.13, Curves.linear);
+  final bob = walk > 0 && walk < 1
+      ? 0.03 * math.sin(walk * math.pi * 3).abs()
+      : 0.0;
   final u = s.unit;
+  final foot = s.at(x, y);
   // A touch over life size, so the brother still reads at phone scale.
-  s.scaled(s.at(x, y), grow * 1.2, () {
-    s
-      ..shadow(x, y, 0.21, _carpet)
-      ..cylinder(x, y, 0, 0.07, 0.3, _iron)
-      ..cylinder(x, y, 0.3, 0.12, 0.32, _plum);
+  const scale = 1.2;
+  // Where his hands go on the trolley's back post, in his own frame: the
+  // point that lands on the post once he is scaled.
+  final post = s.at(cart + 0.04, to, 0.55);
+  final handle = foot + (post - foot) / scale;
+  s.faded(s.phase(begin, begin + 0.015), () {
+    s.scaled(foot, scale, () {
+      s.shadow(x, y, 0.21, x < 2.7 ? _carpet : _grass);
+      s.canvas
+        ..save()
+        ..translate(0, -bob * u);
+      s
+        ..cylinder(x, y, 0, 0.07, 0.3, _iron)
+        ..cylinder(x, y, 0.3, 0.12, 0.32, _plum);
 
-    // The shirt-front: a cream V under the collar, on the near side of the
-    // jacket, which hangs this far below its axis on screen.
-    final near = 0.12 * math.sqrt2 * 0.5 * u;
-    final collar = s.at(x, y, 0.62).translate(0, near);
-    final gold = s.fill(_gold);
-    s.canvas
-      ..drawPath(
-        Path()
-          ..moveTo(collar.dx - 0.05 * u, collar.dy - 0.015 * u)
-          ..lineTo(collar.dx + 0.05 * u, collar.dy - 0.015 * u)
-          ..lineTo(collar.dx, collar.dy + 0.14 * u)
-          ..close(),
-        s.fill(_cream),
-      )
-      ..drawCircle(collar.translate(0, 0.19 * u), 0.022 * u, gold)
-      ..drawCircle(collar.translate(0, 0.25 * u), 0.022 * u, gold);
+      // The shirt-front: a cream V under the collar, on the near side of
+      // the jacket, which hangs this far below its axis on screen.
+      final near = 0.12 * math.sqrt2 * 0.5 * u;
+      final collar = s.at(x, y, 0.62).translate(0, near);
+      final gold = s.fill(_gold);
+      s.canvas
+        ..drawPath(
+          Path()
+            ..moveTo(collar.dx - 0.05 * u, collar.dy - 0.015 * u)
+            ..lineTo(collar.dx + 0.05 * u, collar.dy - 0.015 * u)
+            ..lineTo(collar.dx, collar.dy + 0.14 * u)
+            ..close(),
+          s.fill(_cream),
+        )
+        ..drawCircle(collar.translate(0, 0.19 * u), 0.022 * u, gold)
+        ..drawCircle(collar.translate(0, 0.25 * u), 0.022 * u, gold);
 
-    // The arm at rest; then the waving one, swinging about its rest angle
-    // until it holds still with the hand clear above the cap.
-    final shoulder = s.at(x, y, 0.6);
-    final r = 0.12 * u * 1.2;
-    final angle = 1.32 + 0.45 * math.sin(wave * math.pi * 4) * (1 - wave);
-    final hand =
-        shoulder.translate(r, 0) +
-        Offset(math.cos(angle), -math.sin(angle)) * (0.4 * u);
-    final rest = shoulder.translate(-r * 1.15, 0.26 * u);
-    final sleeve = s.stroke(_plum.shade(-0.04), 0.06);
-    final skin = s.fill(_skin);
-    s.canvas
-      ..drawLine(shoulder.translate(-r, 0), rest, sleeve)
-      ..drawLine(shoulder.translate(r, 0), hand, sleeve)
-      ..drawCircle(rest, 0.04 * u, skin)
-      ..drawCircle(hand, 0.045 * u, skin)
-      ..drawCircle(shoulder.translate(-r * 0.92, 0), 0.04 * u, gold)
-      ..drawCircle(shoulder.translate(r * 0.92, 0), 0.04 * u, gold);
-    s
-      ..sphere(x, y, 0.71, 0.1, _skin)
-      ..cylinder(x, y, 0.77, 0.08, 0.08, _plum);
-    // The cap's gold band, round its near side.
-    s.canvas.drawArc(
-      s.disc(x, y, 0.8, 0.08),
-      0,
-      math.pi,
-      false,
-      s.stroke(_gold, 0.02),
-    );
+      // Both arms hang at his sides; the right one flies up and waves,
+      // swinging about a hand held clear above the cap; then both reach
+      // forward to the post.
+      final shoulder = s.at(x, y, 0.6);
+      final r = 0.12 * u * scale;
+      final angle = 1.32 + 0.4 * math.sin(wave * math.pi * 2) * (1 - wave);
+      final waving =
+          shoulder.translate(r, 0) +
+          Offset(math.cos(angle), -math.sin(angle)) * (0.4 * u);
+      final right = Offset.lerp(
+        Offset.lerp(shoulder.translate(r * 1.15, 0.26 * u), waving, up),
+        handle.translate(0, -0.03 * u),
+        grab,
+      )!;
+      final left = Offset.lerp(
+        shoulder.translate(-r * 1.15, 0.26 * u),
+        handle.translate(-0.02 * u, 0.03 * u),
+        grab,
+      )!;
+      final sleeve = s.stroke(_plum.shade(-0.04), 0.06);
+      final skin = s.fill(_skin);
+      s.canvas
+        ..drawLine(shoulder.translate(-r, 0), left, sleeve)
+        ..drawLine(shoulder.translate(r, 0), right, sleeve)
+        ..drawCircle(left, 0.04 * u, skin)
+        ..drawCircle(right, 0.045 * u, skin)
+        ..drawCircle(shoulder.translate(-r * 0.92, 0), 0.04 * u, gold)
+        ..drawCircle(shoulder.translate(r * 0.92, 0), 0.04 * u, gold);
+
+      // His head leans in over the work.
+      final lean = 0.04 * grab;
+      s
+        ..sphere(x + lean, y, 0.71, 0.1, _skin)
+        ..cylinder(x + lean, y, 0.77, 0.08, 0.08, _plum);
+      // The cap's gold band, round its near side.
+      s.canvas
+        ..drawArc(
+          s.disc(x + lean, y, 0.8, 0.08),
+          0,
+          math.pi,
+          false,
+          s.stroke(_gold, 0.02),
+        )
+        ..restore();
+    });
   });
 }
 
-/// The luggage trolley rolling in along the lawn to stand by the awning's
-/// pole, its brass rail and deck, the cases dropping onto it one after
-/// another. Its lane runs just in front of the sign, clear of it.
-void _trolley(IsoStage s) {
-  final roll = s.phase(0.56, 0.8);
-  if (roll <= 0) return;
-  final x = 2.98 + 2.2 * (1 - roll);
-  const y = 3.62;
-  const w = 0.62;
-  const d = 0.4;
+/// The luggage trolley, its back end at [x]: a brass deck on castors, and a
+/// gold post at each end with a rail arching between them. It lands on the
+/// lawn beside the carpet with the rest of the grounds, empty, and is
+/// pushed along once the story gets there.
+void _trolley(IsoStage s, double x) =>
+    s.dropping(0.66, 0.86, (lift) => _cart(s, x, lift), from: 3);
+
+/// The trolley at [x], [lift] tiles above the lawn, with the guests' cases
+/// dropping onto it one after another as the brother pushes it.
+void _cart(IsoStage s, double x, double lift) {
+  const y = _cartY;
+  const w = _cartW;
+  const d = _cartD;
+  final z = lift;
   final brass = _gold.shade(-0.1);
   final wheel = s.fill(_iron);
+  s.shadow(x + w / 2, y + d / 2, 0.42, _grass);
   for (final (dx, dy) in [(0.08, 0.06), (w - 0.08, 0.06), (0.08, d - 0.06)]) {
-    s.canvas.drawCircle(s.at(x + dx, y + dy, 0.05), 0.05 * s.unit, wheel);
+    s.canvas.drawCircle(s.at(x + dx, y + dy, z + 0.05), 0.05 * s.unit, wheel);
   }
-  s
-    ..shadow(x + w / 2, y + d / 2, 0.42, _grass)
-    ..box(x, y, 0.07, w, d, 0.05, brass);
+  s.box(x, y, z + 0.07, w, d, 0.05, brass);
   s.canvas.drawCircle(
-    s.at(x + w - 0.08, y + d - 0.06, 0.05),
+    s.at(x + w - 0.08, y + d - 0.06, z + 0.05),
     0.05 * s.unit,
     wheel,
   );
-  s
-    ..cylinder(x + 0.04, y + d / 2, 0.12, 0.022, 0.9, _gold)
-    ..dropping(0.7, 0.86, (lift) {
-      s.box(x + 0.08, y + 0.05, 0.12 + lift, 0.3, 0.3, 0.17, _teal);
-    }, from: 2)
-    ..dropping(0.76, 0.9, (lift) {
-      s.box(x + 0.4, y + 0.07, 0.12 + lift, 0.15, 0.26, 0.38, _mustard);
-    }, from: 2)
-    ..dropping(0.82, 0.96, (lift) {
-      s
-        ..box(x + 0.1, y + 0.09, 0.29 + lift, 0.25, 0.22, 0.13, _cream)
-        ..cylinder(x + 0.225, y + 0.2, 0.42 + lift, 0.09, 0.08, _petalPink);
-    }, from: 2)
-    ..cylinder(x + w - 0.04, y + d / 2, 0.12, 0.022, 0.9, _gold);
-  final back = s.at(x + 0.04, y + d / 2, 1.02);
-  final front = s.at(x + w - 0.04, y + d / 2, 1.02);
+  s.cylinder(x + 0.04, y + d / 2, z + 0.12, 0.022, 0.9, _gold);
+  s.story(() {
+    s
+      ..dropping(_pushes - 0.03, _pushes + 0.02, (fall) {
+        s.box(x + 0.08, y + 0.05, z + 0.12 + fall, 0.3, 0.3, 0.17, _teal);
+      }, from: 2)
+      ..dropping(_pushes + 0.01, _pushes + 0.06, (fall) {
+        s.box(x + 0.4, y + 0.07, z + 0.12 + fall, 0.15, 0.26, 0.38, _mustard);
+      }, from: 2)
+      ..dropping(_pushes + 0.05, _pushes + 0.1, (fall) {
+        s
+          ..box(x + 0.1, y + 0.09, z + 0.29 + fall, 0.25, 0.22, 0.13, _cream)
+          ..cylinder(
+            x + 0.225,
+            y + 0.2,
+            z + 0.42 + fall,
+            0.09,
+            0.08,
+            _petalPink,
+          );
+      }, from: 2);
+  });
+  s.cylinder(x + w - 0.04, y + d / 2, z + 0.12, 0.022, 0.9, _gold);
+  final back = s.at(x + 0.04, y + d / 2, z + 1.02);
+  final front = s.at(x + w - 0.04, y + d / 2, z + 1.02);
   final arch = Offset(
     (back.dx + front.dx) / 2,
     (back.dy + front.dy) / 2,
@@ -897,7 +1027,9 @@ void _trolley(IsoStage s) {
 void _lamp(IsoStage s, double x, double y, int order) {
   final grow = s.pop(0.6 + order * 0.04, 0.78 + order * 0.04);
   if (grow <= 0) return;
-  final on = s.phase(0.84 + order * 0.04, 0.94 + order * 0.04);
+  final on = s.story(
+    () => s.phase(_dusk + order * 0.03, _dusk + 0.06 + order * 0.03),
+  );
   s.scaled(s.at(x, y), grow, () {
     if (on > 0) {
       s.canvas.drawOval(

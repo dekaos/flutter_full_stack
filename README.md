@@ -310,6 +310,10 @@ it produces — a dirty `git status` afterwards means the pipeline will fail.
   **[docs/theming.md](docs/theming.md)**
 - How translation works, and how to add a string or a language:
   **[docs/i18n.md](docs/i18n.md)**
+- What practice plays, why nothing plays while the microphone is open, and how
+  to tune or add a sound: **[docs/sound.md](docs/sound.md)**
+- The app's mark (CNA's logo), its icons and its animated splash, and how to
+  redraw them: **[docs/branding.md](docs/branding.md)**
 - Which pronunciation models the app runs, their licences, and what has to
   change together when one does: **[docs/pronunciation-models.md](docs/pronunciation-models.md)**
 - [Serverpod documentation](https://docs.serverpod.dev)

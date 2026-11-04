@@ -169,4 +169,37 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get licensesTooltip => 'Licenças';
+
+  @override
+  String get practiceListen => 'Ouvir';
+
+  @override
+  String get practiceListenStop => 'Parar a leitura';
+
+  @override
+  String get practiceSoundsOn => 'Sons ligados';
+
+  @override
+  String get practiceSoundsOff => 'Sons desligados';
+
+  @override
+  String practiceScoreDetails(int score) {
+    return 'Pronúncia $score. Ver detalhes';
+  }
+
+  @override
+  String practiceHearWord(String word) {
+    return 'Ouvir “$word”';
+  }
+
+  @override
+  String get practiceReplay => 'Ouvir sua voz';
+
+  @override
+  String get practiceReplayStop => 'Parar a reprodução';
+
+  @override
+  String practiceHearWordYours(String word) {
+    return 'Ouvir como você disse “$word”';
+  }
 }

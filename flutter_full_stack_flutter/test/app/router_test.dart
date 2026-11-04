@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/app/app.dart';
 import 'package:flutter_full_stack_flutter/app/router.dart';
-import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/features/greetings/presentation/greetings_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
@@ -13,18 +11,7 @@ import 'package:flutter_full_stack_flutter/features/pronunciation/providers/prac
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Stands in for the real controller, which would reach for the documents
-/// directory to see whether the language pack is on disk — a platform channel
-/// that does not exist in a widget test.
-class _StubPracticeController extends PracticeController {
-  @override
-  FutureOr<PracticeState> build(String lang) => const PracticeState(
-    stage: PracticeStage.needsModel,
-    kind: ExerciseKind.phrase,
-    items: [Exercise(id: 'x', text: 'hello', words: [], phones: [])],
-    index: 0,
-  );
-}
+import '../support/practice.dart';
 
 /// Pumps and lets the real asynchronous work finish: the chooser loads a
 /// lexicon asset and stats the pack, and neither schedules a frame, so
@@ -39,7 +26,7 @@ Future<void> _settle(WidgetTester tester) async {
 
 ProviderContainer _container() => ProviderContainer(
   overrides: [
-    practiceControllerProvider.overrideWith2((_) => _StubPracticeController()),
+    practiceControllerProvider.overrideWith2((_) => StubPracticeController()),
     modelStoreProvider.overrideWithValue(
       ModelStore(directory: Directory.systemTemp),
     ),
@@ -52,7 +39,7 @@ void main() {
       ProviderScope(
         overrides: [
           practiceControllerProvider.overrideWith2(
-            (_) => _StubPracticeController(),
+            (_) => StubPracticeController(),
           ),
           // Points the store at a real directory so checking for a pack does
           // not reach for the platform channel that gives the app's documents

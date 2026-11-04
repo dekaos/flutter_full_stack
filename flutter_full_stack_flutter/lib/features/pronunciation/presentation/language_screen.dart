@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/app/app_bar_actions.dart';
+import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_audio.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
 import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
 import 'package:flutter_full_stack_flutter/theme/app_tokens.dart';
@@ -14,20 +18,42 @@ import 'package:go_router/go_router.dart';
 /// time, it is not there to be audited.
 const packMegabytes = 355;
 
-/// The languages practice is offered in.
-///
-/// Not derived from the bundled lexicons: the asset list is not something the
-/// app can enumerate at runtime, and a language nobody wrote prompts for
-/// should not appear just because a file exists.
-const practiceLanguages = ['en', 'es', 'ko'];
-
 /// Picks the language, which decides both the prompts and which pack has to be
 /// on the device.
-class LanguageScreen extends ConsumerWidget {
+///
+/// It is also where practice gets its sound ready (`SoundBoard.warm`): the
+/// sounds made, the players set up, the voices found. That costs - on a
+/// modest phone, most of a second of work - and done as practice opened it
+/// competed with the first scene's arrival and made it stutter. Here it
+/// runs while the learner reads the choices, once this screen has finished
+/// rising in.
+class LanguageScreen extends ConsumerStatefulWidget {
   const LanguageScreen({super.key});
 
+  /// Long enough for the headline and the cards to have risen in.
+  static const settle = Duration(milliseconds: 900);
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LanguageScreen> createState() => _LanguageScreenState();
+}
+
+class _LanguageScreenState extends ConsumerState<LanguageScreen> {
+  Timer? _warm;
+
+  @override
+  void initState() {
+    super.initState();
+    _warm = warmPracticeSoundAfter(ref, LanguageScreen.settle);
+  }
+
+  @override
+  void dispose() {
+    _warm?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 

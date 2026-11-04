@@ -89,6 +89,16 @@ class PronunciationResult {
   final double speechRate;
   final int pauses;
   final List<WordScore> words;
+
+  /// Which of [words] was being said [seconds] into the recording, by its
+  /// place in the list - or `null` between words, and before and after
+  /// them.
+  int? wordAt(double seconds) {
+    for (final (i, word) in words.indexed) {
+      if (seconds >= word.start && seconds <= word.end) return i;
+    }
+    return null;
+  }
 }
 
 /// Goodness of Pronunciation over a CTC alignment.

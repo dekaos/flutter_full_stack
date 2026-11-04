@@ -3,6 +3,13 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_full_stack_flutter/core/pronunciation/calibration.dart';
 
+/// The languages practice is offered in.
+///
+/// Not derived from the bundled lexicons: the asset list is not something the
+/// app can enumerate at runtime, and a language nobody wrote prompts for
+/// should not appear just because a file exists.
+const practiceLanguages = ['en', 'es', 'ko'];
+
 /// A word and the slice of [Exercise.phones] it covers.
 class LexiconWord {
   const LexiconWord({

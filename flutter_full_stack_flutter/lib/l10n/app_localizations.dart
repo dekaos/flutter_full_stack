@@ -361,6 +361,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Licenses'**
   String get licensesTooltip;
+
+  /// Button that reads the sentence aloud, in the accent it is scored against, for the learner to copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen'**
+  String get practiceListen;
+
+  /// The listen button while the sentence is being read aloud: stops the reading.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop reading'**
+  String get practiceListenStop;
+
+  /// Tooltip of the button that turns off the scenes', the cat's and the score's sounds, while they are on. The sentence can still be listened to.
+  ///
+  /// In en, this message translates to:
+  /// **'Sounds on'**
+  String get practiceSoundsOn;
+
+  /// Tooltip of the same button while those sounds are off.
+  ///
+  /// In en, this message translates to:
+  /// **'Sounds off'**
+  String get practiceSoundsOff;
+
+  /// Label of the round score badge beside the record button. Tapping it opens the full result: fluency, rhythm and every phoneme that went wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Pronunciation {score}. See details'**
+  String practiceScoreDetails(int score);
+
+  /// Tooltip of the speaker button that reads one word of the sentence aloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Hear “{word}”'**
+  String practiceHearWord(String word);
+
+  /// Button on the learner's own recording, drawn as a voice message: plays their last attempt back to them while the sentence lights up word by word.
+  ///
+  /// In en, this message translates to:
+  /// **'Hear yourself'**
+  String get practiceReplay;
+
+  /// The same button while the learner's recording is playing: stops it.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop playback'**
+  String get practiceReplayStop;
+
+  /// Tooltip of the button that plays back just one word, cut from the learner's own recording, to compare with how it should sound.
+  ///
+  /// In en, this message translates to:
+  /// **'Hear how you said “{word}”'**
+  String practiceHearWordYours(String word);
 }
 
 class _AppLocalizationsDelegate

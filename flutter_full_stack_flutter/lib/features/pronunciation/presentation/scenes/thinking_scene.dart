@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: a still, warm afternoon. Periwinkle sky over a blush haze,
 // violet distance, sage grass, a teal armchair, and gold for what lights up.
@@ -34,7 +37,6 @@ const _petalRose = Tint(348, 0.7, 0.56);
 const _petalGold = Tint(44, 0.9, 0.68);
 const _petalLilac = Tint(272, 0.55, 0.58);
 const _china = Tint(200, 0.2, 0.92);
-const _fur = Tint(28, 0.65, 0.56);
 const _thoughtTint = Tint(256, 0.3, 1);
 const _cover = Tint(190, 0.6, 0.38);
 const _page = Tint(40, 0.45, 0.96);
@@ -45,172 +47,226 @@ const _metal = Tint(220, 0.12, 0.45);
 const _starTint = Tint(10, 0.72, 0.54);
 
 // Where things stand, in tiles. The armchair's seat sits near the front left
-// edge, facing down the x axis; the thought floats over the middle right,
-// low enough to be seen under the record button; [_step] is how far apart
-// the three things in it are.
+// edge, facing down the x axis, the lamp at its side; the thought floats up
+// and to the right of her head, over the back of the island and clear of the
+// card above it; [_step] is how far apart the three things in it are.
 const _seatX = 3.15;
 const _seatY = 4.5;
 const _seat = 0.9;
 const _seatZ = 0.32;
-const _cloudX = 4.5;
-const _cloudY = 2.0;
-const _cloudZ = 1.0;
+const _lampX = 2.95;
+const _lampY = 5.72;
+// Her head, sat in the chair: where the thought comes from.
+const double _headX = _seatX + 0.38;
+const double _headY = _seatY + _seat / 2;
+const _headZ = 1.08;
+const _cloudX = 4.62;
+const _cloudY = 2.38;
+const _cloudZ = 3.25;
 const _cloudWidth = 4.8;
-const _step = 0.75;
+const _step = 0.82;
 
-/// "She thought about three things": a reading nook on a still afternoon.
+/// "She thought about three things", in two acts.
 ///
-/// The island rises, the armchair, the lamp and the books drop onto it, she
-/// appears in the chair, chin on her hand, and the lamp comes on. Then a
-/// thought bubbles up out of her and swells into a cloud, and the three
-/// things she is thinking of bob into it one after another: a book, a light
-/// bulb that lights up, and a star that spins round and settles.
+/// The reading nook assembles first: the island rises, the armchair, the
+/// lamp and the books drop onto it, the garden grows round it and she
+/// appears in the chair, chin on her hand. Then the
+/// story, in the lamp's warm light while the garden sinks back: the lamp
+/// comes on over her, and a thought bubbles up out of her head and swells
+/// into a cloud (*thought*). The things she is thinking of arrive in it one
+/// at a time, a count's beat apart and each with a little burst of
+/// sparkles, so that they can be counted: a book (*three*), a light bulb
+/// that lights up, and a star that spins in and settles (*things*).
+const thinkingScene = SceneScript(
+  paintThinking,
+  cues: [
+    Cue('thought', _thinks),
+    Cue('three', _first),
+    Cue('things', _third),
+  ],
+  sounds: [
+    SceneSound(Sound.pop, _thinks),
+    SceneSound(Sound.countOne, _first),
+    SceneSound(Sound.countTwo, _second),
+    SceneSound(Sound.countThree, _third),
+  ],
+);
+
+// The story's beats, on the arrival's clock. The lamp comes on as the story
+// opens; the thought rises; then the three things land evenly, [_beat]
+// apart, so the count reads one - two - three: the *three* beat is the
+// first landing and the *things* beat the last.
+const double _lampOn = Act.setting + 0.01;
+const _thinks = 0.42;
+const _first = 0.54;
+const _beat = 0.12;
+const double _second = _first + _beat;
+const double _third = _first + 2 * _beat;
+
+/// Paints [thinkingScene].
 void paintThinking(IsoStage s) {
-  s.sky(_skyTop, _skyLow);
+  s.setting(() {
+    s.sky(_skyTop, _skyLow);
 
-  // The sun sinks a little as the scene settles, towards evening.
-  final sink = s.phase(0.1, 0.8);
-  s
-    ..sun(0.86, 0.12 + 0.07 * sink, 0.62, _sunBody, _sunHalo)
-    ..ridge(0.76, 1.5, _farHill, seed: 3)
-    ..ridge(0.85, 1.1, _nearHill, seed: 7);
+    // The sun sinks a little as the scene settles, towards evening.
+    final sink = s.phase(0.1, 0.8);
+    s
+      ..sun(0.86, 0.12 + 0.07 * sink, 0.62, _sunBody, _sunHalo)
+      ..ridge(0.76, 1.5, _farHill, seed: 3)
+      ..ridge(0.85, 1.1, _nearHill, seed: 7);
 
-  final drift = s.phase(0.2, 1);
-  s
-    ..cloud(s.screen(0.16 - 0.45 * (1 - drift), 0.27), 2.4, _cloud)
-    ..cloud(s.screen(0.74 + 0.5 * (1 - drift), 0.45), 1.8, _cloud)
-    ..cloud(s.screen(0.08 - 0.4 * (1 - drift), 0.55), 1.4, _cloud);
+    // Two weather clouds drift in at the edges, well away from where the
+    // thought will rise, so the sky never holds two clouds side by side.
+    final drift = s.phase(0.2, 1);
+    s
+      ..cloud(s.screen(0.16 - 0.45 * (1 - drift), 0.27), 2.4, _cloud)
+      ..cloud(s.screen(0.08 - 0.4 * (1 - drift), 0.55), 1.4, _cloud);
 
-  s.rising(0, 0.42, () {
-    s.island(grass: _grass, earth: _earth, stone: _stone);
-    _ground(s);
+    s.rising(0, 0.42, () {
+      s.island(grass: _grass, earth: _earth, stone: _stone);
+      _ground(s);
+      // The stage: her corner, lit by the lamp once the story starts, and
+      // it stays lit.
+      s.pool(_headX - 0.1, _headY + 0.25, 1.45, strength: s.storyLight);
 
-    // Everything standing on the island, gathered first and then drawn
-    // back to front, by x + y, so nothing paints over what is before it.
-    final props = <(double, void Function())>[];
-    void place(double x, double y, void Function(double x, double y) draw) =>
-        props.add((x + y, () => draw(x, y)));
+      // Everything standing on the island, gathered first and then drawn
+      // back to front, by x + y, so nothing paints over what is before it.
+      final props = <(double, void Function())>[];
+      void place(double x, double y, void Function(double x, double y) draw) =>
+          props.add((x + y, () => draw(x, y)));
 
-    // Trees at the back, and the big one that shades her corner.
-    place(
-      0.7,
-      1.3,
-      (x, y) => s.pine(
-        x,
-        y,
-        needles: _leaves,
-        bark: _bark,
-        ground: _grass,
-        h: 2.4,
-        grow: s.pop(0.38, 0.6),
-      ),
-    );
-    for (final tree in const [
-      (x: 1.9, y: 0.6, h: 2.1, leaves: _leavesLight, at: 0.42),
-      (x: 3.4, y: 0.5, h: 1.7, leaves: _leaves, at: 0.46),
-      (x: 1.5, y: 3.6, h: 2.6, leaves: _leaves, at: 0.32),
-    ]) {
+      // A grove behind her corner, and one tree on the far corner: the
+      // middle of the back is left open, for the thought to rise into.
       place(
-        tree.x,
-        tree.y,
-        (x, y) => s.tree(
+        0.5,
+        2.25,
+        (x, y) => s.pine(
           x,
           y,
-          leaves: tree.leaves,
+          needles: _leaves,
           bark: _bark,
           ground: _grass,
-          h: tree.h,
-          grow: s.pop(tree.at, tree.at + 0.22),
+          h: 2.4,
+          grow: s.pop(0.38, 0.6),
         ),
       );
-    }
-    for (final bush in const [
-      (x: 5.75, y: 2.75, size: 1.0, leaves: _leavesLight, at: 0.5),
-      (x: 0.8, y: 5.3, size: 0.9, leaves: _leaves, at: 0.52),
-    ]) {
-      place(
-        bush.x,
-        bush.y,
-        (x, y) => s.bush(
-          x,
-          y,
-          bush.leaves,
-          size: bush.size,
-          grow: s.pop(bush.at, bush.at + 0.2),
-        ),
-      );
-    }
-
-    // Her corner: the armchair, the lamp beside it, the table in front with
-    // her tea, her books, and the cat sitting up on the rug.
-    place(_seatX + _seat / 2, _seatY + _seat / 2, (_, _) => _nook(s));
-    place(
-      2.95,
-      5.72,
-      (x, y) => s.dropping(0.26, 0.52, (lift) => _lamp(s, x, y, lift)),
-    );
-    place(4.6, 4.3, (x, y) => _table(s, x, y));
-    place(4.55, 4.95, (x, y) {
-      for (var i = 0; i < 3; i++) {
-        final at = 0.34 + i * 0.05;
-        s.dropping(at, at + 0.16, (lift) => _book(s, x, y, lift, i));
+      for (final tree in const [
+        (x: 0.85, y: 4.55, h: 2.1, leaves: _leavesLight, at: 0.42),
+        (x: 5.6, y: 0.55, h: 1.7, leaves: _leaves, at: 0.46),
+        (x: 1.5, y: 3.6, h: 2.6, leaves: _leaves, at: 0.32),
+      ]) {
+        place(
+          tree.x,
+          tree.y,
+          (x, y) => s.tree(
+            x,
+            y,
+            leaves: tree.leaves,
+            bark: _bark,
+            ground: _grass,
+            h: tree.h,
+            grow: s.pop(tree.at, tree.at + 0.22),
+          ),
+        );
       }
-    });
-    place(3.85, 5.75, (x, y) => _cat(s, x, y, s.pop(0.58, 0.7)));
+      for (final bush in const [
+        (x: 5.75, y: 2.75, size: 1.0, leaves: _leavesLight, at: 0.5),
+        (x: 0.8, y: 5.3, size: 0.9, leaves: _leaves, at: 0.52),
+      ]) {
+        place(
+          bush.x,
+          bush.y,
+          (x, y) => s.bush(
+            x,
+            y,
+            bush.leaves,
+            size: bush.size,
+            grow: s.pop(bush.at, bush.at + 0.2),
+          ),
+        );
+      }
 
-    // Bulrushes at the far side of the pond.
-    final reeds = s.pop(0.54, 0.7);
-    for (final reed in const [
-      (x: 5.5, y: 3.3, h: 0.45),
-      (x: 5.66, y: 3.42, h: 0.58),
-      (x: 5.62, y: 3.62, h: 0.42),
-    ]) {
-      place(reed.x, reed.y, (x, y) => _bulrush(s, x, y, reed.h, reeds));
-    }
-
-    // Flowers, opening from the back of the island to the front.
-    const beds = [
-      (x: 5.75, y: 3.95, tint: _petalRose),
-      (x: 5.5, y: 4.3, tint: _petalGold),
-      (x: 0.6, y: 4.5, tint: _petalLilac),
-      (x: 1.3, y: 5.5, tint: _petalRose),
-      (x: 5.6, y: 5.1, tint: _petalLilac),
-    ];
-    final ordered = [...beds]..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
-    for (var i = 0; i < ordered.length; i++) {
-      final bed = ordered[i];
-      final grow = s.pop(0.5 + i * 0.025, 0.68 + i * 0.025);
+      // Her corner: the armchair, the lamp beside it, the table in front
+      // with her tea and her books.
+      place(_seatX + _seat / 2, _seatY + _seat / 2, (_, _) => _nook(s));
       place(
-        bed.x,
-        bed.y,
-        (x, y) => s.flower(x, y, bed.tint, _stem, grow: grow),
+        _lampX,
+        _lampY,
+        (x, y) => s.dropping(0.26, 0.52, (lift) => _lamp(s, x, y, lift)),
       );
-    }
+      place(4.6, 4.3, (x, y) => _table(s, x, y));
+      place(4.55, 4.95, (x, y) {
+        for (var i = 0; i < 3; i++) {
+          final at = 0.34 + i * 0.05;
+          s.dropping(at, at + 0.16, (lift) => _book(s, x, y, lift, i));
+        }
+        _cat(s, x, y);
+      });
 
-    // Two butterflies over the flowers, one by the pond, one on the left.
-    place(
-      5.55,
-      4.6,
-      (x, y) => _butterfly(
-        s,
-        s.at(x, y, 0.62),
-        _petalLilac,
-        s.pop(0.66, 0.78),
-      ),
-    );
-    place(
-      0.9,
-      4.9,
-      (x, y) => _butterfly(s, s.at(x, y, 0.72), _petalGold, s.pop(0.7, 0.82)),
-    );
+      // Bulrushes at the far side of the pond.
+      final reeds = s.pop(0.54, 0.7);
+      for (final reed in const [
+        (x: 5.5, y: 3.3, h: 0.45),
+        (x: 5.66, y: 3.42, h: 0.58),
+        (x: 5.62, y: 3.62, h: 0.42),
+      ]) {
+        place(reed.x, reed.y, (x, y) => _bulrush(s, x, y, reed.h, reeds));
+      }
 
-    props.sort((a, b) => a.$1.compareTo(b.$1));
-    for (final (_, draw) in props) {
-      draw();
-    }
+      // Flowers, opening from the back of the island to the front.
+      const beds = [
+        (x: 5.75, y: 3.95, tint: _petalRose),
+        (x: 5.5, y: 4.3, tint: _petalGold),
+        (x: 0.6, y: 4.5, tint: _petalLilac),
+        (x: 1.3, y: 5.5, tint: _petalRose),
+        (x: 5.6, y: 5.1, tint: _petalLilac),
+      ];
+      final ordered = [...beds]
+        ..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
+      for (var i = 0; i < ordered.length; i++) {
+        final bed = ordered[i];
+        final grow = s.pop(0.5 + i * 0.025, 0.68 + i * 0.025);
+        place(
+          bed.x,
+          bed.y,
+          (x, y) => s.flower(x, y, bed.tint, _stem, grow: grow),
+        );
+      }
 
-    // The thought floats over all of it.
-    _thought(s);
+      // Two butterflies over the flowers, one by the pond, one on the left.
+      place(
+        5.55,
+        4.6,
+        (x, y) => _butterfly(
+          s,
+          s.at(x, y, 0.62),
+          _petalLilac,
+          s.pop(0.66, 0.78),
+        ),
+      );
+      place(
+        0.9,
+        4.9,
+        (x, y) => _butterfly(s, s.at(x, y, 0.72), _petalGold, s.pop(0.7, 0.82)),
+      );
+
+      props.sort((a, b) => a.$1.compareTo(b.$1));
+      for (final (_, draw) in props) {
+        draw();
+      }
+
+      // The thought floats over all of it; it is the story.
+      s.story(() => _thought(s));
+
+      // The garden steps back while she and her thought have the stage.
+      final head = s.at(_headX, _headY, _headZ);
+      final cloud = s.at(_cloudX, _cloudY, _cloudZ);
+      s.spotlight(
+        Offset.lerp(head, cloud, 0.45)!,
+        radius: 2.8,
+        strength: s.storyLight,
+      );
+    });
   });
 }
 
@@ -367,12 +423,19 @@ void _reader(IsoStage s, double x, double y, double z) {
     ..drawCircle(hand, 0.07 * s.unit, s.fill(_skin));
 }
 
-/// The floor lamp at [x], [y], [lift] tiles above the ground, its shade
-/// brightening as it comes on once it has landed.
+/// The floor lamp at [x], [y], [lift] tiles above the ground. It comes on as
+/// the story opens - the light she thinks in - its shade brightening and
+/// its glow spreading over her.
 void _lamp(IsoStage s, double x, double y, double lift) {
-  final lit = s.phase(0.56, 0.66);
+  var lit = 0.0;
+  s.story(() => lit = s.phase(_lampOn, _lampOn + 0.05));
   if (lift < 0.05) s.shadow(x, y, 0.22, _grass);
   s
+    ..glow(
+      s.at(x, y, lift + 1.32),
+      1.1,
+      strength: lit * s.storyLight,
+    )
     ..cylinder(x, y, lift, 0.16, 0.04, _wood)
     ..cylinder(x, y, lift + 0.04, 0.025, 1.3, _wood);
   _frustum(
@@ -427,40 +490,43 @@ void _book(IsoStage s, double x, double y, double lift, int i) {
     ..onLeft(y + dy + 0.36, x + dx + 0.04, z + 0.02, 0.44, 0.08, _page);
 }
 
-/// The cat sitting up at [x], [y], [grow] of the way there: haunches, chest,
-/// a head with two pointed ears, and its tail curled round its feet.
-void _cat(IsoStage s, double x, double y, double grow) {
-  s.scaled(s.at(x, y), grow, () {
-    final tail = s.at(x - 0.1, y - 0.12, 0.05);
-    final r = 0.11 * 1.15 * s.unit;
-    s
-      ..shadow(x, y, 0.2, _rug)
-      ..canvas.drawPath(
-        Path()
-          ..moveTo(tail.dx, tail.dy)
-          ..quadraticBezierTo(
-            tail.dx + r * 2.6,
-            tail.dy + r * 0.6,
-            tail.dx + r * 1.6,
-            tail.dy + r * 2.2,
-          ),
-        s.stroke(_fur.shade(-0.08), 0.05),
-      )
-      ..sphere(x, y, 0.13, 0.15, _fur)
-      ..sphere(x + 0.04, y + 0.04, 0.3, 0.1, _fur.shade(0.02))
-      ..sphere(x + 0.04, y + 0.04, 0.46, 0.11, _fur.shade(0.05));
-    final head = s.at(x + 0.04, y + 0.04, 0.46);
-    final ears = Path()
-      ..moveTo(head.dx - r * 0.95, head.dy - r * 0.35)
-      ..lineTo(head.dx - r * 0.75, head.dy - r * 1.55)
-      ..lineTo(head.dx - r * 0.1, head.dy - r * 0.95)
-      ..close()
-      ..moveTo(head.dx + r * 0.1, head.dy - r * 0.95)
-      ..lineTo(head.dx + r * 0.75, head.dy - r * 1.55)
-      ..lineTo(head.dx + r * 0.95, head.dy - r * 0.35)
-      ..close();
-    s.canvas.drawPath(ears, s.fill(_fur.shade(-0.02)));
-  });
+/// The black cat, behind her books - the scene's easter egg (see
+/// `HidingCat`). It lies low in the grass behind the stack at [x], [y], the
+/// tips of its ears showing over the top book, and when it has a reason it
+/// hops up onto the books and sits on them - where a cat sits when someone
+/// is reading - and hops back down behind them.
+void _cat(IsoStage s, double x, double y) {
+  // Only once the last book has landed.
+  if (s.t < 0.6) return;
+  // The top book's top: its back corner and the far ends of its two back
+  // edges. While the cat is behind the stack, only what of it is over those
+  // edges shows.
+  const top = 0.36;
+  final back = s.at(x - 0.03, y + 0.03, top);
+  final left = s.at(x - 0.03, y + 0.39, top);
+  final right = s.at(x + 0.47, y + 0.03, top);
+  final up = back.translate(0, -s.unit);
+  final behind = Path.combine(
+    PathOperation.union,
+    s.beyond(left, back, of: up),
+    s.beyond(back, right, of: up),
+  );
+  // Crouched just right of the back corner, low enough that only its ear
+  // tips clear the top book; sat on that book, clear of her feet.
+  final crouch = back.translate(0.05 * s.unit, 0.7 * s.unit);
+  final seat = s.at(x + 0.3, y + 0.15, top);
+  // The hop: the straight way from one to the other, lifted in an arc that
+  // takes it over the back edge. At the top of the arc it is clear of the
+  // books, and from there on it is on them, so nothing is in front of it.
+  final height = 0.52 * s.unit;
+  final apex = 0.5 + (crouch.dy - seat.dy) / (8 * height);
+  final p = s.cat.out;
+  final lift = Offset(0, -4 * height * p * (1 - p));
+  s.hidingCat(
+    hidden: crouch + lift,
+    out: seat + lift,
+    reveal: p < apex ? behind : (Path()..addRect(Offset.zero & s.size)),
+  );
 }
 
 /// A four-pointed twinkle centred on [c], [r] pixels to its points.
@@ -477,19 +543,26 @@ void _twinkle(IsoStage s, Offset c, double r, Tint tint) {
   );
 }
 
-/// The thought: bubbles rising from her head, swelling into a cloud, and
-/// the three things in it arriving one by one.
+/// The thought, on the story's clock: bubbles rising from her head and
+/// swelling into a cloud, then the three things arriving in it one at a
+/// time.
 void _thought(IsoStage s) {
   final cloud = s.at(_cloudX, _cloudY, _cloudZ);
   final w = _cloudWidth * s.unit;
-  // From just above her head, up and over into the cloud's left side.
-  final from = s.at(_seatX + 0.42, _seatY + _seat / 2 - 0.08, 1.36);
-  final to = cloud.translate(-w * 0.47, w * 0.03);
-  final bend = Offset(from.dx, to.dy);
-  const bubbles = [(0.1, 0.08), (0.42, 0.12), (0.76, 0.17)];
+
+  // From just above her head, rising in a gentle curve to just short of the
+  // cloud's lower left, each bubble a little bigger than the one before.
+  final from = s.at(_headX + 0.08, _headY - 0.1, _headZ + 0.56);
+  final to = cloud.translate(-w * 0.5, w * 0.28);
+  final bend = Offset(
+    from.dx + (to.dx - from.dx) * 0.2,
+    from.dy + (to.dy - from.dy) * 0.7,
+  );
+  const bubbles = [(0.0, 0.1), (0.5, 0.15), (1.0, 0.2)];
   for (var i = 0; i < bubbles.length; i++) {
     final (f, r) = bubbles[i];
-    final grow = s.pop(0.6 + i * 0.04, 0.68 + i * 0.04);
+    final begin = _thinks - 0.01 + i * 0.015;
+    final grow = s.pop(begin, begin + 0.04);
     if (grow <= 0) continue;
     final at =
         from * ((1 - f) * (1 - f)) + bend * (2 * f * (1 - f)) + to * (f * f);
@@ -502,48 +575,100 @@ void _thought(IsoStage s) {
       ..drawCircle(at, r * s.unit * grow, s.fill(_thoughtTint));
   }
 
-  s.scaled(to, s.pop(0.68, 0.8), () => _cloudOfThought(s, cloud, w));
+  // The cloud swells out of the last bubble, in a warm light of its own.
+  final swell = s.pop(_thinks + 0.02, _thinks + 0.08);
+  s
+    ..glow(cloud, 2.8, strength: swell.clamp(0, 1) * s.storyLight * 0.7)
+    ..scaled(to, swell, () => _cloudOfThought(s, cloud, w));
 
-  // The three things: a book, a bulb, a star, left to right. The bulb's
-  // glow goes down first, so the book beside it is never covered by it.
-  final bulb = s.pop(0.8, 0.9);
-  final bulbZ = _cloudZ - 0.34 + s.drop(0.8, 0.92, from: 0.8);
+  // The three things, left to right in the order they come: a book, a bulb
+  // that lights up, a star that spins in. Each pops up a little above its
+  // place and bobs down onto it. The bulb's glow goes down first, so the
+  // book beside it is never covered by it.
+  ({double grow, double lift}) arrive(double at) => (
+    grow: s.pop(at - 0.01, at + 0.05),
+    lift: s.drop(at - 0.01, at + 0.06, from: 0.45),
+  );
+  const bookX = _cloudX - _step;
+  const bookY = _cloudY + _step;
+  const starX = _cloudX + _step;
+  const starY = _cloudY - _step;
+
+  // A warm flash where each one lands, under it.
+  _flash(s, s.at(bookX, bookY, _cloudZ), _first);
+  _flash(s, s.at(_cloudX, _cloudY, _cloudZ + 0.1), _second);
+  _flash(s, s.at(starX, starY, _cloudZ), _third);
+
+  final bulb = arrive(_second);
+  final bulbZ = _cloudZ - 0.34 + bulb.lift;
   final bulbAt = s.at(_cloudX, _cloudY, bulbZ);
-  final glow = s.phase(0.88, 0.97);
-  if (glow > 0) {
-    s.scaled(bulbAt, bulb, () => _halo(s, _cloudX, _cloudY, bulbZ, glow));
+  final light = s.phase(_second + 0.015, _second + 0.06);
+  if (light > 0) {
+    s.scaled(bulbAt, bulb.grow, () => _halo(s, _cloudX, _cloudY, bulbZ, light));
   }
-  final book = s.pop(0.74, 0.84);
-  if (book > 0) {
-    const x = _cloudX - _step;
-    const y = _cloudY + _step;
-    final z = _cloudZ - 0.18 + s.drop(0.74, 0.86, from: 0.8);
-    s.scaled(s.at(x, y, z), book, () => _openBook(s, x, y, z));
+  final book = arrive(_first);
+  if (book.grow > 0) {
+    final z = _cloudZ - 0.18 + book.lift;
+    s.scaled(
+      s.at(bookX, bookY, z),
+      book.grow,
+      () => _openBook(s, bookX, bookY, z),
+    );
   }
   s.scaled(
     bulbAt,
-    bulb,
-    () => _bulb(s, _cloudX, _cloudY, bulbZ, glow),
+    bulb.grow,
+    () => _bulb(s, _cloudX, _cloudY, bulbZ, light),
   );
-  final star = s.pop(0.86, 0.96);
-  if (star > 0) {
-    final z = _cloudZ + 0.02 + s.drop(0.86, 0.98, from: 0.8);
-    final c = s.at(_cloudX + _step, _cloudY - _step, z);
-    final spin = (1 - s.phase(0.86, 1)) * math.pi * 3;
-    s.scaled(c, star, () => _star(s, c, 0.48 * s.unit, spin));
+  final star = arrive(_third);
+  if (star.grow > 0) {
+    final c = s.at(starX, starY, _cloudZ + 0.02 + star.lift);
+    final spin = (1 - s.phase(_third - 0.01, _third + 0.08)) * math.pi * 3;
+    s.scaled(c, star.grow, () => _star(s, c, 0.48 * s.unit, spin));
   }
 
-  // Twinkles round the cloud as the last of the three settles.
-  const twinkles = [
-    (-0.5, -0.14, 0.2),
-    (0.54, -0.04, 0.16),
-    (0.44, 0.3, 0.12),
-  ];
+  // And a little burst of sparkles over it: one, two, three.
+  _sparkles(s, s.at(bookX, bookY, _cloudZ), _first);
+  _sparkles(s, s.at(_cloudX, _cloudY, _cloudZ + 0.1), _second);
+  _sparkles(s, s.at(starX, starY, _cloudZ), _third);
+
+  // Two twinkles that come with the cloud and stay with it.
+  const twinkles = [(-0.5, -0.14, 0.18), (0.53, -0.02, 0.14)];
   for (var i = 0; i < twinkles.length; i++) {
     final (dx, dy, r) = twinkles[i];
-    final shine = s.pop(0.88 + i * 0.03, 0.94 + i * 0.03);
+    final begin = _thinks + 0.05 + i * 0.02;
+    final shine = s.pop(begin, begin + 0.05);
     if (shine <= 0) continue;
     _twinkle(s, cloud.translate(w * dx, w * dy), r * s.unit * shine, _glass);
+  }
+}
+
+/// How far through the moment of something landing at [at] the stage is:
+/// `0` before it and again once it is over, so nothing is left of it at
+/// rest.
+double _landing(IsoStage s, double at) {
+  final p = s.phase(at - 0.005, at + 0.08, Curves.linear);
+  return p <= 0 || p >= 1 ? 0 : p;
+}
+
+/// A soft warm flash at [c] as something lands there at [at]. Draw it before
+/// what lands.
+void _flash(IsoStage s, Offset c, double at) {
+  final p = _landing(s, at);
+  if (p <= 0) return;
+  s.glow(c, 0.85, strength: 0.8 * math.sin(math.pi * math.sqrt(p)));
+}
+
+/// A little burst of sparkles over [c] as something lands there at [at]:
+/// they fly out and wink away, so that each arrival is a beat of its own.
+void _sparkles(IsoStage s, Offset c, double at) {
+  final p = _landing(s, at);
+  if (p <= 0) return;
+  final out = (0.4 + 0.42 * Curves.easeOutCubic.transform(p)) * s.unit;
+  final r = 0.17 * s.unit * math.sin(math.pi * p);
+  for (var i = 0; i < 5; i++) {
+    final a = math.pi * (1.1 + i * 0.2);
+    _twinkle(s, c + Offset(math.cos(a), math.sin(a)) * out, r, _glass);
   }
 }
 

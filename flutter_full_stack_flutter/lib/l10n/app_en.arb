@@ -234,5 +234,60 @@
   "licensesTooltip": "Licenses",
   "@licensesTooltip": {
     "description": "Tooltip of the app bar button that opens the licences page, including the pronunciation models'."
+  },
+
+  "practiceListen": "Listen",
+  "@practiceListen": {
+    "description": "Button that reads the sentence aloud, in the accent it is scored against, for the learner to copy."
+  },
+
+  "practiceListenStop": "Stop reading",
+  "@practiceListenStop": {
+    "description": "The listen button while the sentence is being read aloud: stops the reading."
+  },
+
+  "practiceSoundsOn": "Sounds on",
+  "@practiceSoundsOn": {
+    "description": "Tooltip of the button that turns off the scenes', the cat's and the score's sounds, while they are on. The sentence can still be listened to."
+  },
+
+  "practiceSoundsOff": "Sounds off",
+  "@practiceSoundsOff": {
+    "description": "Tooltip of the same button while those sounds are off."
+  },
+
+  "practiceScoreDetails": "Pronunciation {score}. See details",
+  "@practiceScoreDetails": {
+    "description": "Label of the round score badge beside the record button. Tapping it opens the full result: fluency, rhythm and every phoneme that went wrong.",
+    "placeholders": {
+      "score": { "type": "int", "example": "57" }
+    }
+  },
+
+  "practiceHearWord": "Hear \u201c{word}\u201d",
+  "@practiceHearWord": {
+    "description": "Tooltip of the speaker button that reads one word of the sentence aloud.",
+    "placeholders": {
+      "word": { "type": "String", "example": "weather" }
+    }
+  },
+
+  "practiceReplay": "Hear yourself",
+  "@practiceReplay": {
+    "description": "Button on the learner's own recording, drawn as a voice message: plays their last attempt back to them while the sentence lights up word by word.",
+    "placeholders": {}
+  },
+
+  "practiceReplayStop": "Stop playback",
+  "@practiceReplayStop": {
+    "description": "The same button while the learner's recording is playing: stops it."
+  },
+
+  "practiceHearWordYours": "Hear how you said \u201c{word}\u201d",
+  "@practiceHearWordYours": {
+    "description": "Tooltip of the button that plays back just one word, cut from the learner's own recording, to compare with how it should sound.",
+    "placeholders": {
+      "word": { "type": "String", "example": "weather" }
+    }
   }
 }

@@ -1,8 +1,8 @@
 # Theming
 
-Two knobs produce the whole look: a seed colour and a font call. Everything
-else — light, dark, both high-contrast variants, and the glass — is derived
-from them.
+Two knobs produce the whole look: the brand colours (CNA's red and blue) and a
+font call. Everything else — light, dark, both high-contrast variants, and the
+glass — is derived from them.
 
 ![Two knobs, four themes](theming-flow.svg)
 
@@ -31,7 +31,8 @@ Three properties are what make the name honest here:
   for. `Colors.white.withValues(alpha: 0.35)` says how it is currently
   achieved, and stops being true the moment dark mode wants something else.
 - **One origin.** Every token is derived from the `ColorScheme`, which comes
-  from the seed. They are not a second palette that can drift from the first.
+  from the brand colours. They are not a second palette that can drift from
+  the first.
 - **Coherent variants.** The same `glassBlur` is 14 in light, 18 in dark and 0
   in high contrast. A widget asks for the token and gets the value for
   whichever theme is live.
@@ -55,29 +56,44 @@ team prefers plainer names.
 | `lib/theme/aurora_backdrop.dart` | the surface a screen sits on |
 | `lib/theme/rise_in.dart` | the staggered entrance |
 | `lib/theme/scene_tone.dart` | the lightness band a prompt's scene is painted in |
-| `lib/features/pronunciation/presentation/scenes/` | the isometric kit (`iso_stage.dart`) and one file per prompt topic |
+| `lib/features/pronunciation/presentation/scenes/` | the isometric kit (`iso_stage.dart`), the story model (`script.dart`: acts, cues) and one file per prompt topic |
 | `lib/theme/theme_mode_controller.dart` | lets a user override the device |
 | `assets/fonts/` | Inter, bundled, plus its OFL licence |
 
 ## Changing the look
 
-**Colours.** One line in `app_theme.dart`:
+**Colours.** The app wears CNA's colours, taken from cna.com.br's own
+stylesheet and kept in `Brand` in `app_theme.dart`:
 
-```dart
-static const seed = Color(0xFF6C5CE7);
-```
+| | Token on cna.com.br | Value | Used for |
+|---|---|---|---|
+| `Brand.red` | `--color-cna-red-6` | `#ED1941` | what to do: the record button, the active page dot, focus |
+| `Brand.blue` | `--color-cna-blue-brand` | `#2E2C83` | everything calmer: the listen button, the light behind the page |
+| `Brand.night` | its dark sections | `#01102E` | what the dark theme's surfaces are built up from |
 
-Every Material colour comes from `ColorScheme.fromSeed` on that seed, and every
-token in `AppTokens.of` is derived from the resulting scheme — so the glass tint
-and the aurora move with it too. There is no second place to update.
+`AppTheme._scheme` builds the `ColorScheme` in two steps:
 
-One thing to know before treating the seed as a brand colour: the scheme is
-built with `DynamicSchemeVariant.expressive`, which pushes the secondary and
-tertiary tones apart so the aurora reads as three colours instead of one. It
-also rotates hue, sometimes a long way — the seed in the screenshots below is
-violet and the palette that comes out is teal. That is the variant doing its
-job, not a bug. If the seed has to survive literally, use
-`DynamicSchemeVariant.fidelity` and accept a flatter scheme.
+1. Material's tonal algorithm lays out the families, seeded with each brand
+   colour. Red becomes the primary family and blue the secondary family and
+   the neutrals. It uses `DynamicSchemeVariant.fidelity`, so each colour
+   keeps its hue instead of being rotated into another one.
+2. Outside high contrast, the brand's own tones replace the ones the
+   algorithm would have softened away. Left alone, a dark theme's primary
+   would be a pale pink and its surfaces a neutral grey instead of CNA's
+   navy.
+
+Under high contrast, Material's tones are kept, because they are what that
+request is for. Every token in `AppTokens.of` derives from the scheme, so the
+glass and the aurora follow it. The aurora is two blues with a small red ember
+at the side, and the page gradient comes down from the blue. Red over blue
+mixes to magenta, and a page that reads purple is not CNA's.
+
+One trade-off to know about: in the dark theme the primary is `#F22B4C` with
+dark ink on it, rather than the brand's `#ED1941` with white. No single red can
+both carry white text at AA and be read as text on the night. This one manages
+4.7:1 both ways and is a hair away from the brand's red.
+`test/theme_contrast_test.dart` holds every pairing to WCAG AA in all four
+themes, so a colour nudged too far fails `melos run check`.
 
 **Font.** One line, same file:
 
@@ -121,7 +137,7 @@ check` fails.
 
 The same test holds the scene drawn behind an English practice prompt — a
 small isometric island in a sky of its own, full-bleed and opaque, so it is
-what the headline is read on and what the glass shows through. It is not
+what the glass shows through and what the app bar's icons sit on. It is not
 vetted colour by colour. It is confined to a *band of lightness*
 (`sceneLow`, `sceneHigh`, in CIE L*) that `AppTokens.of` derives from the text
 colours, so that **anything** painted inside it keeps `onSurface` and
@@ -153,6 +169,22 @@ zero and the same thing happens; and `level` is bent by a gamma (1.7 light,
 `test/theme_contrast_test.dart` sweeps the band, every 15° of hue, and
 `prompt_scene_test.dart` checks that every scene, at rest, paints inside it.
 
+The scene exists to show the learner what the sentence *says*, so it is
+staged as a story in two acts (`Act` in `iso_stage.dart`). In the first, the
+world assembles — quickly, inside `IsoStage.setting`, which plays a scene's
+whole assembly on a timeline of its own in the first third of the arrival.
+In the second, the sentence is acted out on its own: the car drives in, the
+light turns red, the car stops. It is lit for it — a warm `pool` of light
+under the subject, a `glow` where a lamp comes on, and a `spotlight` that
+lets the rest of the island sink a little into the page's own colour (a
+third as much on a light page, where a pale veil would wash the day out).
+Each beat is a `Cue` (`script.dart`): the words of the sentence it shows
+and the moment it happens; `scene_script_test.dart` checks that every cue is
+still in its sentence when the content is reworded. The card itself is left
+alone while the story plays — green, amber and red on its words mean how
+they were said, and nothing else may borrow colour there — so the light in
+the scene is what points the learner at what the sentence says.
+
 **A new token.** Add the field, run the generator:
 
 ```dart
@@ -169,7 +201,7 @@ generated mixin declares it abstract, and it has to be set in both branches of
 
 A device asks for more than light or dark: it can also ask for increased
 contrast. `MaterialApp` has a slot for each combination, all four built from the
-same seed by the same function, so they cannot drift apart.
+same brand colours by the same function, so they cannot drift apart.
 
 `themeMode` defaults to `ThemeMode.system`, which means following the device
 costs nothing — no provider, no listener. `ThemeModeController` exists only so a
@@ -256,6 +288,24 @@ multiplied by the number of panes on it. With `onTap` it gets an ink ripple and
 a small press scale, and that scale is skipped when the device asks for reduced
 motion.
 
+**Fade glass with `Reveal`, never with `Opacity`, `FadeTransition` or
+`AnimatedOpacity`.** A `BackdropFilter` under an opacity layer blurs nothing,
+because the layer is drawn on its own canvas and that canvas is all the filter
+sees. A pane faded that way stays clear and darkened for the whole fade, then
+frosts all at once on the last frame, when the opacity reaches one and the
+layer is dropped. Every pane that rose in or switched used to do this.
+
+`Reveal` fades its child normally, except when there is glass in it. The glass
+claims the reveal and fades itself from beneath the filter: blur, tint, edge
+and content together, with the blur following the square of the fade so it
+does not arrive ahead of the tint. `RiseIn` fades through a `Reveal`, so it
+needs nothing from you. For an `AnimatedSwitcher` over glass, pass
+`transitionBuilder: (child, animation) => Reveal(opacity: animation, child: child)`.
+
+Keep glass in a reveal of its own. Anything else inside a reveal that glass has
+claimed stops fading with it. `test/theme/glass_reveal_test.dart` measures the
+blur frame by frame, so a pane that frosts with a jump fails it.
+
 ## Adding a font weight
 
 The filenames are not arbitrary. `google_fonts` finds a bundled face by
@@ -290,15 +340,25 @@ nothing else moves:
 |---|---|
 | Arrival | `RiseIn` fades and lifts the headline, the field and the response, staggered ~90ms apart |
 | Arrival | `AuroraBackdrop` drifts its three colour pools into place over 2.2s, then stops |
-| A prompt arrives | `PromptScene` assembles the island for an English phrase — it rises, things drop onto it and spring up, the car pulls up to the light — over 2.4s, then stops; the next prompt cross-fades to its own |
+| A prompt arrives | `PromptScene` plays the English phrase's story in two acts over 3.6s, then stops: the island assembles in the first ~1.2s, then the sentence is acted out, beat by beat, in a key light; the next prompt cross-fades to its own |
 | State change | `AnimatedSwitcher` slides a new response over the old one instead of blinking it into place |
 | State change | While the learner records and the attempt is scored, a `sceneHush` veil fades over the scene so the sentence is the one thing in focus, and fades off with the score |
+| The learner's moment | A black cat hides somewhere in every English scene, a different place in each — behind the hotel's corner, in the toolbox, on the cottage roof — only a tail tip or its ears showing. It comes out to answer the learner (`HidingCat`), briefly: it washes a paw after 8s on a prompt without starting, gives a slow blink after a weak attempt, and swishes its tail after a strong one — 3.4–4.4s, out and back, once per prompt or attempt, never while recording or scoring. Where it hides at ground level it comes out on foot (`SceneScript(catWalks: true)`): it walks out side on, turns round to the learner as it sits, then gets up and turns about as it walks home in a curve. It is one cat, modelled once in three dimensions and seen from wherever it faces (`CatFigure`): every part has one size, so it is in proportion walking, turning, sitting and gesturing alike, and a turn is seen as a turn rather than a side picture swapped for a front one. `cat_figure_test.dart` holds it to that |
+| Swipe | The prompt cards fan like a hand of cards: the one going tips away about the foot of the deck and shrinks a little, the one coming straightens and grows into place. They pass a gutter apart, because the deck runs edge to edge and each card keeps its gutter inside its own page. Only while the finger moves; under reduced motion they simply slide (`_DeckCard`) |
+| A score arrives | No card over the scene, so the island and the cat answering the attempt stay in view. A medal pops in beside the record button: the number counts up inside a ring filling to it, in the band's colour, and one to three stars pop in along its foot. One line rises under the sentence for the word that most needs fixing (`weather /ð/ sounded like /t/`). Tapping a coloured word moves the line to that word and reads it aloud; tapping the medal opens everything else in a sheet |
+| Hearing the sentence | Read aloud from the listen button, the sentence plays the same karaoke as a playback of the learner's attempt, before an attempt as much as after one: the word being said hops and is underlined, those still to come wait faded. It follows the speech engine's own word-by-word progress (`PhraseVoice.spoken`), not a guessed timing. The prompt is always laid out a word at a time for this, which also stops it from shifting when a score arrives |
+| Hearing yourself | The attempt is a voice message under the sentence: its outline drawn from the recording, each bar in the colour of the word it falls in. Played back, a playhead runs along it, the bars filling in behind it, and the sentence plays karaoke: the word being heard hops up and grows a touch, those still to come wait faded. It is drawn bigger and never laid out bigger, so the sentence does not shuffle. Under reduced motion the word lights without hopping |
 | Recording | The record button's halo ripples outward — the one motion that lasts, and only while the microphone is open (at most 15 s); under reduced motion the halo holds still |
 | Press | `GlassSurface` scales to 0.97 while held, when it has an `onTap` |
+| Sound | The scene and the cat are heard only while they move, each sound on the beat its drawing keeps time by, and everything stops before the microphone opens — see [sound.md](sound.md) |
 
 **Nothing animates at rest**, and that is a decision rather than an omission.
 (Recording is not rest: the ripple says the microphone is open, and it stops
-the moment that stops being true.) A
+the moment that stops being true. Nor is the cat restless: it comes out only to
+answer something the learner did, and is back in hiding a moment later.
+It is painted from `Tint`s like the rest of the world, so it is as black as
+the world band allows — black on a dark page, charcoal on a light one,
+where a score pane may come down over it.) A
 `BackdropFilter` re-rasterises whatever moves behind it, so a backdrop that
 drifts forever costs a blur every frame for the life of the screen — multiplied
 by every pane on it. Motion on arrival is paid once.

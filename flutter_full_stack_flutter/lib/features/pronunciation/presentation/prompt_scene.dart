@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/beach_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/birds_scene.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/cat.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/coffee_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/help_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/hotel_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/thinking_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/time_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/traffic_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/travel_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/weather_scene.dart';
 import 'package:flutter_full_stack_flutter/theme/app_tokens.dart';
+import 'package:flutter_full_stack_flutter/theme/motion.dart';
+import 'package:flutter_full_stack_flutter/theme/passing.dart';
 import 'package:flutter_full_stack_flutter/theme/scene_tone.dart';
 
 /// The world the prompt on screen describes, painted behind the whole page:
@@ -19,46 +24,80 @@ import 'package:flutter_full_stack_flutter/theme/scene_tone.dart';
 /// on a clear morning, a red car pulling up to the light, a clock tower whose
 /// hand comes round to three.
 ///
-/// It assembles itself when its prompt arrives - the island rises, things
-/// drop onto it and spring up - and then holds still, for the same reason
-/// `AuroraBackdrop` does: the deck sits on a `GlassSurface`, and a
-/// `BackdropFilter` re-rasterises whatever moves behind it. Arrival is paid
-/// once per prompt; a scene that kept moving would cost a blur every frame for
-/// as long as the learner reads.
+/// It plays in two acts (see [Act]). The world assembles itself, quickly -
+/// the island rises, things drop onto it and spring up - and then the
+/// sentence is acted out on its own, in a light that leaves the rest of the
+/// island in the shade: the car drives in, the light turns red, the car
+/// stops. The light is what points the learner at what the sentence says;
+/// the card is left alone, because colour on its words means how they were
+/// said.
+///
+/// Then it holds still, for the same reason `AuroraBackdrop` does: the deck
+/// sits on a `GlassSurface`, and a `BackdropFilter` re-rasterises whatever
+/// moves behind it. Arrival is paid once per prompt; a scene that kept moving
+/// would cost a blur every frame for as long as the learner reads.
+///
+/// It is heard the same way it moves: a few sounds while the story is told,
+/// each on the beat it belongs to - the clock's bell as it strikes, a cup
+/// as it lands - and nothing once it is at rest ([SceneScript.sounds]).
+/// Under reduced motion the story is not played, so it is not heard either.
 ///
 /// Every colour comes from the theme's [SceneTone], a band of lightness
 /// derived from the text colours, so a scene can be as colourful as it likes
-/// and the headline and the glass stay legible over it. Decoration and
-/// nothing else: it takes no touches, has no semantics - the sentence is the
+/// and the text on the glass stays legible over it. Decoration and nothing
+/// else: it takes no touches, has no semantics - the sentence is the
 /// content, not its picture - and is absent under high contrast.
 class PromptScene extends StatelessWidget {
   const PromptScene({
     required this.topic,
     this.clear = EdgeInsets.zero,
+    this.cat = const AlwaysStoppedAnimation(CatPose.hidden),
+    this.onSound,
     super.key,
   });
 
   /// What to draw. `null` draws nothing and leaves the aurora on its own.
   final PromptTopic? topic;
 
+  /// Where the black cat hiding in every scene is - see `HidingCat`.
+  final Animation<CatPose> cat;
+
   /// How much of the page, from each edge, its own controls cover. The sky
   /// runs under them; the island stands in the rest.
   final EdgeInsets clear;
 
+  /// Plays a sound the story makes as it is told. `null` keeps it silent.
+  final ValueChanged<Sound>? onSound;
+
   /// How long one scene takes to hand over to the next.
   static const fade = Duration(milliseconds: 450);
 
-  /// How long a scene takes to assemble itself. Nothing moves after that.
-  static const arrival = Duration(milliseconds: 2400);
+  /// How long both acts take, together. Nothing moves after that.
+  static const arrival = Duration(milliseconds: 3600);
+
+  /// The scene for [topic], and the story it tells.
+  static SceneScript scriptOf(PromptTopic topic) =>
+      // Exhaustive on purpose: a topic added to the enum without a scene is
+      // a compile error here, not a prompt that silently shows nothing.
+      switch (topic) {
+        PromptTopic.weather => weatherScene,
+        PromptTopic.thinking => thinkingScene,
+        PromptTopic.coffee => coffeeScene,
+        PromptTopic.beach => beachScene,
+        PromptTopic.birds => birdsScene,
+        PromptTopic.hotel => hotelScene,
+        PromptTopic.help => helpScene,
+        PromptTopic.traffic => trafficScene,
+        PromptTopic.time => timeScene,
+        PromptTopic.travel => travelScene,
+      };
 
   @override
   Widget build(BuildContext context) {
     final topic = this.topic;
     return IgnorePointer(
       child: AnimatedSwitcher(
-        duration: MediaQuery.disableAnimationsOf(context)
-            ? Duration.zero
-            : fade,
+        duration: context.motion(fade),
         // The default layout centres a loose stack. A backdrop has to fill.
         layoutBuilder: (current, previous) => Stack(
           fit: StackFit.expand,
@@ -66,17 +105,31 @@ class PromptScene extends StatelessWidget {
         ),
         child: topic == null
             ? const SizedBox.expand()
-            : _Scene(key: ValueKey(topic), topic: topic, clear: clear),
+            : _Scene(
+                key: ValueKey(topic),
+                topic: topic,
+                clear: clear,
+                cat: cat,
+                onSound: onSound,
+              ),
       ),
     );
   }
 }
 
 class _Scene extends StatefulWidget {
-  const _Scene({required this.topic, required this.clear, super.key});
+  const _Scene({
+    required this.topic,
+    required this.clear,
+    required this.cat,
+    this.onSound,
+    super.key,
+  });
 
   final PromptTopic topic;
   final EdgeInsets clear;
+  final Animation<CatPose> cat;
+  final ValueChanged<Sound>? onSound;
 
   @override
   State<_Scene> createState() => _SceneState();
@@ -86,17 +139,25 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
   late final AnimationController _arrival = AnimationController(
     vsync: this,
     duration: PromptScene.arrival,
-  );
+  )..addListener(_hear);
+  final Passing _passing = Passing();
+
+  /// Plays each of the story's sounds on the frame the arrival reaches it -
+  /// and none of them under reduced motion, where the story is not played.
+  void _hear() {
+    final cues = PromptScene.scriptOf(widget.topic).sounds;
+    final due = _passing.passed(_arrival, [
+      for (final cue in cues) (cue.startIn(PromptScene.arrival), cue.sound),
+    ]);
+    final play = widget.onSound;
+    if (play != null) due.forEach(play);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reduced motion gets the finished picture, with nothing travelling.
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _arrival.value = 1;
-    } else if (!_arrival.isAnimating && _arrival.value == 0) {
-      _arrival.forward();
-    }
+    // Reduced motion gets the story already told, with nothing travelling.
+    context.playOnce(_arrival);
   }
 
   @override
@@ -116,11 +177,13 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
       child: CustomPaint(
         isComplex: true,
         painter: _ScenePainter(
-          topic: widget.topic,
+          script: PromptScene.scriptOf(widget.topic),
           clear: widget.clear,
-          arrival: _arrival,
+          progress: _arrival,
+          cat: widget.cat,
           tone: tokens.sceneTone,
           world: tokens.worldTone,
+          haze: Theme.of(context).colorScheme.surface,
           opacity: tokens.sceneOpacity,
         ),
       ),
@@ -130,57 +193,51 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
 
 class _ScenePainter extends CustomPainter {
   _ScenePainter({
-    required this.topic,
+    required this.script,
     required this.clear,
-    required this.arrival,
+    required this.progress,
+    required this.cat,
     required this.tone,
     required this.world,
+    required this.haze,
     required this.opacity,
-  }) : super(repaint: arrival);
+  }) : super(repaint: Listenable.merge([progress, cat]));
 
-  final PromptTopic topic;
+  final SceneScript script;
   final EdgeInsets clear;
-  final Animation<double> arrival;
+  final Animation<double> progress;
+  final Animation<CatPose> cat;
   final SceneTone tone;
   final SceneTone world;
+  final Color haze;
   final double opacity;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (opacity <= 0) return;
-
-    // Exhaustive on purpose: a topic added to the enum without a scene is a
-    // compile error here, not a prompt that silently shows nothing.
-    final draw = switch (topic) {
-      PromptTopic.weather => paintWeather,
-      PromptTopic.thinking => paintThinking,
-      PromptTopic.coffee => paintCoffee,
-      PromptTopic.beach => paintBeach,
-      PromptTopic.birds => paintBirds,
-      PromptTopic.hotel => paintHotel,
-      PromptTopic.help => paintHelp,
-      PromptTopic.traffic => paintTraffic,
-      PromptTopic.time => paintTime,
-      PromptTopic.travel => paintTravel,
-    };
     final stage = IsoStage(
       canvas,
       size,
-      arrival.value,
+      progress.value,
       tone,
       clear: clear,
       world: world,
+      haze: haze,
+      cat: cat.value,
+      catWalks: script.catWalks,
     );
     // Only while a theme change fades the scene out for high contrast.
-    stage.faded(opacity, () => draw(stage));
+    stage.faded(opacity, () => script.paint(stage));
   }
 
   @override
   bool shouldRepaint(_ScenePainter old) =>
-      old.topic != topic ||
+      old.script != script ||
       old.clear != clear ||
-      old.arrival != arrival ||
+      old.progress != progress ||
+      old.cat != cat ||
       old.tone != tone ||
       old.world != world ||
+      old.haze != haze ||
       old.opacity != opacity;
 }

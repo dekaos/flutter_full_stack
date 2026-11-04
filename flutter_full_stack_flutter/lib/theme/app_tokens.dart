@@ -123,7 +123,13 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
     final well = wellTranslucency.clamp(0.0, 1.0);
 
     return AppTokens(
-      backdropTop: scheme.primaryContainer,
+      // Down from the calm colour, not the loud one: the red is for what to
+      // do, and a page washed in it would shout. Only part of the way to
+      // it, too - the brand blue in full leans to violet over a whole page.
+      backdropTop: Color.alphaBlend(
+        scheme.secondaryContainer.withValues(alpha: isDark ? 0.5 : 0.6),
+        scheme.surface,
+      ),
       backdropBottom: scheme.surface,
       glassTint: scheme.surface.withValues(
         alpha: _translucent(isDark ? 0.18 : 0.55, pane),
@@ -137,9 +143,14 @@ class AppTokens extends ThemeExtension<AppTokens> with _$AppTokensTailorMixin {
       glassBlur: (isDark ? 18 : 14) * pane,
       radiusLarge: _radiusLarge,
       radiusMedium: _radiusMedium,
-      auroraOne: scheme.primary.withValues(alpha: isDark ? 0.38 : 0.30),
-      auroraTwo: scheme.tertiary.withValues(alpha: isDark ? 0.32 : 0.26),
-      auroraThree: scheme.secondary.withValues(alpha: isDark ? 0.26 : 0.20),
+      // Blue behind the sentence and below it, and the red as an ember at
+      // the side: light enough to sell the glass, quiet enough to stay
+      // sober in both brightnesses.
+      // The ember is kept small: red over blue mixes to magenta, and a page
+      // that reads purple is no longer CNA's.
+      auroraOne: scheme.tertiary.withValues(alpha: isDark ? 0.34 : 0.20),
+      auroraTwo: scheme.primary.withValues(alpha: isDark ? 0.16 : 0.07),
+      auroraThree: scheme.tertiary.withValues(alpha: isDark ? 0.18 : 0.12),
       wellFill: scheme.surfaceContainerLowest.withValues(
         alpha: _translucent(isDark ? 0.34 : 0.58, well),
       ),

@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: a bright morning by the sea. Named for what they are, so the
 // drawing below reads as a description of the place.
@@ -29,6 +32,11 @@ const _wall = Tint(40, 0.3, 0.96);
 const _roof = Tint(8, 0.72, 0.42);
 const _trim = Tint(198, 0.55, 0.28);
 const _glass = Tint(192, 0.72, 0.58);
+// The key light, a little warmer than the rest of the set's, so that it
+// still shows on pale sand.
+const _sunlit = Tint(44, 1, 0.9);
+// The windows once he is home and the lamps are on.
+const _lamplit = Tint(42, 0.92, 0.8);
 const _wood = Tint(28, 0.44, 0.54);
 const _frond = Tint(142, 0.5, 0.36);
 const _trunk = Tint(30, 0.4, 0.4);
@@ -38,7 +46,6 @@ const _shirt = Tint(46, 0.9, 0.72);
 const _pail = Tint(190, 0.62, 0.46);
 const _straw = Tint(42, 0.62, 0.78);
 const _towel = Tint(44, 0.88, 0.66);
-const _ginger = Tint(26, 0.72, 0.52);
 
 const double _span = IsoStage.span;
 
@@ -56,58 +63,163 @@ const double _upper = _plinth + _storey + 0.06;
 const _upperH = 0.82;
 const double _eaves = _upper + _upperH;
 
-/// "He lives in a big house near the beach": a sandy island lapped by a
-/// turquoise sea. The island rises, the waves roll in, the house lands a
-/// floor at a time, the palms spring up, the pier is laid plank by plank,
-/// a sailboat splashes down, the parasol pops open, and he steps out onto
-/// his deck to wave.
+/// "He lives in a big house near the beach", in two acts.
+///
+/// The island assembles first, round an empty sandy plot: it rises out of
+/// the sea, the surf rolls in, the palms spring up, the pier is laid plank
+/// by plank, the sailboat splashes down and the beach things land. Then the
+/// story, in one pool of light where the plot meets the shore, while the
+/// rest of the island sinks back: the house is stacked on the plot a floor
+/// at a time, so heavy it raises the sand as it lands (*big house*); a wave
+/// rolls in and runs up the sand to the foot of its steps, sparkles break
+/// out on the water and the parasol pops open (*beach*); and he steps out
+/// onto his deck and waves as the windows warm (*He lives*).
+const beachScene = SceneScript(
+  paintBeach,
+  cues: [
+    Cue('big house', _built),
+    Cue('beach', _surf),
+    Cue('He lives', _home),
+  ],
+  sounds: [SceneSound(Sound.wave, _surf)],
+  catWalks: true,
+);
+
+// The story's beats, on the arrival's clock: the house first, then the
+// beach at its door, then the man who lives in it - so that "near" is seen
+// before he is.
+const _built = 0.42;
+const _surf = 0.56;
+const _home = 0.72;
+
+// The house lands a part at a time, the roof on its beat.
+const double _groundLands = _built - 0.005;
+const double _upperLands = _built + 0.017;
+const double _roofLands = _built + 0.04;
+
+// The stage: where the plot meets the shore, so that the house and the
+// beach stand in the one light.
+const _stageX = 2.45;
+const _stageY = 4.05;
+
+/// Paints [beachScene].
 void paintBeach(IsoStage s) {
-  s.sky(_skyTop, _skyLow);
+  s.setting(() {
+    s.sky(_skyTop, _skyLow);
 
-  final climb = s.phase(0.1, 0.8);
-  s.sun(0.8, 0.25 - 0.08 * climb, 0.8, _sunBody, _sunHalo);
-  _farShore(s);
+    final climb = s.phase(0.1, 0.8);
+    s.sun(0.8, 0.25 - 0.08 * climb, 0.8, _sunBody, _sunHalo);
+    _farShore(s);
 
-  // Clouds drift in from either side and stop.
-  final drift = s.phase(0.2, 1);
-  s
-    ..cloud(s.screen(0.2 - 0.5 * (1 - drift), 0.23), 2.6, _cloud)
-    ..cloud(s.screen(0.68 + 0.6 * (1 - drift), 0.44), 1.9, _cloud)
-    ..cloud(s.screen(0.1 - 0.4 * (1 - drift), 0.57), 1.3, _cloud);
-  _gulls(s);
-
-  s.rising(0, 0.42, () {
-    s.island(grass: _sand, earth: _earth, stone: _stone, strata: 4);
-    _seaSides(s);
-    s.canvas
-      ..drawPath(_water(s, -0.32), s.fill(_wetSand))
-      ..drawPath(_water(s, 0), s.fill(_shallow))
-      ..drawPath(_water(s, 0.45), s.fill(_sea))
-      ..drawPath(_water(s, 1.05), s.fill(_open))
-      ..drawPath(_water(s, 1.8), s.fill(_deep));
-    _turtle(s);
-    _sparkles(s);
-    _waves(s);
-    _flats(s);
-    _dunes(s);
-    _palm(
-      s,
-      3.6,
-      0.55,
-      h: 1.7,
-      lean: (x: 0.35, y: -0.3),
-      grow: s.pop(0.5, 0.72),
-    );
-
+    // Clouds drift in from either side and stop.
+    final drift = s.phase(0.2, 1);
     s
-      ..dropping(0.26, 0.54, (lift) => _groundFloor(s, lift))
-      ..dropping(0.36, 0.64, (lift) => _upperFloor(s, lift))
-      ..dropping(0.46, 0.74, (lift) => _roofOver(s, lift));
-    _pier(s);
-    _buoy(s);
-    s.dropping(0.5, 0.78, (lift) => _boat(s, lift), from: 3);
-    _frontBeach(s);
+      ..cloud(s.screen(0.2 - 0.5 * (1 - drift), 0.23), 2.6, _cloud)
+      ..cloud(s.screen(0.68 + 0.6 * (1 - drift), 0.44), 1.9, _cloud)
+      ..cloud(s.screen(0.1 - 0.4 * (1 - drift), 0.57), 1.3, _cloud);
+    _gulls(s);
+
+    s.rising(0, 0.42, () {
+      s.island(grass: _sand, earth: _earth, stone: _stone, strata: 4);
+      _seaSides(s);
+      s.canvas
+        ..drawPath(_water(s, -0.32), s.fill(_wetSand))
+        ..drawPath(_water(s, 0), s.fill(_shallow))
+        ..drawPath(_water(s, 0.45), s.fill(_sea))
+        ..drawPath(_water(s, 1.05), s.fill(_open))
+        ..drawPath(_water(s, 1.8), s.fill(_deep));
+      _turtle(s);
+      _waves(s);
+      s.story(() {
+        // The beach's beat: the sand its wave wets, which the things on the
+        // beach lie on; the sparkles breaking out on the water with it.
+        _wetted(s);
+        _sparkles(s);
+      });
+      _flats(s);
+      // The wave itself runs up over them.
+      s
+        ..story(() => _swash(s))
+        ..pool(
+          _stageX,
+          _stageY,
+          2.15,
+          strength: s.storyLight,
+          light: _sunlit,
+        );
+      _dunes(s);
+      _palm(
+        s,
+        3.6,
+        0.55,
+        h: 1.7,
+        lean: (x: 0.35, y: -0.3),
+        grow: s.pop(0.5, 0.72),
+      );
+
+      // The house is the story's first beat: it goes up on the lit plot.
+      s.story(() {
+        _landing(s, _groundLands, (lift) => _groundFloor(s, lift));
+        _landing(s, _upperLands, (lift) => _upperFloor(s, lift));
+        _landing(s, _roofLands, (lift) => _roofOver(s, lift));
+        _dust(s);
+      });
+      _pier(s);
+      _buoy(s);
+      s.dropping(0.5, 0.78, (lift) => _boat(s, lift), from: 3);
+      _frontBeach(s);
+
+      // The rest of the island steps back while the house and its beach
+      // have the stage.
+      s.spotlight(
+        s.at(_stageX - 0.1, _stageY - 0.5, 0.9),
+        radius: 2.5,
+        strength: s.storyLight,
+      );
+    });
   });
+}
+
+/// Runs [draw] for a part of the house that falls onto its place, landing
+/// at [lands]: it fades in at the top of its fall and comes down faster and
+/// faster, with no bounce - a big house is heavy - handing [draw] how many
+/// tiles above its place it still is.
+void _landing(IsoStage s, double lands, void Function(double lift) draw) {
+  const fall = 0.035;
+  final begin = lands - fall;
+  if (s.t < begin) return;
+  final lift = 2.4 * (1 - s.phase(begin, lands, Curves.easeInQuad));
+  s.faded(s.phase(begin, begin + fall * 0.3), () => draw(lift));
+}
+
+/// The sand the ground floor throws up as it lands, in puffs along the
+/// house's front that swell and thin away.
+void _dust(IsoStage s) {
+  final p = s.phase(_groundLands, _groundLands + 0.08);
+  if (p <= 0 || p >= 1) return;
+  final paint = Paint()
+    ..color = s.colour(_sand.shade(0.22)).withValues(alpha: 1 - p * p);
+  const puffs = [
+    (x: 0.38, y: 4.02, r: 0.17),
+    (x: 0.95, y: 4.16, r: 0.14),
+    (x: 1.6, y: 4.2, r: 0.16),
+    (x: 2.45, y: 4.14, r: 0.14),
+    (x: 3.42, y: 4.02, r: 0.16),
+  ];
+  for (final puff in puffs) {
+    final r = puff.r * (0.8 + 1.2 * p);
+    final out = 0.25 * p;
+    s.canvas
+      ..drawOval(s.disc(puff.x, puff.y + out, 0.04 + 0.08 * p, r), paint)
+      ..drawOval(
+        s.disc(puff.x - 0.12, puff.y + out - 0.06, 0.1 + 0.14 * p, r * 0.7),
+        paint,
+      )
+      ..drawOval(
+        s.disc(puff.x + 0.12, puff.y + out + 0.04, 0.08 + 0.12 * p, r * 0.6),
+        paint,
+      );
+  }
 }
 
 // ---------------------------------------------------------------- backdrop --
@@ -359,22 +471,23 @@ void _turtle(IsoStage s) {
     ..drawPath(oval(0.01, 0, 0.16, 0.11, 0), s.fill(_sea.shade(0.04)));
 }
 
-/// Little wave marks twinkling on the open water.
+/// Little wave marks breaking out on the open water as the beach's wave
+/// comes in, spreading out from it.
 void _sparkles(IsoStage s) {
   const marks = [
-    (x: 4.75, y: 0.55),
-    (x: 5.5, y: 1.35),
-    (x: 4.4, y: 1.7),
-    (x: 5.6, y: 2.4),
-    (x: 5.55, y: 3.6),
     (x: 3.75, y: 4.85),
     (x: 5.2, y: 5.75),
     (x: 5.6, y: 5.1),
+    (x: 5.55, y: 3.6),
+    (x: 4.4, y: 1.7),
+    (x: 5.6, y: 2.4),
+    (x: 5.5, y: 1.35),
+    (x: 4.75, y: 0.55),
   ];
   final path = Path();
   for (var i = 0; i < marks.length; i++) {
     final m = marks[i];
-    final g = s.pop(0.5 + i * 0.04, 0.66 + i * 0.04);
+    final g = s.pop(_surf - 0.01 + i * 0.006, _surf + 0.04 + i * 0.006);
     if (g <= 0) continue;
     final half = 0.14 * g;
     final a = s.at(m.x - half, m.y + half, 0.006);
@@ -412,6 +525,110 @@ void _waves(IsoStage s) {
     );
   }
   if (rolling) s.canvas.restore();
+}
+
+// The beach's wave runs up the shore in front of the house, from the deck
+// steps to the island's front edge.
+const _swashFrom = 3.0;
+const _swashTo = 6.0;
+
+/// How far up the sand the beach's wave runs at [y], at its highest: most
+/// in front of the deck steps, tapering away to either side.
+double _reach(double y) {
+  final f = ((y - _swashFrom) / (_swashTo - _swashFrom)).clamp(0.0, 1.0);
+  return 0.86 * math.sin(math.pi * f);
+}
+
+/// The stretch of shore the beach's wave covers, [up] of the way up its
+/// run: from the water's edge to [up] of [_reach].
+Path _tongue(IsoStage s, double up) {
+  const steps = 24;
+  double y(int i) => _swashFrom + (_swashTo - _swashFrom) * i / steps;
+  return s.face([
+    for (var i = 0; i <= steps; i++)
+      (x: _shore(y(i)) - _reach(y(i)) * up, y: y(i), z: 0.005),
+    for (var i = steps; i >= 0; i--)
+      (x: _shore(y(i)) + 0.06, y: y(i), z: 0.005),
+  ]);
+}
+
+/// A line along the beach's stretch of shore, [offset] times [_reach] up
+/// the sand (or out to sea, if negative); [broken] into a lacy line.
+Path _swashLine(IsoStage s, double offset, {bool broken = false}) {
+  final path = Path();
+  const steps = 30;
+  for (var i = 0; i <= steps; i++) {
+    final y = _swashFrom + (_swashTo - _swashFrom) * i / steps;
+    final x = _shore(y) - _reach(y) * offset + 0.03 * math.sin(y * 9);
+    // Broken, each dash runs three steps and the gap between them two.
+    if (broken && i % 5 == 4) continue;
+    final p = s.at(x, y, 0.008);
+    i == 0 || (broken && i % 5 == 0)
+        ? path.moveTo(p.dx, p.dy)
+        : path.lineTo(p.dx, p.dy);
+  }
+  return path;
+}
+
+/// The sand the beach's wave has wet: darker up to where it reached, and it
+/// stays that way.
+void _wetted(IsoStage s) {
+  final up = s.phase(_surf - 0.005, _surf + 0.03);
+  if (up <= 0) return;
+  s.canvas.drawPath(_tongue(s, up), s.fill(_wetSand.shade(-0.04)));
+}
+
+/// The beach's wave: a roller comes in to the shore in front of the house,
+/// runs up the sand to the foot of the deck steps, then draws back and
+/// leaves its line of foam at the top of its run.
+void _swash(IsoStage s) {
+  final come = s.phase(_surf - 0.045, _surf - 0.005, Curves.easeInQuad);
+  if (come <= 0) return;
+  if (come < 1) {
+    // Coming in, out on the water, it reaches past the stretch it will run
+    // up - kept to the sea.
+    s.canvas
+      ..save()
+      ..clipPath(_water(s, 0))
+      ..drawPath(
+        _swashLine(s, -1.7 * (1 - come) - 0.08),
+        s.stroke(_foam, 0.065),
+      )
+      ..restore();
+    return;
+  }
+  final up = s.phase(_surf - 0.005, _surf + 0.03);
+  final back = s.phase(_surf + 0.045, _surf + 0.15, Curves.easeInOut);
+  final front = up * (1 - back);
+  if (front > 0.02) {
+    // A thin sheet of water over the sand, frothing at its edge.
+    s.canvas
+      ..drawPath(_tongue(s, front), s.fill(_shallow.shade(0.2)))
+      ..drawPath(_swashLine(s, front * 0.6), s.stroke(_foam, 0.035))
+      ..drawPath(_swashLine(s, front), s.stroke(_foam, 0.085));
+  }
+  // Spray thrown up where it breaks on the sand.
+  final fly = s.phase(_surf - 0.005, _surf + 0.05, Curves.linear);
+  if (fly > 0 && fly < 1) {
+    final drop = s.fill(_foam);
+    for (final (i, y) in const [4.05, 4.4, 4.75, 5.1, 5.45].indexed) {
+      final x = _shore(y) - _reach(y) * up;
+      for (var k = 0; k < 2; k++) {
+        final arc = math.sin(math.pi * fly) * (0.34 + 0.14 * ((i + k) % 3));
+        s.canvas.drawCircle(
+          s.at(x - 0.14 * fly * (k + 1), y + 0.1 * (k - 0.5), arc),
+          0.07 * (1 - 0.5 * fly) * s.unit,
+          drop,
+        );
+      }
+    }
+  }
+  if (back > 0) {
+    s.canvas.drawPath(
+      _swashLine(s, up, broken: true),
+      s.stroke(_foam, 0.055 + 0.03 * (1 - back)),
+    );
+  }
 }
 
 /// A line of foam [offset] tiles out from the shore; [broken] into dashes.
@@ -452,11 +669,15 @@ void _flats(IsoStage s) {
     s.patch(1.85, 3.98 + i * 0.21, 0.42, 0.17 * laid, _wood);
   }
 
-  // The parasol's shade, then the towel unrolling into it.
-  s.canvas.drawOval(
-    s.disc(1.55, 5.05, 0.003, 0.62 * s.phase(0.7, 0.86)),
-    s.fill(_sand.shade(-0.12)),
-  );
+  // The parasol's shade, once its pole is in and spreading as it opens,
+  // then the towel unrolling into it.
+  if (s.t >= 0.7) {
+    final open = _opened(s);
+    s.canvas.drawOval(
+      s.disc(1.55, 5.05, 0.003, 0.12 + 0.5 * open),
+      s.fill(_sand.shade(-0.12)),
+    );
+  }
   final unroll = s.phase(0.66, 0.84);
   for (var i = 0; i < 5; i++) {
     final from = i * 0.2;
@@ -482,6 +703,15 @@ void _flats(IsoStage s) {
         s.fill(_wall.shade(-0.06)),
       );
   }
+}
+
+/// How far the parasol is open: furled while the world assembles, popping
+/// open with the beach's beat. Read off the arrival's clock, from either
+/// timeline.
+double _opened(IsoStage s) {
+  var open = 0.0;
+  s.story(() => open = s.pop(_surf - 0.005, _surf + 0.05));
+  return open;
 }
 
 /// A golden starfish lying on the wet sand.
@@ -657,7 +887,14 @@ void _leaf(
 
 // -------------------------------------------------------------- the house --
 
+/// How warm the house's [i]th window is: they light up one after another,
+/// from the doors he steps out of up to the attic, as he comes out.
+double _warm(IsoStage s, int i) =>
+    s.phase(_home - 0.01 + i * 0.006, _home + 0.035 + i * 0.006);
+
 /// A window on a wall: a teal frame, the glass, and a glint across it.
+/// [warm] is how far it has lit up from inside: the glass goes from sky
+/// blue to lamplight, and the light spills onto the wall round it.
 void _window(
   IsoStage s,
   double plane,
@@ -666,14 +903,40 @@ void _window(
   double w,
   double h, {
   required bool left,
+  double warm = 0,
 }) {
-  void panel(double a, double b, double c, double d, Tint tint) => left
-      ? s.onLeft(plane, a, b, c, d, tint)
-      : s.onRight(plane, a, b, c, d, tint);
+  // A panel on the wall, [a] to [b] along it and [c] to [d] up.
+  Path pane(double a, double b, double c, double d) => left
+      ? s.face([
+          (x: a, y: plane, z: c),
+          (x: b, y: plane, z: c),
+          (x: b, y: plane, z: d),
+          (x: a, y: plane, z: d),
+        ])
+      : s.face([
+          (x: plane, y: a, z: c),
+          (x: plane, y: b, z: c),
+          (x: plane, y: b, z: d),
+          (x: plane, y: a, z: d),
+        ]);
+  Paint lit(Tint glass, Tint lamp) => warm <= 0
+      ? s.fill(glass)
+      : (Paint()
+          ..color = Color.lerp(s.colour(glass), s.colour(lamp), warm)!
+          ..isAntiAlias = true);
+
   const f = 0.045;
   final glass = left ? _glass : _glass.shade(-0.1);
-  panel(from - f, z - f, w + 2 * f, h + 2 * f, _trim);
-  panel(from, z, w, h, glass);
+  final lamp = left ? _lamplit : _lamplit.shade(-0.08);
+  if (warm > 0) {
+    s.glow(
+      left
+          ? s.at(from + w / 2, plane, z + h / 2)
+          : s.at(plane, from + w / 2, z + h / 2),
+      0.25 + 0.6 * math.max(w, h),
+      strength: 0.8 * warm,
+    );
+  }
   final glint = left
       ? s.face([
           (x: from + w * 0.2, y: plane, z: z),
@@ -687,7 +950,10 @@ void _window(
           (x: plane, y: from + w * 0.72, z: z + h),
           (x: plane, y: from + w * 0.5, z: z + h),
         ]);
-  s.canvas.drawPath(glint, s.fill(glass.shade(0.16)));
+  s.canvas
+    ..drawPath(pane(from - f, from + w + f, z - f, z + h + f), s.fill(_trim))
+    ..drawPath(pane(from, from + w, z, z + h), lit(glass, lamp))
+    ..drawPath(glint, lit(glass.shade(0.16), lamp.shade(0.1)));
 }
 
 /// Clapboard lines across both walls of a storey from [z], [h] tall.
@@ -712,7 +978,7 @@ void _siding(IsoStage s, double z, double h) {
 }
 
 /// The ground floor, [lift] tiles above where it will stand, with its deck,
-/// the front step, the cat and the man of the house.
+/// the front step and the man of the house.
 void _groundFloor(IsoStage s, double lift) {
   final z = lift;
   const front = _hy + _hd;
@@ -724,15 +990,44 @@ void _groundFloor(IsoStage s, double lift) {
     ..box(_hx - 0.05, _hy - 0.05, z, _hw + 0.1, _hd + 0.1, _plinth, _wetSand)
     ..box(_hx, _hy, z + _plinth, _hw, _hd, _storey, _wall);
   _siding(s, z + _plinth, _storey);
-  _window(s, front, _hx + 0.3, z + _plinth + 0.32, 0.55, 0.4, left: true);
+  _window(
+    s,
+    front,
+    _hx + 0.3,
+    z + _plinth + 0.32,
+    0.55,
+    0.4,
+    left: true,
+    warm: _warm(s, 2),
+  );
+  s.onLeft(front, _hx + 1.25, z + _plinth, 0.42, 0.7, _trim.shade(-0.04));
+  // The front door's light, and its step.
+  final door = _warm(s, 3);
+  s.canvas.drawPath(
+    s.face([
+      (x: _hx + 1.33, y: front, z: z + _plinth + 0.36),
+      (x: _hx + 1.59, y: front, z: z + _plinth + 0.36),
+      (x: _hx + 1.59, y: front, z: z + _plinth + 0.6),
+      (x: _hx + 1.33, y: front, z: z + _plinth + 0.6),
+    ]),
+    Paint()..color = Color.lerp(s.colour(_glass), s.colour(_lamplit), door)!,
+  );
   s
-    ..onLeft(front, _hx + 1.25, z + _plinth, 0.42, 0.7, _trim.shade(-0.04))
-    ..onLeft(front, _hx + 1.33, z + _plinth + 0.36, 0.26, 0.24, _glass)
     ..box(_hx + 1.2, front, z, 0.52, 0.16, 0.08, _wood.shade(-0.06))
-    // Sliding glass doors onto the deck.
+    // Sliding glass doors onto the deck, the first to light up behind him.
     ..onRight(side, _hy + 0.32, z + _plinth, 1.36, 0.74, _trim);
-  _window(s, side, _hy + 0.36, z + _plinth + 0.04, 0.62, 0.66, left: false);
-  _window(s, side, _hy + 1.02, z + _plinth + 0.04, 0.62, 0.66, left: false);
+  for (final (i, along) in [_hy + 0.36, _hy + 1.02].indexed) {
+    _window(
+      s,
+      side,
+      along,
+      z + _plinth + 0.04,
+      0.62,
+      0.66,
+      left: false,
+      warm: _warm(s, i),
+    );
+  }
   // The band between the floors, white on top while the upper floor is
   // still on its way down.
   s
@@ -756,7 +1051,6 @@ void _groundFloor(IsoStage s, double lift) {
 
   _deck(s, z);
   _surfboard(s, _hx + 1.05, front + 0.24, z);
-  _cat(s, _hx + 1.3, front + 0.06, z + 0.08, s.pop(0.84, 0.96));
 }
 
 /// The deck along the sea side, its railing, and him on it.
@@ -797,7 +1091,7 @@ void _deck(IsoStage s, double z) {
     for (var i = 0; i <= 3; i++)
       (x: x + 0.04 + (w - 0.08) * i / 3, y: y + 0.04),
   ]);
-  _resident(s, x + 0.36, y + 0.42, z + top, s.pop(0.8, 0.92));
+  _resident(s, x + 0.36, y + 0.42, z + top);
   run([
     for (var i = 0; i <= 2; i++) (x: x + w - 0.04, y: y + 0.04 + 0.3 * i),
   ]);
@@ -816,7 +1110,7 @@ void _deck(IsoStage s, double z) {
   // flutters as the roof lands, then flies still.
   final foot = s.at(x + w - 0.04, y + d - 0.04, z + top + high);
   final head = s.at(x + w - 0.04, y + d - 0.04, z + top + 0.96);
-  final settle = s.phase(0.7, 1);
+  final settle = s.phase(_roofLands, _roofLands + 0.2);
   final flutter = math.sin(settle * math.pi * 6) * (1 - settle);
   final u = s.unit;
   s.canvas
@@ -873,9 +1167,15 @@ void _lifebuoy(IsoStage s, double x, double y, double z) {
   }
 }
 
-/// The man of the house: steps out [appear] of the way and waves.
-void _resident(IsoStage s, double x, double y, double z, double appear) {
-  s.scaled(s.at(x, y, z), appear, () {
+/// The man of the house: he steps out of the doors behind him to stand at
+/// [at], [y], [z], and waves.
+void _resident(IsoStage s, double at, double y, double z) {
+  final appear = s.pop(_home - 0.015, _home + 0.035);
+  if (appear <= 0) return;
+  final x = at - 0.3 * (1 - s.phase(_home - 0.015, _home + 0.03));
+  // A touch larger than life, so that he reads on a phone as the one who
+  // lives here.
+  s.scaled(s.at(x, y, z), 1.2 * appear, () {
     s.canvas.drawOval(
       s.disc(x, y, z + 0.002, 0.1),
       s.fill(_wood.shade(-0.12)),
@@ -886,36 +1186,13 @@ void _resident(IsoStage s, double x, double y, double z, double appear) {
       ..sphere(x, y, z + 0.52, 0.085, _skin);
     s.canvas.drawOval(s.disc(x, y, z + 0.58, 0.13), s.fill(_straw));
     s.cylinder(x, y, z + 0.58, 0.065, 0.07, _straw.shade(0.06));
-    final wave = s.phase(0.86, 1);
+    final wave = s.phase(_home + 0.01, _home + 0.17);
     final angle =
         -math.pi * 0.36 + 0.5 * math.sin(wave * math.pi * 5) * (1 - wave);
     final shoulder = s.at(x + 0.06, y - 0.06, z + 0.39);
     final hand =
         shoulder + Offset(math.cos(angle), math.sin(angle)) * (0.26 * s.unit);
     s.canvas.drawLine(shoulder, hand, s.stroke(_skin, 0.045));
-  });
-}
-
-/// A ginger cat curled on the front step.
-void _cat(IsoStage s, double x, double y, double z, double appear) {
-  s.scaled(s.at(x, y, z), appear, () {
-    s
-      ..sphere(x, y, z + 0.07, 0.07, _ginger)
-      ..sphere(x + 0.06, y + 0.05, z + 0.15, 0.05, _ginger.shade(0.05));
-    final head = s.at(x + 0.06, y + 0.05, z + 0.15);
-    final u = s.unit;
-    final ears = Path()
-      ..moveTo(head.dx - 0.05 * u, head.dy - 0.02 * u)
-      ..lineTo(head.dx - 0.035 * u, head.dy - 0.09 * u)
-      ..lineTo(head.dx - 0.005 * u, head.dy - 0.04 * u)
-      ..moveTo(head.dx + 0.005 * u, head.dy - 0.04 * u)
-      ..lineTo(head.dx + 0.035 * u, head.dy - 0.09 * u)
-      ..lineTo(head.dx + 0.05 * u, head.dy - 0.02 * u);
-    final tail = s.at(x - 0.08, y - 0.02, z + 0.02);
-    final tip = s.at(x - 0.12, y + 0.1, z + 0.12);
-    s.canvas
-      ..drawPath(ears, s.fill(_ginger.shade(0.05)))
-      ..drawLine(tail, tip, s.stroke(_ginger.shade(-0.06), 0.03));
   });
 }
 
@@ -927,14 +1204,41 @@ void _upperFloor(IsoStage s, double lift) {
   const side = _hx + _hw;
   s.box(_hx, _hy, z, _hw, _hd, _upperH, _wall);
   _siding(s, z, _upperH);
-  for (final at in [_hx + 0.3, _hx + 1.25]) {
+  for (final (i, at) in [_hx + 0.3, _hx + 1.25].indexed) {
     s
       ..onLeft(front, at - 0.2, z + 0.22, 0.13, 0.48, _trim.shade(0.14))
       ..onLeft(front, at + 0.5, z + 0.22, 0.13, 0.48, _trim.shade(0.14));
-    _window(s, front, at, z + 0.24, 0.42, 0.44, left: true);
+    _window(
+      s,
+      front,
+      at,
+      z + 0.24,
+      0.42,
+      0.44,
+      left: true,
+      warm: _warm(s, 6 + i),
+    );
   }
-  _window(s, side, _hy + 0.35, z + 0.26, 0.4, 0.42, left: false);
-  _window(s, side, _hy + 1.0, z + 0.04, 0.5, 0.64, left: false);
+  _window(
+    s,
+    side,
+    _hy + 0.35,
+    z + 0.26,
+    0.4,
+    0.42,
+    left: false,
+    warm: _warm(s, 5),
+  );
+  _window(
+    s,
+    side,
+    _hy + 1.0,
+    z + 0.04,
+    0.5,
+    0.64,
+    left: false,
+    warm: _warm(s, 4),
+  );
 
   // The balcony.
   const bx = side;
@@ -1024,9 +1328,14 @@ void _roofOver(IsoStage s, double lift) {
         z: z + 0.3 + r * math.sin(i * math.pi / 8),
       ),
   ]);
+  final attic = _warm(s, 8);
+  s.glow(s.at(xm, front, z + 0.3), 0.4, strength: 0.8 * attic);
   s.canvas
     ..drawPath(ring(0.17), s.fill(_trim))
-    ..drawPath(ring(0.12), s.fill(_glass))
+    ..drawPath(
+      ring(0.12),
+      Paint()..color = Color.lerp(s.colour(_glass), s.colour(_lamplit), attic)!,
+    )
     ..drawPath(
       s.face([
         (x: x1, y: y0, z: z),
@@ -1051,8 +1360,8 @@ void _roofOver(IsoStage s, double lift) {
   // The pennant on the ridge: it flutters as the roof lands, then flies.
   final foot = s.at(xm, y1 - 0.1, ridge);
   final head = s.at(xm, y1 - 0.1, ridge + 0.5);
-  final flutter =
-      math.sin(s.phase(0.7, 1) * math.pi * 6) * (1 - s.phase(0.7, 1));
+  final settle = s.phase(_roofLands, _roofLands + 0.2);
+  final flutter = math.sin(settle * math.pi * 6) * (1 - settle);
   final u = s.unit;
   s.canvas
     ..drawLine(foot, head, s.stroke(_trim, 0.025))
@@ -1287,7 +1596,8 @@ void _ball(IsoStage s, double x, double y) {
     ..drawCircle(c, r * s.unit * 0.22, s.fill(_wall));
 }
 
-/// The striped parasol: the pole drops in, then the canopy pops open.
+/// The striped parasol: the pole drops in with its canopy furled, and the
+/// canopy pops open with the beach's beat.
 void _parasol(IsoStage s, double x, double y) {
   if (s.t < 0.6) return;
   final lift = s.drop(0.6, 0.74, from: 3);
@@ -1297,20 +1607,26 @@ void _parasol(IsoStage s, double x, double y) {
     s.at(x, y, lift + pole + 0.08),
     s.stroke(_wall.shade(-0.12), 0.03),
   );
-  final open = s.pop(0.7, 0.86);
-  if (open <= 0) return;
+  final open = _opened(s);
   const n = 10;
-  final r = 0.66 * open;
+  // Furled, the canopy hangs close round the top of the pole; open, it
+  // spreads wide and nearly flat.
+  final r = 0.66 * (0.1 + 0.9 * open);
   final apexZ = lift + pole + 0.1;
-  final rimZ = apexZ - 0.26 * open;
+  final rimZ = apexZ - (0.55 - 0.29 * open);
   final apex = s.at(x, y, apexZ);
   double angle(double i) => i * 2 * math.pi / n + 0.2;
+  double depth(int i) => math.cos(angle(i + 0.5)) + math.sin(angle(i + 0.5));
   Offset rim(double i, [double drop = 0]) => s.at(
     x + r * math.cos(angle(i)),
     y + r * math.sin(angle(i)),
     rimZ - drop,
   );
-  for (var i = 0; i < n; i++) {
+  // The far panels first, so that furled the near ones wrap over them.
+  final panels = [for (var i = 0; i < n; i++) i]
+    ..sort((a, b) => depth(a).compareTo(depth(b)));
+  final canopy = Path();
+  for (final i in panels) {
     final m = angle(i + 0.5);
     final tint = (i.isEven ? _pail.shade(0.14) : _wall).shade(
       0.04 - 0.1 * math.cos(m) - 0.02 * math.sin(m),
@@ -1319,16 +1635,46 @@ void _parasol(IsoStage s, double x, double y) {
     final b = rim(i + 1.0);
     final sag = rim(i + 0.5, 0.1 * open);
     final control = sag * 2 - (a + b) / 2;
-    s.canvas.drawPath(
-      Path()
-        ..moveTo(apex.dx, apex.dy)
-        ..lineTo(a.dx, a.dy)
-        ..quadraticBezierTo(control.dx, control.dy, b.dx, b.dy)
-        ..close(),
-      s.fill(tint),
-    );
+    final panel = Path()
+      ..moveTo(apex.dx, apex.dy)
+      ..lineTo(a.dx, a.dy)
+      ..quadraticBezierTo(control.dx, control.dy, b.dx, b.dy)
+      ..close();
+    s.canvas.drawPath(panel, s.fill(tint));
+    canopy.addPath(panel, Offset.zero);
   }
   s.sphere(x, y, apexZ + 0.03, 0.04, _wall);
+  _cat(s, x, y, canopy);
+}
+
+/// The set's black cat, hiding behind the parasol at [x], [y]: at rest
+/// only its ear tips show, pricked over the top of the canopy either side
+/// of its peak. It comes out to answer the learner by ducking under the
+/// canopy and out the front, onto the dry sand before the shade - clear of
+/// the pole and the sandcastle - and goes back the same way. [canopy] is
+/// the canopy's outline: it and the pole stand in front of the cat until
+/// it is out from under them.
+void _cat(IsoStage s, double x, double y, Path canopy) {
+  // Only once the canopy is open to hide behind.
+  if (_opened(s) < 1) return;
+  final foot = s.at(x, y);
+  final pole = Rect.fromLTRB(
+    foot.dx - 0.015 * s.unit,
+    canopy.getBounds().top,
+    foot.dx + 0.015 * s.unit,
+    foot.dy,
+  );
+  s.hidingCat(
+    // On the sand behind the pole, its ears under the canopy's peak.
+    hidden: s.at(x - 0.62, y - 0.66),
+    // In front of the canopy's rim, a little to the left of the pole.
+    out: s.at(x + 0.2, y + 0.72),
+    reveal: Path.combine(
+      PathOperation.difference,
+      Path()..addRect((Offset.zero & s.size).inflate(s.size.longestSide)),
+      Path.combine(PathOperation.union, canopy, Path()..addRect(pole)),
+    ),
+  );
 }
 
 /// A teal bucket with a handle.

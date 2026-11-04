@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: first light. A dawn sky from periwinkle down to peach, a
 // dewy meadow green, warm wood, the teal of still water, and one accent -
@@ -41,8 +43,6 @@ const _slate = Tint(222, 0.7, 0.2);
 const _dusk = Tint(246, 0.45, 0.16);
 const _beak = Tint(40, 0.85, 0.56);
 const _eye = Tint(232, 0.3, 0.02);
-const _flockTint = Tint(236, 0.8, 0);
-const _ginger = Tint(24, 0.7, 0.36);
 const _duck = Tint(36, 0.36, 0.88);
 const _mallard = Tint(156, 0.6, 0.28);
 const _egg = Tint(186, 0.55, 0.78);
@@ -52,108 +52,231 @@ const _petalRose = Tint(342, 0.75, 0.56);
 const _petalLilac = Tint(266, 0.8, 0.58);
 const _stem = Tint(110, 0.55, 0.26);
 
-/// "They were watching the birds this morning": a meadow island at sunrise.
-/// The sun comes up as the island rises, the oak and the trees grow, the
-/// bench, the birdhouse and the stone bird bath drop into place, two
-/// watchers pop onto the bench, and then the birds fly in one after another
-/// - a flock across the sun, robins onto the oak, one to the birdhouse roof,
-/// two to the bath (one of them splashing), two to the seeds on the lawn in
-/// front of it - wings folding as they land. Last, the binoculars come up, a
-/// finger points at the robins on the oak, and the cat by the bush settles
-/// down to watch them too.
+// Before the sun is up: a dusky sky, cool clouds and the last of the night
+// over everything, which lifts as the morning comes. Hues written below
+// zero turn through rose on their way to the morning's peach.
+const _nightTop = Tint(242, 0.5, 0.32);
+const _nightLow = Tint(-56, 0.32, 0.6);
+const _nightCloud = Tint(258, 0.2, 0.8);
+const _nightMist = Tint(-100, 0.24, 0.76);
+const _night = Tint(238, 0.6, 0.04);
+
+/// "They were watching the birds this morning", in two acts.
+///
+/// The meadow assembles first, in the last of the night: the island rises
+/// under a dusky sky, the oak and the trees grow, the bench, the birdhouse
+/// and the stone bird bath drop into place and two watchers pop onto the
+/// bench. Then the story, while the rest of the
+/// meadow sinks back: the sun comes up behind the trees and its light floods
+/// the island, then draws back to a pool between the oak and the bench
+/// (*morning*); three robins fly in one after another, folding their wings
+/// as they land on the oak - two along its long limb, one on top of its
+/// crown (*birds*); and the two on the bench watch them, binoculars up and a
+/// finger pointing, in the light (*watching*).
+const birdsScene = SceneScript(
+  paintBirds,
+  cues: [
+    Cue('morning', _sunrise),
+    Cue('birds', _birdsIn),
+    Cue('watching', _watching),
+  ],
+  sounds: [
+    SceneSound(Sound.chirp, _firstLands),
+    SceneSound(Sound.chirp, _secondLands),
+    SceneSound(Sound.chirp, _thirdLands),
+  ],
+);
+
+// The story's beats, on the arrival's clock. The morning comes first and
+// brings the birds; only once they are in is there anything to watch.
+const _sunrise = 0.41;
+const _birdsIn = 0.54;
+const _watching = 0.76;
+
+// The robins land one after another, a chirp each.
+const double _firstLands = _birdsIn + 0.06;
+const double _secondLands = _birdsIn + 0.11;
+const double _thirdLands = _birdsIn + 0.16;
+
+/// Paints [birdsScene].
 void paintBirds(IsoStage s) {
-  s.sky(_skyTop, _skyLow);
+  s.setting(() {
+    // How far the morning has come: the sky, the clouds and the hills warm
+    // from night to day as the sun comes up.
+    late final double dawn;
+    s.story(() => dawn = s.phase(_sunrise - 0.02, _sunrise + 0.1));
+    Tint warm(Tint night, Tint day) => _toward(night, day, dawn);
 
-  // The sun climbs out of the morning haze while the island rises.
-  final climb = s.phase(0, 0.7);
-  s
-    ..sun(_sunX, _sunY + 0.14 * (1 - climb), _sunSize, _sunBody, _sunHalo)
-    // Morning mist lifting off the hills, half behind the far ridge.
-    ..cloud(s.screen(0.12, 0.72), 4, _mist)
-    ..cloud(s.screen(0.88, 0.71), 3.4, _mist)
-    ..ridge(0.74, 1.5, _farHill, seed: 3)
-    ..ridge(0.84, 1.05, _nearHill, seed: 6);
-
-  final drift = s.phase(0.1, 0.95);
-  s
-    ..cloud(s.screen(0.16 - 0.45 * (1 - drift), 0.31), 2.6, _cloud)
-    ..cloud(s.screen(0.95 + 0.45 * (1 - drift), 0.44), 1.9, _cloud)
-    ..cloud(s.screen(0.08 - 0.3 * (1 - drift), 0.58), 1.4, _cloud);
-
-  _flock(s);
-
-  s.rising(0, 0.42, () {
-    s.island(grass: _grass, earth: _earth, stone: _stone);
-    _ground(s);
-
-    // The back corner stays low, under the record button; the trees stand
-    // along the back right edge, beside the birdhouse.
+    s.sky(warm(_nightTop, _skyTop), warm(_nightLow, _skyLow));
+    s.story(() => _sun(s));
     s
-      ..bush(0.9, 1, _leaves, size: 1.2, grow: s.pop(0.3, 0.48))
-      ..pine(
-        2.55,
-        0.55,
-        needles: _needles,
-        bark: _bark,
-        ground: _grass,
-        h: 1.65,
-        grow: s.pop(0.34, 0.54),
-      )
-      ..tree(
-        3.4,
-        0.35,
-        leaves: _leavesLight,
-        bark: _bark,
-        ground: _grass,
-        h: 1.6,
-        grow: s.pop(0.38, 0.58),
-      );
-    _flowers(s, 0, 5);
+      // Morning mist lifting off the hills, half behind the far ridge.
+      ..cloud(s.screen(0.12, 0.72), 4, warm(_nightMist, _mist))
+      ..cloud(s.screen(0.88, 0.71), 3.4, warm(_nightMist, _mist))
+      ..ridge(0.74, 1.5, warm(_farHill.shade(-0.1), _farHill), seed: 3)
+      ..ridge(0.84, 1.05, warm(_nearHill.shade(-0.1), _nearHill), seed: 6);
 
-    _oak(s, s.pop(0.32, 0.58));
-    _landedOn(s, _Perch.oak);
-
+    final drift = s.phase(0.1, 0.95);
+    final cloud = warm(_nightCloud, _cloud);
     s
-      ..dropping(0.36, 0.58, (lift) => _bench(s, lift))
-      ..pine(
-        5.3,
-        0.35,
-        needles: _needles.shade(0.04),
-        bark: _bark,
-        ground: _grass,
-        grow: s.pop(0.4, 0.6),
-      );
-    _reeds(s);
-    s.dropping(0.42, 0.64, (lift) => _birdhouse(s, lift));
-    _landedOn(s, _Perch.birdhouse);
-    _flowers(s, 5, 7.6);
+      ..cloud(s.screen(0.16 - 0.45 * (1 - drift), 0.31), 2.6, cloud)
+      ..cloud(s.screen(0.06 - 0.3 * (1 - drift), 0.58), 1.4, cloud)
+      ..cloud(s.screen(0.97 + 0.4 * (1 - drift), 0.6), 1.6, cloud);
 
-    _ducks(s);
-    s
-      ..bush(2.75, 5.35, _leaves, grow: s.pop(0.5, 0.68))
-      ..bush(5.7, 2.45, _leavesLight, size: 0.95, grow: s.pop(0.52, 0.7));
-    _flowers(s, 7.6, 8.8);
-    _cat(s, s.pop(0.8, 0.95));
+    s.rising(0, 0.42, () {
+      s.island(grass: _grass, earth: _earth, stone: _stone);
+      _ground(s);
+      s.story(() {
+        // The sun's first light washes over the whole meadow and draws back
+        // to the stage: the ground between the oak and the bench, where the
+        // birds will land and the two sit watching. The morning is the key
+        // light here, so the stage is lit when the sun is up, and stays lit
+        // - brightest on the bench as they watch.
+        s
+          ..pool(3, 3, 3.6, strength: 0.75 * _beat(s, _sunrise, 0))
+          ..pool(3.1, 2.9, 1.9, strength: s.storyLight * dawn)
+          ..pool(
+            4,
+            2.55,
+            1.05,
+            strength: s.storyLight * _beat(s, _watching, 0.5),
+          );
+      });
 
-    s.dropping(0.44, 0.68, (lift) => _bath(s, lift));
-    _landedOn(s, _Perch.bath);
-    _flowers(s, 8.8, 10.3);
-    _landedOn(s, _Perch.lawn);
-    _flowers(s, 10.3, double.infinity);
+      // The back corner stays low, under the record button; the trees stand
+      // along the back right edge, beside the birdhouse.
+      s
+        ..bush(0.9, 1, _leaves, size: 1.2, grow: s.pop(0.3, 0.48))
+        ..pine(
+          2.55,
+          0.55,
+          needles: _needles,
+          bark: _bark,
+          ground: _grass,
+          h: 1.65,
+          grow: s.pop(0.34, 0.54),
+        )
+        ..tree(
+          3.4,
+          0.35,
+          leaves: _leavesLight,
+          bark: _bark,
+          ground: _grass,
+          h: 1.6,
+          grow: s.pop(0.38, 0.58),
+        );
+      _flowers(s, 0, 5);
 
-    // Whoever is still on the wing flies over everything else.
-    for (final bird in _arrivals) {
-      _flying(s, bird);
-    }
+      _oak(s, s.pop(0.32, 0.58));
+      s.story(() {
+        // The limb lights up as the robins land on it.
+        final limb = _limb(0.67);
+        s.glow(
+          s.at(limb.x, limb.y, limb.z + 0.35),
+          1.3,
+          strength: s.storyLight * _beat(s, _birdsIn + 0.04, 0.4),
+        );
+        _perched(s);
+      });
+
+      s
+        ..dropping(0.36, 0.58, (lift) => _bench(s, lift))
+        ..pine(
+          5.3,
+          0.35,
+          needles: _needles.shade(0.04),
+          bark: _bark,
+          ground: _grass,
+          grow: s.pop(0.4, 0.6),
+        );
+      _reeds(s);
+      s.dropping(0.42, 0.64, (lift) => _birdhouse(s, lift));
+      _flowers(s, 5, 7.6);
+
+      _ducks(s);
+      s
+        ..bush(2.75, 5.35, _leaves, grow: s.pop(0.5, 0.68))
+        ..bush(5.7, 2.45, _leavesLight, size: 0.95, grow: s.pop(0.52, 0.7));
+      _flowers(s, 7.6, 8.8);
+
+      s.dropping(0.44, 0.68, (lift) => _bath(s, lift));
+      _cat(s);
+      _flowers(s, 8.8, double.infinity);
+
+      s.story(() {
+        // Whoever is still on the wing flies over everything else.
+        for (final bird in _arrivals) {
+          _flying(s, bird);
+        }
+
+        // The last of the night lies over the meadow while it assembles,
+        // and lifts as the sun comes up.
+        final night = 1 - dawn;
+        if (night > 0) {
+          s.canvas.drawPaint(
+            Paint()..color = s.colour(_night).withValues(alpha: 0.3 * night),
+          );
+        }
+
+        // The rest of the meadow steps back while the birds and the two
+        // watching them have the stage.
+        s.spotlight(s.at(2.9, 2.9, 1), strength: s.storyLight);
+      });
+    });
   });
 }
 
+/// A flash of light for the beat at [at]: up as it happens, then easing
+/// back to [stays] of itself.
+double _beat(IsoStage s, double at, double stays) =>
+    s.phase(at - 0.005, at + 0.05) *
+    (1 - (1 - stays) * s.phase(at + 0.09, at + 0.24));
+
+/// [night] turned [p] of the way to [day].
+Tint _toward(Tint night, Tint day, double p) => Tint(
+  night.hue + (day.hue - night.hue) * p,
+  night.saturation + (day.saturation - night.saturation) * p,
+  night.level + (day.level - night.level) * p,
+);
+
 // ----------------------------------------------------------------- the sun --
 
-/// Where the sun comes to rest, in screen fractions, and how big it is.
+/// Where the sun comes to rest, in screen fractions - under the card, over
+/// the trees on the right - and how big it is.
 const _sunX = 0.8;
-const _sunY = 0.16;
-const _sunSize = 0.7;
+const _sunY = 0.365;
+const _sunSize = 0.62;
+
+/// The sun coming up at [_sunrise]: it rises from behind the trees on the
+/// island's far edge, in a bloom of warm light that settles to a glow round
+/// it. Not there at all before.
+void _sun(IsoStage s) {
+  final rise = s.phase(_sunrise - 0.015, _sunrise + 0.1, Curves.easeOutQuad);
+  if (rise <= 0) return;
+  final rest = s.screen(_sunX, _sunY);
+  // Where the island's back right edge crosses under the sun: the sun's
+  // horizon, which it starts just below, out of sight behind the meadow.
+  final edge = ((rest.dx - s.origin.dx) / (s.at(1, 0).dx - s.origin.dx)).clamp(
+    0.0,
+    IsoStage.span,
+  );
+  final below = s.at(edge, 0).dy + _sunSize * s.unit * 1.2;
+  final start = Offset(rest.dx, math.max(below, rest.dy + 2 * s.unit));
+  final at = Offset.lerp(start, rest, rise)!;
+  final bloom =
+      s.phase(_sunrise - 0.01, _sunrise + 0.05) *
+      (1 - 0.5 * s.phase(_sunrise + 0.1, _sunrise + 0.3));
+  s
+    ..glow(at, 2.8, strength: bloom)
+    ..sun(
+      at.dx / s.size.width,
+      at.dy / s.size.height,
+      _sunSize,
+      _sunBody,
+      _sunHalo,
+      rings: 2,
+    );
+}
 
 // ------------------------------------------------------------------ ground --
 
@@ -275,11 +398,15 @@ const _oakX = 0.85;
 const _oakY = 4.1;
 
 /// Where along the oak's long limb, `0` at the trunk and `1` at its tip.
+/// Long enough for two robins, reaching out towards the bench.
 V3 _limb(double along) => (
-  x: _oakX + 1.4 * along,
-  y: _oakY - 0.26 * along,
-  z: 0.85 + 0.56 * along,
+  x: _oakX + 2 * along,
+  y: _oakY - 0.5 * along,
+  z: 0.85 + 0.62 * along,
 );
+
+/// The top of the oak's crown, where a robin can stand against the sky.
+const V3 _crown = (x: _oakX - 0.1, y: _oakY + 0.05, z: 3.06);
 
 /// The big oak behind the pond, [grow] of the way grown: a long bare limb
 /// reaching out over the meadow below the crown for the robins to land on,
@@ -292,17 +419,11 @@ void _oak(IsoStage s, double grow) {
       ..cylinder(_oakX, _oakY, 0, 0.13, 1.3, _bark);
     final base = _limb(0);
     final tip = _limb(1);
-    final fork = _limb(0.55);
     s.canvas
       ..drawLine(
         s.at(base.x, base.y, base.z),
         s.at(tip.x, tip.y, tip.z),
         s.stroke(_bark, 0.07),
-      )
-      ..drawLine(
-        s.at(fork.x, fork.y, fork.z),
-        s.at(fork.x + 0.15, fork.y - 0.3, fork.z + 0.45),
-        s.stroke(_bark, 0.035),
       )
       ..drawLine(
         s.at(_oakX, _oakY, 0.95),
@@ -395,25 +516,46 @@ void _bench(IsoStage s, double lift) {
     ..box(x, y, z + _seat + 0.37, w, 0.07, 0.12, _wood);
 
   // Both look the same way, at the robins on the oak: the one on the left
-  // points them out, the one on the right has the binoculars.
+  // points them out, the one on the right has the binoculars. They sit
+  // waiting through the dawn; once the birds are in, they watch.
   final arrive = s.pop(0.54, 0.7);
+  late final double raise;
+  late final double glint;
+  s.story(() {
+    raise = s.phase(_watching - 0.01, _watching + 0.05);
+    // The lenses catch the morning sun as they come up to the eyes.
+    glint =
+        s.phase(_watching + 0.03, _watching + 0.06) *
+        (1 - 0.7 * s.phase(_watching + 0.08, _watching + 0.16));
+  });
   const sit = y + 0.27;
   for (final (at, binoculars) in const [(3.65, false), (4.4, true)]) {
     s.scaled(s.at(at, sit, z + _seat), arrive, () {
-      _watcher(s, at, sit, z + _seat, binoculars: binoculars);
+      _watcher(
+        s,
+        at,
+        sit,
+        z + _seat,
+        binoculars: binoculars,
+        raise: raise,
+        glint: glint,
+      );
     });
   }
 }
 
 /// A watcher sitting at [x], [y] on a seat at [seat], facing the meadow and
-/// looking at the oak: one in a bucket hat raising binoculars, the other
-/// pointing.
+/// looking at the oak: one in a bucket hat with binoculars, the other with
+/// a finger to point, [raise] of the way from their lap to the robins, the
+/// lenses catching the light by [glint].
 void _watcher(
   IsoStage s,
   double x,
   double y,
   double seat, {
   required bool binoculars,
+  required double raise,
+  required double glint,
 }) {
   final u = s.unit;
   final jacket = binoculars ? _mustard : _teal;
@@ -434,9 +576,8 @@ void _watcher(
         s.fill(_khaki.shade(-0.1)),
       )
       ..cylinder(x, y, head + 0.09, 0.13, 0.1, _khaki);
-    // Up to the eyes once the birds are in, aimed left at the oak.
+    // Up to the eyes, aimed left at the oak.
     final shoulder = s.at(x, y + 0.1, seat + 0.5);
-    final raise = s.phase(0.76, 0.9);
     final face = s.at(x, y, head).translate(-0.21 * u, 0.03 * u);
     final lap = s.at(x, y + 0.32, seat + 0.24);
     final c = Offset.lerp(lap, face, raise)!;
@@ -444,16 +585,16 @@ void _watcher(
     final back = c.translate(0.04 * u, -0.06 * u);
     s.canvas
       ..drawLine(shoulder, c + tilt, s.stroke(jacket.shade(-0.06), 0.075))
-      ..drawLine(back - tilt, back + tilt, s.stroke(_lens.shade(0.06), 0.095))
-      ..drawLine(c - tilt, c + tilt, s.stroke(_lens, 0.1));
+      ..drawLine(back - tilt, back + tilt, s.stroke(_lens.shade(0.06), 0.11))
+      ..drawLine(c - tilt, c + tilt, s.stroke(_lens, 0.12));
+    s.glow(c - tilt, 0.45, strength: glint);
   } else {
     // Pointing up and to the left, at the robins on the oak's long limb.
     final shoulder = s.at(x, y + 0.12, seat + 0.5);
-    final raise = s.phase(0.84, 0.96);
     final rest = s.at(x + 0.08, y + 0.3, seat + 0.22);
-    final robins = _limb(0.7);
+    final robins = _limb(0.62);
     final toward = s.at(robins.x, robins.y, robins.z) - shoulder;
-    final point = shoulder + toward / toward.distance * (0.5 * u);
+    final point = shoulder + toward / toward.distance * (0.58 * u);
     final hand = Offset.lerp(rest, point, raise)!;
     s.canvas
       ..drawLine(shoulder, hand, s.stroke(jacket.shade(-0.06), 0.075))
@@ -539,112 +680,42 @@ void _bath(IsoStage s, double lift) {
     );
 }
 
-/// The ring on the water round the bathing robin, whose waterline is at
-/// [at], [grow] of the way out. Drawn before the robin, so it hides the
-/// back of the ring.
-void _ripple(IsoStage s, Offset at, double grow) {
-  if (grow <= 0) return;
-  s.canvas.drawOval(
-    Rect.fromCenter(
-      center: at,
-      width: 0.85 * s.unit * grow,
-      height: 0.28 * s.unit * grow,
-    ),
-    s.stroke(_water.shade(0.3), 0.025),
+/// The black cat, behind the bird bath - the scene's easter egg (see
+/// `HidingCat`). It crouches on the lawn behind the bath, the tips of its
+/// ears showing over the far rim, and when it has a reason it hops up to
+/// sit on the rim - watching the birds too - and drops back down.
+void _cat(IsoStage s) {
+  // Only once the bath has dropped into place in front of it.
+  if (s.t < 0.7) return;
+  // A little left of the middle of the far rim, clear of the flowers
+  // behind the bath and of the bench.
+  const round = 5 * math.pi / 4 - 0.55;
+  final rim = s.at(
+    _bathX + _bowl * math.cos(round),
+    _bathY + _bowl * math.sin(round),
+    _bathRim,
   );
-}
-
-/// The drops the bathing robin throws up, [grow] of the way out from its
-/// waterline at [at].
-void _drops(IsoStage s, Offset at, double grow) {
-  if (grow <= 0) return;
-  final u = s.unit;
-  for (final (dx, dy, r) in const [
-    (-0.54, -0.16, 0.045),
-    (-0.66, -0.4, 0.04),
-    (-0.54, -0.64, 0.035),
-    (-0.3, -0.78, 0.03),
-  ]) {
-    s.canvas.drawCircle(
-      at.translate(dx * u * grow, dy * u * grow),
-      r * u * grow,
-      s.fill(_water.shade(0.26)),
-    );
-  }
-}
-
-// --------------------------------------------------------------------- cat --
-
-/// A ginger cat by the bush on the right, its eye on the robins at the seed
-/// too: it pops up, [grow] of the way, and curls its tail round its paws.
-void _cat(IsoStage s, double grow) {
-  if (grow <= 0) return;
-  const x = 5.5;
-  const y = 3.35;
-  final foot = s.at(x, y);
-  final curl = s.phase(0.86, 1);
-  s
-    ..shadow(x, y, 0.36, _grass)
-    ..scaled(foot, grow, () {
-      final k = 0.22 * s.unit;
-      final tail = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.38
-        ..strokeCap = StrokeCap.round
-        ..color = s.colour(_ginger.shade(-0.08));
-      final ear = s.fill(_ginger.shade(-0.04));
-      s.canvas
-        ..save()
-        ..translate(foot.dx, foot.dy)
-        // Facing left, toward the bath.
-        ..scale(-k, k)
-        ..drawPath(
-          Path()
-            ..moveTo(-0.5, -0.25)
-            ..quadraticBezierTo(
-              -1.9,
-              -0.3 + 0.2 * curl,
-              -1.7 + 2.4 * curl,
-              -1.6 + 1.45 * curl,
-            ),
-          tail,
-        )
-        ..drawOval(
-          Rect.fromCenter(
-            center: const Offset(0, -1),
-            width: 1.7,
-            height: 2,
+  // Whatever of it is not behind the bowl.
+  final bowl = s.disc(_bathX, _bathY, _bathRim, _bowl);
+  final everywhere = (Offset.zero & s.size).inflate(s.size.longestSide);
+  s.hidingCat(
+    hidden: rim.translate(0, 0.58 * s.unit),
+    out: rim.translate(0, 0.03 * s.unit),
+    reveal: Path.combine(
+      PathOperation.difference,
+      Path()..addRect(everywhere),
+      Path()
+        ..addOval(bowl)
+        ..addRect(
+          Rect.fromLTRB(
+            bowl.left,
+            bowl.center.dy,
+            bowl.right,
+            everywhere.bottom,
           ),
-          s.fill(_ginger),
-        )
-        ..drawOval(
-          Rect.fromCenter(
-            center: const Offset(0.35, -0.95),
-            width: 0.7,
-            height: 1.3,
-          ),
-          s.fill(_ginger.shade(0.14)),
-        )
-        ..drawPath(
-          Path()
-            ..moveTo(-0.15, -2.6)
-            ..lineTo(-0.05, -3.4)
-            ..lineTo(0.42, -2.9)
-            ..close(),
-          ear,
-        )
-        ..drawPath(
-          Path()
-            ..moveTo(0.55, -2.95)
-            ..lineTo(1.05, -3.35)
-            ..lineTo(1.1, -2.55)
-            ..close(),
-          ear,
-        )
-        ..drawCircle(const Offset(0.4, -2.3), 0.72, s.fill(_ginger.shade(0.05)))
-        ..drawCircle(const Offset(0.82, -2.42), 0.11, s.fill(_eye))
-        ..restore();
-    });
+        ),
+    ),
+  );
 }
 
 // ------------------------------------------------------------------- ducks --
@@ -730,167 +801,97 @@ void _duckAt(IsoStage s, Offset at, double facing) {
 /// for the island, since the robins are what the sentence is about.
 const _robinSize = 0.31;
 
-enum _Perch { oak, birdhouse, bath, lawn }
+/// How long a robin takes to fold its wings once it has landed.
+const _fold = 0.035;
 
 /// A robin that flies in from [from] (screen fractions) between [begin] and
-/// [end] and lands on [spot], settling into its pose: [spread] wings and
-/// [flap] for one that bathes, [peck] (radians, head down) for one that
-/// drinks or eats. One that is [bathing] sits in the water up to its
-/// breast, [spot] being its waterline.
+/// [lands], and lands on [spot].
 class _Arrival {
   const _Arrival({
-    required this.at,
     required this.spot,
     required this.from,
     required this.begin,
-    required this.end,
+    required this.lands,
     required this.plume,
-    this.spread = 0,
-    this.flap = 0,
-    this.peck = 0,
-    this.bathing = false,
   });
 
-  final _Perch at;
   final V3 spot;
   final Offset from;
   final double begin;
-  final double end;
+  final double lands;
   final Tint plume;
-  final double spread;
-  final double flap;
-  final double peck;
-  final bool bathing;
 }
 
-/// How far below the water a bathing robin's feet are, in tiles.
-const _soak = 0.26;
-
-/// The birds that land, in the order they arrive: each flies in from `from`
-/// along an arc and lands on `spot`.
+/// The robins, in the order they arrive, one at a time so each landing
+/// reads: the first is on the end of the limb on the *birds* beat, the
+/// second crosses the new sun to the top of the crown, the third takes the
+/// limb behind the first.
 final List<_Arrival> _arrivals = [
   _Arrival(
-    at: _Perch.oak,
-    spot: _limb(0.97),
+    spot: _limb(0.92),
     from: const Offset(-0.1, 0.42),
-    begin: 0.5,
-    end: 0.74,
+    begin: _birdsIn - 0.015,
+    lands: _firstLands,
     plume: _slate,
+  ),
+  // Lighter than the others: it stands against the sky, not the leaves.
+  _Arrival(
+    spot: _crown,
+    from: const Offset(1.1, 0.46),
+    begin: _birdsIn + 0.02,
+    lands: _secondLands,
+    plume: _slate.shade(0.14),
   ),
   _Arrival(
-    at: _Perch.oak,
     spot: _limb(0.42),
-    from: const Offset(-0.12, 0.62),
-    begin: 0.54,
-    end: 0.78,
+    from: const Offset(-0.1, 0.52),
+    begin: _birdsIn + 0.09,
+    lands: _thirdLands,
     plume: _dusk,
-  ),
-  const _Arrival(
-    at: _Perch.oak,
-    spot: (x: _oakX - 0.45, y: _oakY + 0.68, z: 1.18),
-    from: Offset(0.3, 0.3),
-    begin: 0.58,
-    end: 0.82,
-    plume: _slate,
-  ),
-  const _Arrival(
-    at: _Perch.birdhouse,
-    spot: (x: _houseX, y: _houseY + 0.02, z: _houseEaves + 0.3),
-    from: Offset(1.12, 0.38),
-    begin: 0.61,
-    end: 0.85,
-    plume: _dusk,
-  ),
-  // One drinks from the far rim, one splashes in the bowl.
-  const _Arrival(
-    at: _Perch.bath,
-    spot: (x: _bathX + 0.47, y: _bathY - 0.47, z: _bathRim),
-    from: Offset(1.1, 0.5),
-    begin: 0.64,
-    end: 0.88,
-    plume: _dusk,
-    peck: 0.42,
-  ),
-  const _Arrival(
-    at: _Perch.bath,
-    spot: (x: _bathX - 0.22, y: _bathY + 0.14, z: _bathRim),
-    from: Offset(1.12, 0.44),
-    begin: 0.67,
-    end: 0.9,
-    plume: _slate,
-    spread: 0.75,
-    flap: 0.55,
-    bathing: true,
-  ),
-  // Two at the seed on the lawn in front of the bath, facing each other.
-  const _Arrival(
-    at: _Perch.lawn,
-    spot: (x: 4.78, y: 5.6, z: 0),
-    from: Offset(-0.12, 0.66),
-    begin: 0.7,
-    end: 0.94,
-    plume: _slate,
-  ),
-  const _Arrival(
-    at: _Perch.lawn,
-    spot: (x: 5.6, y: 4.82, z: 0),
-    from: Offset(1.14, 0.7),
-    begin: 0.73,
-    end: 0.97,
-    plume: _dusk,
-    peck: 0.6,
   ),
 ];
 
 /// Where [bird]'s feet are once it has landed.
-Offset _feet(IsoStage s, _Arrival bird) => s.at(
-  bird.spot.x,
-  bird.spot.y,
-  bird.spot.z - (bird.bathing ? _soak : 0),
-);
+Offset _feet(IsoStage s, _Arrival bird) =>
+    s.at(bird.spot.x, bird.spot.y, bird.spot.z);
 
-/// The birds that land on [perch], once they have.
-void _landedOn(IsoStage s, _Perch perch) {
+/// The robins that have landed on the oak, folding their wings.
+void _perched(IsoStage s) {
   for (final bird in _arrivals) {
-    if (bird.at != perch || s.t < bird.end) continue;
+    if (s.t < bird.lands) continue;
     final feet = _feet(s, bird);
-    final waterline = s.at(bird.spot.x, bird.spot.y, bird.spot.z);
-    final splash = s.pop(bird.end, bird.end + 0.06);
-    if (bird.bathing) _ripple(s, waterline, splash);
+    final open = 0.7 * (1 - s.phase(bird.lands, bird.lands + _fold));
     _songbird(
       s,
       feet,
       _facing(s, bird, feet),
       bird.plume,
-      spread: bird.spread,
-      flap: bird.flap,
-      peck: bird.peck,
-      waterline: bird.bathing ? waterline.dy : null,
+      spread: open,
+      flap: open,
     );
-    if (bird.bathing) _drops(s, waterline, splash);
   }
 }
 
 /// [bird] on the wing, while it is.
 void _flying(IsoStage s, _Arrival bird) {
-  if (s.t <= bird.begin || s.t >= bird.end) return;
-  final p = s.phase(bird.begin, bird.end, Curves.easeOutSine);
+  if (s.t <= bird.begin || s.t >= bird.lands) return;
+  final p = s.phase(bird.begin, bird.lands, Curves.easeOutSine);
   final feet = _feet(s, bird);
   final start = s.screen(bird.from.dx, bird.from.dy);
   final via = Offset.lerp(start, feet, 0.5)!.translate(0, -2.4 * s.unit);
-  // Wings beat, slower as it glides in, and settle in the last stretch.
-  final open = 1 - s.phase(bird.end - (bird.end - bird.begin) * 0.2, bird.end);
-  final beat = math.sin((s.t - bird.begin) * math.pi * 2 * 14);
-  final waterline = s.at(bird.spot.x, bird.spot.y, bird.spot.z).dy;
+  // Wings beat, then in the last stretch spread and lift to brake.
+  final flare = s.phase(
+    bird.lands - (bird.lands - bird.begin) * 0.3,
+    bird.lands,
+  );
+  final beat = math.sin((s.t - bird.begin) * math.pi * 2 * 32);
   _songbird(
     s,
     _bezier(start, via, feet, p),
     _facing(s, bird, feet),
     bird.plume,
-    spread: open + (1 - open) * bird.spread,
-    flap: (0.25 + 0.85 * beat * (1 - 0.6 * p)) * open + (1 - open) * bird.flap,
-    peck: (1 - open) * bird.peck,
-    waterline: bird.bathing ? waterline : null,
+    spread: 1 - 0.3 * flare,
+    flap: (0.25 + 0.85 * beat) * (1 - flare) + 0.7 * flare,
   );
 }
 
@@ -904,9 +905,7 @@ Offset _bezier(Offset a, Offset b, Offset c, double p) {
 
 /// A robin standing on [feet] (a screen point), looking right if [facing]
 /// is `1`, left if `-1`. [spread] opens the wings from folded (`0`) to in
-/// flight (`1`); [flap] is their angle, in radians, up positive; [peck]
-/// tips it forward from the hips, head down, by that many radians. Below
-/// [waterline] (a screen y), if there is one, nothing of it shows.
+/// flight (`1`); [flap] is their angle, in radians, up positive.
 void _songbird(
   IsoStage s,
   Offset feet,
@@ -914,8 +913,6 @@ void _songbird(
   Tint plume, {
   double spread = 0,
   double flap = 0,
-  double peck = 0,
-  double? waterline,
 }) {
   final b = _robinSize * s.unit;
   const folded = Offset(-1.15, -0.75);
@@ -940,18 +937,8 @@ void _songbird(
     )
     ..close();
 
-  final c = s.canvas..save();
-  if (waterline != null) {
-    c.clipRect(
-      Rect.fromLTRB(
-        feet.dx - 4 * b,
-        math.min(feet.dy - 4 * b, waterline),
-        feet.dx + 4 * b,
-        waterline,
-      ),
-    );
-  }
-  c
+  final c = s.canvas
+    ..save()
     ..translate(feet.dx, feet.dy)
     ..scale(facing * b, b);
   if (spread < 0.6) {
@@ -962,12 +949,6 @@ void _songbird(
     c
       ..drawLine(const Offset(-0.1, -0.5), Offset.zero, legs)
       ..drawLine(const Offset(0.25, -0.5), const Offset(0.3, 0), legs);
-  }
-  if (peck != 0) {
-    c
-      ..translate(0.1, -0.5)
-      ..rotate(peck)
-      ..translate(-0.1, 0.5);
   }
   if (spread > 0.05) c.drawPath(wing(tip(0.8, 1.5)), s.fill(plume.shade(-0.1)));
   c
@@ -1004,54 +985,4 @@ void _songbird(
     ..drawCircle(const Offset(1.05, -1.85), 0.11, s.fill(_eye))
     ..drawPath(wing(tip(1, 2.1)), s.fill(plume.shade(-0.04)))
     ..restore();
-}
-
-// ------------------------------------------------------------------- flock --
-
-/// Five birds far off, crossing the sun: they beat in from the left one
-/// after another and glide to a stop in a loose V across the lower half of
-/// the sun, under the subtitle and above the buttons on a phone. Placed in
-/// tiles from where the sun comes to rest, so they cross it on any screen.
-void _flock(IsoStage s) {
-  const birds = [
-    (dx: 1.25, dy: 0.98, span: 0.7, begin: 0.4),
-    (dx: 0.5, dy: 0.76, span: 0.62, begin: 0.43),
-    (dx: 0.56, dy: 1.24, span: 0.64, begin: 0.45),
-    (dx: -0.24, dy: 0.62, span: 0.56, begin: 0.48),
-    (dx: -0.14, dy: 1.44, span: 0.58, begin: 0.5),
-  ];
-  final sun = s.screen(_sunX, _sunY);
-  final w = s.size.width;
-  final h = s.size.height;
-  for (final bird in birds) {
-    final p = s.phase(bird.begin, bird.begin + 0.4, Curves.easeOutQuad);
-    if (p <= 0) continue;
-    final rest = sun.translate(bird.dx * s.unit, bird.dy * s.unit);
-    final at = _bezier(
-      rest.translate(-0.8 * w, 0.16 * h),
-      rest.translate(-0.35 * w, -0.06 * h),
-      rest,
-      p,
-    );
-    final beat = math.sin((s.t - bird.begin) * math.pi * 2 * 7) * (1 - p);
-    final half = bird.span * s.unit / 2;
-    final lift = half * (0.1 + 0.6 * beat);
-    s.canvas.drawPath(
-      Path()
-        ..moveTo(at.dx - half, at.dy - lift)
-        ..quadraticBezierTo(
-          at.dx - half * 0.45,
-          at.dy - half * 0.4 - lift * 0.3,
-          at.dx,
-          at.dy,
-        )
-        ..quadraticBezierTo(
-          at.dx + half * 0.45,
-          at.dy - half * 0.4 - lift * 0.3,
-          at.dx + half,
-          at.dy - lift,
-        ),
-      s.stroke(_flockTint, 0.085),
-    );
-  }
 }

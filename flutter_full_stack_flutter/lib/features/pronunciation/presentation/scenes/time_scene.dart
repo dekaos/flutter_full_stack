@@ -3,7 +3,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/animation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 
 // The palette: a town square in the afternoon. Sandstone and verdigris for
 // the clock tower, cool cobbles, pastel fronts and terracotta roofs around
@@ -51,11 +53,13 @@ const _coat = Tint(205, 0.55, 0.42);
 const _skin = Tint(26, 0.5, 0.74);
 const _hat = Tint(12, 0.45, 0.3);
 const _feathers = Tint(220, 0.22, 0.93);
-const _ginger = Tint(28, 0.7, 0.56);
 const _petalPink = Tint(338, 0.75, 0.56);
 const _petalGold = Tint(44, 0.9, 0.68);
 const _petalLilac = Tint(272, 0.55, 0.6);
 const _stem = Tint(110, 0.45, 0.3);
+// The sitter's thought: a pale bubble with a crisp cool rim.
+const _bubble = Tint(214, 0.3, 1);
+const _rim = Tint(222, 0.3, 0.42);
 
 // The clock tower's footprint: its back corner and its width. The square
 // is a round plaza centred on it, laid out as a dial, 12 at the back.
@@ -65,11 +69,9 @@ const _tw = 1.5;
 const double _mid = _tx + _tw / 2;
 const _plaza = 2.42;
 
-// When each turn of the minute hand ends - when the clock strikes, and one
-// more lamp lights - and how long a turn and a chime take.
-const _strikes = [0.66, 0.76, 0.86];
-const _turn = 0.1;
-const _chime = 0.12;
+// Where the sitter sits, on the bench at seven.
+const _sitX = 2.73;
+const _sitY = 4.58;
 
 typedef _House = ({
   double x,
@@ -148,131 +150,197 @@ const _houses = <_House>[
   ),
 ];
 
-/// "I think this is the third time": a town square under a clock tower. The
-/// island rises, the houses drop in around the square and the tower lands in
-/// the middle of it; then the minute hand goes round three times, the hour
-/// hand following it from twelve to three, and each time it comes up to
-/// twelve the clock strikes and one more lamp on the square lights. The
-/// tower's shadow, the hand of the sundial the square is laid out as, points
-/// at three as well.
+/// "I think this is the third time", in two acts.
+///
+/// The town square assembles first: the island rises, the houses drop in
+/// round the square, the clock tower lands in the middle of it showing
+/// twelve, and someone sits down on the bench. Then the story, in a pool of
+/// light at the foot of the tower while the rest of the town sinks back: a
+/// thought bubble rises over the sitter (*think*), the clock faces light up
+/// and the minute hand sets off (*time*), and it goes round three times.
+/// Each time it comes up to twelve the bell strikes, one more lamp round the
+/// square lights and one more stroke is counted in the bubble; the third
+/// strike rings out widest and the gold III on the square glows with it
+/// (*third*). At rest it is three o'clock: three lamps lit, III in the
+/// bubble and III on the square, where the tower's shadow points.
+const timeScene = SceneScript(
+  paintTime,
+  cues: [
+    Cue('think', _thinks),
+    Cue('time', _lights),
+    Cue('third', _third),
+  ],
+  sounds: [
+    SceneSound(Sound.clockBell, _first),
+    SceneSound(Sound.clockBell, _second),
+    SceneSound(Sound.clockBell, _third),
+  ],
+);
+
+// The story's beats, on the arrival's clock. The sitter starts to count,
+// the clock lights and sets off, and it strikes three times a beat apart -
+// even, so the count can be followed - the third strike the sentence's.
+const _thinks = 0.4;
+const _lights = 0.5;
+const _beat = 0.1;
+const double _first = _lights + _beat;
+const double _third = _first + 2 * _beat;
+const double _second = _first + _beat;
+const _strikes = <double>[_first, _second, _third];
+
+// How long the minute hand takes over each turn after the first: it rests
+// on twelve for the rest of the beat while the bell strikes.
+const _turn = 0.08;
+
+/// Paints [timeScene].
 void paintTime(IsoStage s) {
-  s.sky(_skyTop, _skyLow);
+  s.setting(() {
+    s.sky(_skyTop, _skyLow);
 
-  // The afternoon sun slides down its arc to the upper left, where the light
-  // on every block comes from: above the headline, and its halo wholly on
-  // screen on a phone, a phone on its side and a tablet alike.
-  final arc = s.phase(0.05, 0.7);
-  s
-    ..sun(
-      0.3 - 0.15 * arc,
-      0.046 + 0.012 * math.sin(arc * math.pi / 2),
-      0.5,
-      _sunBody,
-      _sunHalo,
-      rings: 2,
-    )
-    ..ridge(0.77, 1.4, _farHill, seed: 3);
-  _skyline(s);
-  s.ridge(0.86, 1, _nearHill, seed: 7);
-
-  // Clouds drift in and stop where no control sits on them: behind the
-  // card, and in the calm band above the headline.
-  final drift = s.phase(0.2, 1);
-  s
-    ..cloud(s.screen(0.88 + 0.3 * (1 - drift), 0.065), 1.4, _cloud)
-    ..cloud(s.screen(0.8 + 0.4 * (1 - drift), 0.355), 2.4, _cloud)
-    ..cloud(s.screen(0.58 + 0.6 * (1 - drift), 0.45), 1.6, _cloud);
-
-  s.rising(0, 0.42, () {
-    s.island(grass: _grass, earth: _earth, stone: _stone);
-    _square(s);
-    s.faded(s.phase(0.56, 0.68), () => _gnomon(s));
-
-    // The houses drop in turn, alternating sides, back first. The last of
-    // each row keeps a shop, with an awning.
-    const order = [0, 3, 1, 4, 2, 5];
-    for (var i = 0; i < _houses.length; i++) {
-      final at = 0.12 + order.indexOf(i) * 0.035;
-      s.dropping(
-        at,
-        at + 0.26,
-        (lift) => _house(s, _houses[i], lift, shop: i == 2 || i == 5),
-      );
-    }
-
+    // The afternoon sun slides down its arc to the upper left, where the
+    // light on every block comes from: above the headline, and its halo
+    // wholly on screen on a phone, a phone on its side and a tablet alike.
+    final arc = s.phase(0.05, 0.7);
     s
-      ..tree(
-        0.75,
-        5.25,
-        leaves: _leavesLight,
-        bark: _bark,
-        ground: _grass,
-        h: 1.8,
-        grow: s.pop(0.4, 0.6),
+      ..sun(
+        0.3 - 0.15 * arc,
+        0.046 + 0.012 * math.sin(arc * math.pi / 2),
+        0.5,
+        _sunBody,
+        _sunHalo,
+        rings: 2,
       )
-      ..pine(
-        5.25,
-        0.75,
-        needles: _leaves,
-        bark: _bark,
-        ground: _grass,
-        h: 2.1,
-        grow: s.pop(0.44, 0.64),
-      );
+      ..ridge(0.77, 1.4, _farHill, seed: 3);
+    _skyline(s);
+    s.ridge(0.86, 1, _nearHill, seed: 7);
 
-    s.dropping(0.3, 0.62, (lift) => _tower(s, lift), from: 9);
-    _cat(s, _tx + 0.3, _ty + _tw + 0.1, s.pop(0.62, 0.74));
-
-    // Someone on a bench at seven, a dove come down on its back; bushes at
-    // the edges.
+    // Clouds drift in and stop where no control sits on them: behind the
+    // card, and in the calm band above the headline.
+    final drift = s.phase(0.2, 1);
     s
-      ..dropping(0.5, 0.7, (lift) => _bench(s, 2.3, 4.45, lift))
-      ..bush(1.7, 5.65, _leavesLight, size: 0.8, grow: s.pop(0.58, 0.76))
-      ..bush(5.55, 2.75, _leaves, size: 0.8, grow: s.pop(0.6, 0.78));
-    _dove(s, 2.42, 4.475, s.phase(0.66, 0.86), 0, z: 0.47);
-    _sitter(s, 2.73, 4.58, s.pop(0.64, 0.76));
+      ..cloud(s.screen(0.88 + 0.3 * (1 - drift), 0.065), 1.4, _cloud)
+      ..cloud(s.screen(0.8 + 0.4 * (1 - drift), 0.355), 2.4, _cloud)
+      ..cloud(s.screen(0.58 + 0.6 * (1 - drift), 0.45), 1.6, _cloud);
 
-    // The lamps: at eight on the square, and out on the grass to the right
-    // and at the front, clear of the III. Each lights as the clock strikes.
-    final lit = [
-      for (final at in _strikes) s.phase(at, at + 0.1, Curves.linear),
-    ];
-    _lamp(s, 5.6, 1.8, s.pop(0.53, 0.67), lit[1]);
-    _lamp(s, 2.4, 5.47, s.pop(0.5, 0.64), lit[0]);
+    s.rising(0, 0.42, () {
+      s.island(grass: _grass, earth: _earth, stone: _stone);
+      _square(s);
+      // The stage: the foot of the tower and the sitter. Lit once
+      // the story starts, and it stays lit.
+      s.pool(_mid + 0.5, _mid + 0.5, 2.3, strength: s.storyLight);
+      s.faded(s.phase(0.56, 0.68), () => _gnomon(s));
 
-    // A low planter of flowers at half past four, clear of the shadow.
-    final planter = _onDial(4.7, 1.75);
-    s.dropping(0.48, 0.68, (lift) => _planter(s, planter.x, planter.y, lift));
+      // The houses drop in turn, alternating sides, back first. The last of
+      // each row keeps a shop, with an awning.
+      const order = [0, 3, 1, 4, 2, 5];
+      for (var i = 0; i < _houses.length; i++) {
+        final at = 0.12 + order.indexOf(i) * 0.035;
+        s.dropping(
+          at,
+          at + 0.26,
+          (lift) => _house(s, _houses[i], lift, shop: i == 2 || i == 5),
+        );
+      }
 
-    _dove(s, 3.35, 5.05, s.phase(0.6, 0.8), 2.6);
-    _dove(s, 3.55, 5.45, s.phase(0.72, 0.92), 1.9);
+      s
+        ..tree(
+          0.75,
+          5.25,
+          leaves: _leavesLight,
+          bark: _bark,
+          ground: _grass,
+          h: 1.8,
+          grow: s.pop(0.4, 0.6),
+        )
+        ..pine(
+          5.25,
+          0.75,
+          needles: _leaves,
+          bark: _bark,
+          ground: _grass,
+          h: 2.1,
+          grow: s.pop(0.44, 0.64),
+        );
 
-    // Flowers along the front edges and round the foot of the third lamp.
-    const beds = [
-      (x: 1.2, y: 5.6, tint: _petalPink),
-      (x: 5.6, y: 1.2, tint: _petalLilac),
-      (x: 2.6, y: 5.75, tint: _petalGold),
-      (x: 5.8, y: 2.2, tint: _petalPink),
-      (x: 3.5, y: 5.8, tint: _petalLilac),
-      (x: 5.8, y: 3.5, tint: _petalGold),
-      (x: 4.95, y: 5.45, tint: _petalPink),
-      (x: 5.5, y: 4.95, tint: _petalLilac),
-      (x: 5.15, y: 5.8, tint: _petalGold),
-    ];
-    for (var i = 0; i < beds.length; i++) {
-      final bed = beds[i];
-      s.flower(
-        bed.x,
-        bed.y,
-        bed.tint,
-        _stem,
-        grow: s.pop(0.62 + i * 0.025, 0.8 + i * 0.02),
+      s.dropping(0.3, 0.62, (lift) => _tower(s, lift), from: 7);
+
+      // Someone on a bench at seven, a dove come down on its back; bushes
+      // at the edges.
+      s
+        ..dropping(0.5, 0.7, (lift) => _bench(s, 2.3, 4.45, lift))
+        ..bush(1.7, 5.65, _leavesLight, size: 0.8, grow: s.pop(0.58, 0.76))
+        ..bush(5.55, 2.75, _leaves, size: 0.8, grow: s.pop(0.6, 0.78));
+      _dove(s, 2.42, 4.475, s.phase(0.66, 0.86), 0, z: 0.47);
+      _sitter(s, _sitX, _sitY, s.pop(0.64, 0.76));
+
+      // The lamps round the square, out on the grass clear of the III: they
+      // stand up with the rest of the square and light one a strike, left,
+      // front, then right - the third beside the III.
+      _lamp(s, 5.6, 1.8, s.pop(0.53, 0.67), 2);
+      _lamp(s, 2.15, 5.6, s.pop(0.5, 0.64), 0);
+
+      // A low planter of flowers at half past four, clear of the shadow.
+      final planter = _onDial(4.7, 1.75);
+      s.dropping(
+        0.48,
+        0.68,
+        (lift) => _planter(s, planter.x, planter.y, lift),
       );
-    }
-    _lamp(s, 5.45, 5.6, s.pop(0.56, 0.7), lit[2]);
-    s.flower(5.8, 5.75, _petalPink, _stem, grow: s.pop(0.8, 0.98));
+      _cat(s, planter.x, planter.y);
+
+      _dove(s, 3.35, 5.05, s.phase(0.6, 0.8), 2.6);
+      _dove(s, 3.55, 5.45, s.phase(0.72, 0.92), 1.9);
+
+      // Flowers along the front edges and round the foot of the front lamp.
+      const beds = [
+        (x: 1.2, y: 5.6, tint: _petalPink),
+        (x: 5.6, y: 1.2, tint: _petalLilac),
+        (x: 2.6, y: 5.75, tint: _petalGold),
+        (x: 5.8, y: 2.2, tint: _petalPink),
+        (x: 3.5, y: 5.8, tint: _petalLilac),
+        (x: 5.8, y: 3.5, tint: _petalGold),
+        (x: 4.95, y: 5.45, tint: _petalPink),
+        (x: 5.5, y: 4.95, tint: _petalLilac),
+        (x: 5.15, y: 5.8, tint: _petalGold),
+      ];
+      for (var i = 0; i < beds.length; i++) {
+        final bed = beds[i];
+        s.flower(
+          bed.x,
+          bed.y,
+          bed.tint,
+          _stem,
+          grow: s.pop(0.62 + i * 0.025, 0.8 + i * 0.025),
+        );
+      }
+      _lamp(s, 5.45, 5.6, s.pop(0.56, 0.7), 1);
+      s.flower(5.8, 5.75, _petalPink, _stem, grow: s.pop(0.8, 0.98));
+
+      // Over everything near it, the sitter's thought.
+      _thought(s, _sitX, _sitY);
+
+      // The rest of the town steps back while the clock, its lamps and the
+      // one counting have the stage.
+      s.spotlight(
+        s.at(_mid + 0.3, _mid + 0.3, 1.2),
+        radius: 2.8,
+        strength: s.storyLight,
+      );
+    });
   });
 }
+
+/// The flare of a light switched on at [at]: up to `1` at once, held a
+/// moment, then easing back to nothing - what stays on is the light's own.
+/// Even the third strike's has died away by the time the scene is at rest.
+double _flare(
+  IsoStage s,
+  double at, {
+  double hold = 0.04,
+  double fade = 0.14,
+}) =>
+    s.phase(at - 0.005, at + 0.025) *
+    (1 - s.phase(at + hold, at + hold + fade, Curves.easeInOut));
 
 /// The point on the plaza's dial at [hour], [r] tiles from the middle: 12
 /// at the back corner, 3 to the right, 6 at the front, 9 to the left.
@@ -311,10 +379,20 @@ void _square(IsoStage s) {
 
 /// The gold III inlaid at three, its strokes set one after another from
 /// [at]. They stand upright to the viewer, as the numerals on a clock face
-/// do: along the line from twelve to six, one behind another going out.
+/// do: along the line from twelve to six, one behind another going out. On
+/// the third strike they light up, and stay glowing.
 void _three(IsoStage s, double at) {
+  final lit = s.story(() => s.phase(_third - 0.005, _third + 0.03));
+  final flare = s.story(() => _flare(s, _third));
+  final centre = _onDial(3, 2.04);
+  s.glow(
+    s.at(centre.x, centre.y, 0.05),
+    0.75 + 0.35 * flare,
+    strength: lit * (0.55 + 0.45 * flare),
+  );
   // Half a stroke's length, in x and in y alike: the 12-6 line is diagonal.
   const half = 0.21 / math.sqrt2;
+  final ink = s.stroke(_gold.shade(0.24 * lit), 0.07 + 0.015 * lit);
   for (var k = 0; k < 3; k++) {
     final from = at + k * 0.02;
     final grow = s.pop(from, from + 0.08);
@@ -324,7 +402,7 @@ void _three(IsoStage s, double at) {
     s.canvas.drawLine(
       s.at(p.x - d, p.y - d, 0.01),
       s.at(p.x + d, p.y + d, 0.01),
-      s.stroke(_gold, 0.07),
+      ink,
     );
   }
 }
@@ -423,14 +501,47 @@ void _pyramid(
     );
 }
 
-/// How far round the minute hand has gone, in turns: three of them, each
-/// winding up and settling like a wound spring.
+/// How far round the minute hand has gone, in turns, on the arrival's
+/// clock: three of them, each ending on twelve at a strike. The first sets
+/// off as the clock lights; the others wait on twelve while the bell rings.
 double _turns(IsoStage s) {
   var turns = 0.0;
-  for (final end in _strikes) {
-    turns += s.phase(end - _turn, end, Curves.easeInOutCubic);
+  for (final (i, end) in _strikes.indexed) {
+    final from = i == 0 ? _lights + 0.01 : end - _turn;
+    turns += s.phase(from, end, Curves.easeInOut);
   }
   return turns;
+}
+
+/// How hard the clock is striking, on the arrival's clock: a jolt at each
+/// strike that dies away within its beat, the third the hardest.
+double _ding(IsoStage s) {
+  var ding = 0.0;
+  for (final at in _strikes) {
+    ding += _flare(s, at, hold: 0.01, fade: 0.07) * (at == _third ? 1 : 0.6);
+  }
+  return ding;
+}
+
+/// The strikes ringing out of the belfry at [c], on the arrival's clock:
+/// arcs of sound spreading to either side - two for a strike, three wider
+/// ones for the third - thinning out within their beat.
+void _chimes(IsoStage s, Offset c) {
+  for (final at in _strikes) {
+    final third = at == _third;
+    final p = s.phase(at - 0.005, at + (third ? 0.13 : 0.09), Curves.linear);
+    if (p <= 0 || p >= 1) continue;
+    final spread = Curves.easeOut.transform(p);
+    final sound = s.stroke(_gold, (third ? 0.1 : 0.075) * (1 - p));
+    for (var k = 0; k < (third ? 3 : 2); k++) {
+      final r = 1.45 + (third ? 1.6 : 1.05) * spread - k * 0.3;
+      if (r < 1.45) continue;
+      final rect = Rect.fromCircle(center: c, radius: r * s.unit);
+      for (final side in [0.0, math.pi]) {
+        s.canvas.drawArc(rect, side - 0.55, 1.1, false, sound);
+      }
+    }
+  }
 }
 
 /// The clock tower, [lift] tiles above where it will stand.
@@ -476,43 +587,40 @@ void _tower(IsoStage s, double lift) {
     );
   });
 
-  // The clock on both faces, and the chimes going out from them.
-  final turns = _turns(s);
-  final glow = s.pop(0.5, 0.62);
-  for (final left in [true, false]) {
-    final cx = left ? x + w / 2 : x + w;
-    final cy = left ? y + w : y + w / 2;
-    _onWall(s, cx, cy, z + 1.5, left: left, () {
-      _clock(s, turns, glow);
-      for (final at in _strikes) {
-        // A ring and its echo: they spread quickly and thin out steadily,
-        // so each strike stays in sight for most of its beat.
-        final spread = s.phase(at, at + _chime, Curves.easeOut);
-        final fade = 1 - s.phase(at, at + _chime, Curves.linear);
-        if (spread > 0 && fade > 0) {
-          s.canvas
-            ..drawCircle(
-              Offset.zero,
-              0.62 + 1.3 * spread,
-              _line(s, _gold, 0.13 * fade),
-            )
-            ..drawCircle(
-              Offset.zero,
-              0.62 + 0.75 * spread,
-              _line(s, _glow, 0.07 * fade),
-            );
-        }
-      }
-    });
-  }
+  // The clock on both faces - the story's own: dull until the clock lights
+  // up and sets off, then a glow round each face that jolts brighter at
+  // every strike.
+  s.story(() {
+    final turns = _turns(s);
+    final lit = s.phase(_lights - 0.01, _lights + 0.035);
+    final flash = math.max(_flare(s, _lights, hold: 0.03, fade: 0.1), _ding(s));
+    for (final left in [true, false]) {
+      final cx = left ? x + w / 2 : x + w;
+      final cy = left ? y + w : y + w / 2;
+      s.glow(
+        s.at(cx, cy, z + 1.5),
+        1 + 0.45 * flash,
+        strength: lit * (0.45 + 0.55 * flash),
+      );
+    }
+    for (final left in [true, false]) {
+      final cx = left ? x + w / 2 : x + w;
+      final cy = left ? y + w : y + w / 2;
+      _onWall(s, cx, cy, z + 1.5, left: left, () => _clock(s, turns, lit));
+    }
+  });
 
   // The belfry: an open arch on each face with the bell hanging in it,
   // swinging when the clock strikes.
-  var swing = 0.0;
-  for (final at in _strikes) {
-    final p = s.phase(at - 0.02, at + 0.1, Curves.linear);
-    swing += math.sin(p * math.pi * 3) * 0.45 * (1 - p);
-  }
+  final swing = s.story(() {
+    var swing = 0.0;
+    for (final at in _strikes) {
+      final p = s.phase(at - 0.02, at + 0.09, Curves.linear);
+      swing +=
+          math.sin(p * math.pi * 3) * (at == _third ? 0.6 : 0.45) * (1 - p);
+    }
+    return swing;
+  });
   s.box(x + 0.06, y + 0.06, z + 2.44, w - 0.12, w - 0.12, 0.86, _sand);
   for (final left in [true, false]) {
     final cx = left ? x + w / 2 : x + w - 0.06;
@@ -555,11 +663,13 @@ void _tower(IsoStage s, double lift) {
     0.08 * s.unit,
     s.fill(_gold),
   );
+  s.story(() => _chimes(s, s.at(x + w / 2, y + w / 2, z + 2.9)));
 }
 
 /// One clock face, drawn in its wall's plane: [turns] of the minute hand
-/// since twelve o'clock, the hour hand following at a twelfth of the pace.
-void _clock(IsoStage s, double turns, double glow) {
+/// since twelve o'clock, the hour hand following at a twelfth of the pace,
+/// [lit] of the way lit up.
+void _clock(IsoStage s, double turns, double lit) {
   const r = 0.56;
   final c = s.canvas;
   // A verdigris plaque behind the dial, as on a real clock tower: it frames
@@ -572,12 +682,18 @@ void _clock(IsoStage s, double turns, double glow) {
   c
     ..drawRRect(plaque, s.fill(_copper.shade(-0.08)))
     ..drawRRect(plaque, _line(s, _copper.shade(0.14), 0.03));
-  if (glow > 0) {
-    c.drawCircle(Offset.zero, r * (1 + 0.06 * glow), s.fill(_glow));
+  if (lit > 0) {
+    c.drawCircle(Offset.zero, r * (1 + 0.08 * lit), s.fill(_glow));
   }
+  // Unlit, the dial is a shade of parchment; lit, it is the brightest thing
+  // on the tower.
   c
-    ..drawCircle(Offset.zero, r, s.fill(_gold))
-    ..drawCircle(Offset.zero, r * 0.85, s.fill(_dial));
+    ..drawCircle(Offset.zero, r, s.fill(_gold.shade(0.1 * lit)))
+    ..drawCircle(
+      Offset.zero,
+      r * 0.85,
+      s.fill(Tint(_dial.hue, 0.2 + 0.3 * lit, 0.66 + 0.32 * lit)),
+    );
   for (var i = 0; i < 12; i++) {
     final a = i * math.pi / 6;
     final dir = Offset(math.sin(a), math.cos(a));
@@ -658,26 +774,35 @@ void _house(IsoStage s, _House house, double lift, {bool shop = false}) {
   s.roof(x, y, z + h, w, d, 0.62, roof, alongX: facesX);
 }
 
-/// A globe street lamp at [x], [y], [grow] of the way up, [lit] of the way
-/// on.
-void _lamp(IsoStage s, double x, double y, double grow, double lit) {
+/// A globe street lamp at [x], [y], [grow] of the way up, that lights at the
+/// [count]th strike of the clock (from `0`): the globe flares, throwing a
+/// little pool of light round its foot, and settles to a small steady halo.
+/// The third flares widest.
+void _lamp(IsoStage s, double x, double y, double grow, int count) {
   if (grow <= 0) return;
   const h = 1.15;
+  final at = _strikes[count];
+  final big = at == _third ? 1.3 : 1.0;
+  final on = s.story(() => s.phase(at - 0.005, at + 0.015));
+  final flare = s.story(() => _flare(s, at));
+  final globe = s.at(x, y, h + 0.15);
   s.scaled(s.at(x, y), grow, () {
     s
+      ..pool(x, y, 0.85 * big, strength: on * (0.45 + 0.35 * flare))
       ..shadow(x, y, 0.16, _cobble)
       ..cylinder(x, y, 0, 0.075, 0.12, _iron)
       ..cylinder(x, y, 0, 0.032, h, _iron)
       ..cylinder(x, y, h - 0.03, 0.07, 0.05, _iron);
-    // On, the globe flares and settles to a small steady halo.
-    if (lit > 0) {
-      s.canvas.drawCircle(
-        s.at(x, y, h + 0.15),
-        (0.22 + 0.3 * math.sin(lit * math.pi)) * s.unit,
-        s.fill(_glow.shade(0.08)),
-      );
+    if (on > 0) {
+      s
+        ..glow(globe, (0.7 + 0.4 * flare) * big, strength: 0.5 + 0.5 * flare)
+        ..canvas.drawCircle(
+          globe,
+          (0.2 + 0.14 * flare * big) * s.unit,
+          s.fill(_glow.shade(0.08)),
+        );
     }
-    s.sphere(x, y, h + 0.15, 0.13, lit > 0 ? _glow : _lampOff);
+    s.sphere(x, y, h + 0.15, 0.13, on > 0 ? _glow : _lampOff);
     s.canvas.drawCircle(s.at(x, y, h + 0.31), 0.035 * s.unit, s.fill(_iron));
   });
 }
@@ -693,29 +818,105 @@ void _bench(IsoStage s, double x, double y, double lift) {
     ..box(x, y, z + 0.25, long, 0.05, 0.22, _wood);
 }
 
+// The planter at half past four: how wide and tall it is, and what grows in
+// it - tufts of leaves and blooms round its middle, back to front. The cat
+// that hides in it is cut round them.
+const _potR = 0.36;
+const _potH = 0.3;
+typedef _Tuft = ({
+  double dx,
+  double dy,
+  double dz,
+  double r,
+  Tint tint,
+  double shade,
+});
+typedef _Bloom = ({double dx, double dy, Tint tint});
+const _tufts = <_Tuft>[
+  (dx: -0.12, dy: -0.08, dz: 0.06, r: 0.16, tint: _leaves, shade: 0.0),
+  (dx: 0.1, dy: -0.1, dz: 0.06, r: 0.15, tint: _leaves, shade: 0.04),
+  (dx: -0.04, dy: 0.12, dz: 0.08, r: 0.17, tint: _leavesLight, shade: 0.0),
+  (dx: 0.14, dy: 0.1, dz: 0.05, r: 0.13, tint: _leavesLight, shade: -0.04),
+];
+const _blooms = <_Bloom>[
+  (dx: -0.14, dy: -0.04, tint: _petalPink),
+  (dx: 0.1, dy: -0.12, tint: _petalGold),
+  (dx: 0.0, dy: 0.16, tint: _petalLilac),
+  (dx: 0.18, dy: 0.12, tint: _petalPink),
+];
+const _bloomZ = 0.22;
+const _bloomR = 0.07;
+
 /// A low round stone planter of flowers, [lift] tiles above its place.
 void _planter(IsoStage s, double x, double y, double lift) {
-  final top = lift + 0.3;
+  final top = lift + _potH;
   if (lift < 0.05) s.shadow(x, y, 0.44, _cobble);
-  s
-    ..cylinder(x, y, lift, 0.36, 0.3, _curb.shade(-0.04))
-    ..sphere(x - 0.12, y - 0.08, top + 0.06, 0.16, _leaves)
-    ..sphere(x + 0.1, y - 0.1, top + 0.06, 0.15, _leaves.shade(0.04))
-    ..sphere(x - 0.04, y + 0.12, top + 0.08, 0.17, _leavesLight)
-    ..sphere(x + 0.14, y + 0.1, top + 0.05, 0.13, _leavesLight.shade(-0.04));
-  const blooms = [
-    (dx: -0.14, dy: -0.04, tint: _petalPink),
-    (dx: 0.1, dy: -0.12, tint: _petalGold),
-    (dx: 0, dy: 0.16, tint: _petalLilac),
-    (dx: 0.18, dy: 0.12, tint: _petalPink),
-  ];
-  for (final bloom in blooms) {
+  s.cylinder(x, y, lift, _potR, _potH, _curb.shade(-0.04));
+  for (final tuft in _tufts) {
+    s.sphere(
+      x + tuft.dx,
+      y + tuft.dy,
+      top + tuft.dz,
+      tuft.r,
+      tuft.tint.shade(tuft.shade),
+    );
+  }
+  for (final bloom in _blooms) {
     s.canvas.drawCircle(
-      s.at(x + bloom.dx, y + bloom.dy, top + 0.22),
-      0.07 * s.unit,
+      s.at(x + bloom.dx, y + bloom.dy, top + _bloomZ),
+      _bloomR * s.unit,
       s.fill(bloom.tint),
     );
   }
+}
+
+/// The black cat, in the planter at [x], [y] - the scene's easter egg (see
+/// `HidingCat`). It lies low among the flowers, only its ear tips showing
+/// between the blooms, and when it has a reason it sits up out of them -
+/// head, chest and paws over the leaves - and sinks back down.
+void _cat(IsoStage s, double x, double y) {
+  // Only once the planter has landed.
+  if (s.t < 0.68) return;
+  final base = s.disc(x, y, 0, _potR);
+  final lid = s.disc(x, y, _potH, _potR);
+  // All of the planter is in front of it: the pot, then every tuft and
+  // bloom, so it comes up from behind the leaves with their bumps against
+  // its chest. Clockwise, as the ovals added to it are, so that they add up.
+  final cover = Path()
+    ..moveTo(lid.left, lid.center.dy)
+    ..arcTo(lid, math.pi, math.pi, false)
+    ..lineTo(base.right, base.center.dy)
+    ..arcTo(base, 0, math.pi, false)
+    ..close();
+  for (final tuft in _tufts) {
+    cover.addOval(
+      Rect.fromCircle(
+        center: s.at(x + tuft.dx, y + tuft.dy, _potH + tuft.dz),
+        // As the kit draws a ball.
+        radius: tuft.r * s.unit * 1.15,
+      ),
+    );
+  }
+  for (final bloom in _blooms) {
+    cover.addOval(
+      Rect.fromCircle(
+        center: s.at(x + bloom.dx, y + bloom.dy, _potH + _bloomZ),
+        radius: _bloomR * s.unit,
+      ),
+    );
+  }
+  // Low, its ear tips just over the leaves; up, sitting tall in the pot,
+  // its haunches still behind them.
+  final feet = s.at(x, y);
+  s.hidingCat(
+    hidden: feet.translate(0, -0.03 * s.unit),
+    out: feet.translate(0, -0.46 * s.unit),
+    reveal: Path.combine(
+      PathOperation.difference,
+      s.beyond(base.centerLeft, base.centerRight, of: lid.center),
+      cover,
+    ),
+  );
 }
 
 /// A far-off town along the hills, its windows lit: silhouettes standing on
@@ -807,35 +1008,66 @@ void _sitter(IsoStage s, double x, double y, double grow) {
   });
 }
 
-/// A cat on the tower step, [grow] of the way there.
-void _cat(IsoStage s, double x, double y, double grow) {
-  if (grow <= 0) return;
-  const z = 0.18;
-  s.scaled(s.at(x, y, z), grow, () {
-    final ear = s.at(x, y, z + 0.32);
+/// The thought of the sitter at [x], [y], on the arrival's clock: a bubble
+/// rising from their head at [_thinks], with the clock's strikes counted in
+/// it, a stroke at a time.
+void _thought(IsoStage s, double x, double y) {
+  s.story(() {
     final u = s.unit;
-    final root = s.at(x + 0.07, y - 0.07, z + 0.04);
-    final bend = s.at(x + 0.28, y - 0.14, z);
-    final tip = s.at(x + 0.22, y - 0.18, z + 0.24);
-    s.canvas.drawPath(
-      Path()
-        ..moveTo(root.dx, root.dy)
-        ..quadraticBezierTo(bend.dx, bend.dy, tip.dx, tip.dy),
-      s.stroke(_ginger.shade(-0.06), 0.04),
-    );
-    s
-      ..sphere(x, y, z + 0.09, 0.1, _ginger)
-      ..sphere(x - 0.02, y + 0.02, z + 0.24, 0.07, _ginger.shade(0.05));
-    s.canvas.drawPath(
-      Path()
-        ..moveTo(ear.dx - 0.08 * u, ear.dy)
-        ..lineTo(ear.dx - 0.06 * u, ear.dy - 0.09 * u)
-        ..lineTo(ear.dx - 0.01 * u, ear.dy - 0.01 * u)
-        ..moveTo(ear.dx + 0.01 * u, ear.dy - 0.01 * u)
-        ..lineTo(ear.dx + 0.06 * u, ear.dy - 0.09 * u)
-        ..lineTo(ear.dx + 0.06 * u, ear.dy + 0.01 * u),
-      s.fill(_ginger.shade(0.05)),
-    );
+    final head = s.at(x, y, 0.25 + 0.47);
+    final open = s.pop(_thinks + 0.004, _thinks + 0.05);
+    final rim = s.stroke(_rim, 0.05);
+    final fill = s.fill(_bubble);
+
+    // Two puffs, then the bubble, up and to the left, clear of the tower.
+    final puffs = [
+      (at: _thinks - 0.012, c: const Offset(-0.08, -0.26), r: 0.045),
+      (at: _thinks - 0.004, c: const Offset(-0.18, -0.48), r: 0.07),
+    ];
+    for (final puff in puffs) {
+      final grow = s.pop(puff.at, puff.at + 0.025);
+      if (grow <= 0) continue;
+      final c = head + puff.c * u;
+      s.canvas
+        ..drawCircle(c, puff.r * grow * u, rim)
+        ..drawCircle(c, puff.r * grow * u, fill);
+    }
+    if (open <= 0) return;
+
+    final c = head + const Offset(-0.36, -1) * u;
+    s.scaled(c, open, () {
+      // A cloud of overlapping lobes; the rim is stroked first, so the fill
+      // covers its inner half and only the outline round the whole is left.
+      Rect lobe(double dx, double dy, double r) =>
+          Rect.fromCircle(center: c + Offset(dx, dy) * u, radius: r * u);
+      final cloud = Path()
+        ..addOval(
+          Rect.fromCenter(center: c, width: 1.04 * u, height: 0.58 * u),
+        )
+        ..addOval(lobe(-0.28, -0.13, 0.22))
+        ..addOval(lobe(0.02, -0.2, 0.25))
+        ..addOval(lobe(0.3, -0.1, 0.2))
+        ..addOval(lobe(-0.36, 0.1, 0.18))
+        ..addOval(lobe(0.34, 0.12, 0.17))
+        ..addOval(lobe(-0.02, 0.17, 0.2));
+      s.canvas
+        ..drawPath(cloud, rim)
+        ..drawPath(cloud, fill);
+
+      // The count: a stroke a strike, I, II, III.
+      final ink = s.stroke(_ink, 0.075);
+      for (final (k, at) in _strikes.indexed) {
+        final grow = s.pop(at - 0.005, at + 0.045);
+        if (grow <= 0) continue;
+        final dx = (k - 1) * 0.2 * u;
+        final half = 0.15 * grow * u;
+        s.canvas.drawLine(
+          c.translate(dx, 0.01 * u - half),
+          c.translate(dx, 0.01 * u + half),
+          ink,
+        );
+      }
+    });
   });
 }
 
