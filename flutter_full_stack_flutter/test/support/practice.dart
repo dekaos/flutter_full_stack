@@ -92,4 +92,17 @@ class StubPracticeController extends PracticeController {
 
   @override
   Future<void> recheckMicrophone() async => rechecks++;
+
+  /// What the record button asked for, in order: `start` as it is
+  /// pressed, `score` as it is let go, `cancel` for a tap.
+  final asked = <String>[];
+
+  @override
+  Future<void> startRecording() async => asked.add('start');
+
+  @override
+  Future<void> stopAndScore() async => asked.add('score');
+
+  @override
+  void cancelRecording() => asked.add('cancel');
 }

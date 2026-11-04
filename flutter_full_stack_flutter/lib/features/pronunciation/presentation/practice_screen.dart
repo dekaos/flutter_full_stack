@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show ValueListenable, kDebugMode;
+import 'package:flutter/gestures.dart'
+    show Drag, HorizontalDragGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/app/app_bar_actions.dart';
 import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
@@ -12,6 +14,7 @@ import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/hiding_cat.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/hold_to_record.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/prompt_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/score_band.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_audio.dart';
@@ -186,6 +189,9 @@ class _PracticeState extends ConsumerState<_Practice>
     initialPage: widget.state.index,
   );
 
+  /// The deck's box, where a swipe is the deck's own.
+  final GlobalKey _deck = GlobalKey();
+
   /// Coming back to the app is how a learner returns from granting the
   /// microphone in settings, so that is when to look again.
   late final AppLifecycleListener _lifecycle;
@@ -193,6 +199,10 @@ class _PracticeState extends ConsumerState<_Practice>
   /// The word of the last attempt the learner tapped, by its place in the
   /// result; until they tap one, the one that most needs fixing.
   int? _picked;
+
+  /// Whether the learner has recorded on this visit: until they have, a
+  /// bubble over the record button shows them how, and for how long.
+  late bool _recorded = widget.state.stage == PracticeStage.recording;
 
   Timer? _warm;
 
@@ -244,6 +254,7 @@ class _PracticeState extends ConsumerState<_Practice>
     }
     // A new attempt starts on its own worst word.
     if (!identical(old.state.result, widget.state.result)) _picked = null;
+    if (widget.state.stage == PracticeStage.recording) _recorded = true;
     // Kept in step with the playback: started as it starts, from the top of
     // the stretch being played, and put away when it ends.
     final span = widget.state.replaying;
@@ -283,213 +294,303 @@ class _PracticeState extends ConsumerState<_Practice>
     final shown = result == null ? null : _picked ?? worstWord(result);
     final attempt = state.attempt;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: _Layout.top),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // A deck, not a list: one prompt at a time is what a learner reads
-          // aloud, and swiping is how they move on. Edge to edge, with each
-          // card's gutter inside its own page, so cards pass a gutter apart
-          // instead of sliding by touching.
-          RiseIn(
-            child: SizedBox(
-              height: words ? _Layout.wordDeck : _Layout.phraseDeck,
-              child: PageView.builder(
-                controller: _pages,
-                itemCount: state.items.length,
-                onPageChanged: controller.goTo,
-                itemBuilder: (context, index) => _DeckCard(
-                  pages: _pages,
-                  index: index,
-                  current: state.index,
-                  child: GlassSurface(
-                    dense: true,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    child: Center(
-                      child: _Prompt(
-                        key: ValueKey(state.items[index].id),
-                        text: state.items[index].text,
-                        large: words,
-                        // The score belongs to the attempt that produced it,
-                        // so it is only painted on the prompt it came from.
-                        result: index == state.index ? state.result : null,
-                        picked: shown,
-                        // Only on the prompt the attempt belongs to.
-                        heard: index == state.index ? _heard(state) : null,
-                        // The prompt being read aloud lights up with it.
-                        reading: index == state.index && state.speaking
-                            ? ref.read(soundBoardProvider).voice.spoken
-                            : null,
-                        onWord: (picked) {
-                          setState(() => _picked = picked);
-                          final word = state.result!.words[picked].word;
-                          unawaited(controller.hear(word));
-                        },
+    // A swipe anywhere on the page moves the deck, as one on a card does:
+    // over the scene, the hint or the footer it is as plainly "the next
+    // one" - and the language chooser swipes from anywhere too.
+    return _SwipeAnywhere(
+      pages: _pages,
+      deck: _deck,
+      child: Padding(
+        padding: const EdgeInsets.only(top: _Layout.top),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // A deck, not a list: one prompt at a time is what a learner reads
+            // aloud, and swiping is how they move on. Edge to edge, with each
+            // card's gutter inside its own page, so cards pass a gutter apart
+            // instead of sliding by touching.
+            RiseIn(
+              child: SizedBox(
+                key: _deck,
+                height: words ? _Layout.wordDeck : _Layout.phraseDeck,
+                child: PageView.builder(
+                  controller: _pages,
+                  itemCount: state.items.length,
+                  onPageChanged: controller.goTo,
+                  itemBuilder: (context, index) => _DeckCard(
+                    pages: _pages,
+                    index: index,
+                    current: state.index,
+                    child: GlassSurface(
+                      dense: true,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      child: Center(
+                        child: _Prompt(
+                          key: ValueKey(state.items[index].id),
+                          text: state.items[index].text,
+                          large: words,
+                          // The score belongs to the attempt that produced it,
+                          // so it is only painted on the prompt it came from.
+                          result: index == state.index ? state.result : null,
+                          picked: shown,
+                          // Only on the prompt the attempt belongs to.
+                          heard: index == state.index ? _heard(state) : null,
+                          // The prompt being read aloud lights up with it.
+                          reading: index == state.index && state.speaking
+                              ? ref.read(soundBoardProvider).voice.spoken
+                              : null,
+                          onWord: (picked) {
+                            setState(() => _picked = picked);
+                            final word = state.result!.words[picked].word;
+                            unawaited(controller.hear(word));
+                          },
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: _Layout.gap),
-          _PageDots(
-            index: state.index,
-            count: state.items.length,
-            label: l10n.practicePosition(
-              state.index + 1,
-              state.items.length,
+            const SizedBox(height: _Layout.gap),
+            _PageDots(
+              index: state.index,
+              count: state.items.length,
+              label: l10n.practicePosition(
+                state.index + 1,
+                state.items.length,
+              ),
             ),
-          ),
-          const SizedBox(height: _Layout.gap),
-          // Whatever there is to read besides the sentence, and only while
-          // there is. Empty, it leaves the world in view.
-          Expanded(
-            child: SingleChildScrollView(
-              // The gutter here and not round the deck, whose cards carry
-              // their own.
-              padding: const EdgeInsets.symmetric(horizontal: _Layout.gutter),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (widget.failure case final failure?) ...[
-                    _Failure(
-                      message: failureMessage(l10n, failure),
-                      detail: failure,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  switch (state.stage) {
-                    // A refusal is final as far as the system dialog goes, so
-                    // the only way forward is the settings page - and it has
-                    // to be one tap away.
-                    PracticeStage.noMicrophone => _Failure(
-                      message: l10n.practiceNoMicrophone,
-                      actionLabel: l10n.practiceOpenSettings,
-                      onAction: () => unawaited(
-                        ref.read(appSettingsProvider).open(),
+            const SizedBox(height: _Layout.gap),
+            // Whatever there is to read besides the sentence, and only while
+            // there is. Empty, it leaves the world in view.
+            Expanded(
+              child: SingleChildScrollView(
+                // The gutter here and not round the deck, whose cards carry
+                // their own.
+                padding: const EdgeInsets.symmetric(horizontal: _Layout.gutter),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (widget.failure case final failure?) ...[
+                      _Failure(
+                        message: failureMessage(l10n, failure),
+                        detail: failure,
                       ),
-                    ),
-                    _ => const SizedBox.shrink(),
-                  },
-                  // The attempt itself, as a voice message to play back.
-                  if ((result, attempt) case (final result?, final attempt?))
-                    RiseIn(
-                      delay: const Duration(milliseconds: 30),
-                      child: Center(
-                        child: _VoiceMessage(
-                          bars: _barsFor(attempt),
-                          result: result,
-                          length: attempt.length / AttemptRecorder.sampleRate,
-                          heard: _heard(state),
-                          l10n: l10n,
-                          onPlay: () => unawaited(controller.replay()),
+                      const SizedBox(height: 12),
+                    ],
+                    switch (state.stage) {
+                      // A refusal is final as far as the system dialog goes, so
+                      // the only way forward is the settings page - and it has
+                      // to be one tap away.
+                      PracticeStage.noMicrophone => _Failure(
+                        message: l10n.practiceNoMicrophone,
+                        actionLabel: l10n.practiceOpenSettings,
+                        onAction: () => unawaited(
+                          ref.read(appSettingsProvider).open(),
                         ),
                       ),
-                    ),
-                  if (result != null && attempt != null && shown != null)
-                    const SizedBox(height: 8),
-                  // One line, under the sentence it is about, so the island
-                  // - and the cat answering the attempt - stays in view.
-                  if (result != null && shown != null)
-                    RiseIn(
-                      delay: const Duration(milliseconds: 60),
-                      child: Center(
-                        child: AnimatedSwitcher(
-                          duration: context.motion(
-                            const Duration(milliseconds: 200),
-                          ),
-                          // A reveal, not a fade: the hint is glass.
-                          transitionBuilder: Reveal.transition,
-                          child: _WordHint(
-                            key: ValueKey(shown),
-                            word: result.words[shown],
-                            errorThreshold: result.errorThreshold,
+                      _ => const SizedBox.shrink(),
+                    },
+                    // The attempt itself, as a voice message to play back.
+                    if ((result, attempt) case (final result?, final attempt?))
+                      RiseIn(
+                        delay: const Duration(milliseconds: 30),
+                        child: Center(
+                          child: _VoiceMessage(
+                            bars: _barsFor(attempt),
+                            result: result,
+                            length: attempt.length / AttemptRecorder.sampleRate,
+                            heard: _heard(state),
                             l10n: l10n,
-                            onHear: () => unawaited(
-                              controller.hear(result.words[shown].word),
-                            ),
-                            onHearYours: state.attempt == null
-                                ? null
-                                : () => unawaited(
-                                    controller.replay(word: shown),
-                                  ),
+                            onPlay: () => unawaited(controller.replay()),
                           ),
                         ),
                       ),
+                    if (result != null && attempt != null && shown != null)
+                      const SizedBox(height: 8),
+                    // One line, under the sentence it is about, so the island
+                    // - and the cat answering the attempt - stays in view.
+                    if (result != null && shown != null)
+                      RiseIn(
+                        delay: const Duration(milliseconds: 60),
+                        child: Center(
+                          child: AnimatedSwitcher(
+                            duration: context.motion(
+                              const Duration(milliseconds: 200),
+                            ),
+                            // A reveal, not a fade: the hint is glass.
+                            transitionBuilder: Reveal.transition,
+                            child: _WordHint(
+                              key: ValueKey(shown),
+                              word: result.words[shown],
+                              errorThreshold: result.errorThreshold,
+                              l10n: l10n,
+                              onHear: () => unawaited(
+                                controller.hear(result.words[shown].word),
+                              ),
+                              onHearYours: state.attempt == null
+                                  ? null
+                                  : () => unawaited(
+                                      controller.replay(word: shown),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              height: _Layout.footer,
+              child: Row(
+                children: [
+                  // Hear it, then say it: the reading stands just before the
+                  // button that records, on the side a sentence starts.
+                  Expanded(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: RiseIn(
+                        delay: const Duration(milliseconds: 160),
+                        child: _ListenControl(
+                          lang: widget.lang,
+                          state: state,
+                          l10n: l10n,
+                          onListen: () => unawaited(controller.listen()),
+                        ),
+                      ),
                     ),
+                  ),
+                  // A slot of its own size, so the reading beside it stays
+                  // put while the record button comes and goes.
+                  SizedBox.square(
+                    dimension: HoldToRecord.extent,
+                    child: Center(
+                      child: RiseIn(
+                        delay: const Duration(milliseconds: 120),
+                        child: _RecordControl(
+                          stage: state.stage,
+                          firstTime: !_recorded,
+                          l10n: l10n,
+                          onPress: () => unawaited(controller.startRecording()),
+                          onRelease: () => unawaited(controller.stopAndScore()),
+                          onCancel: controller.cancelRecording,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // The score, on the other side of the button from the
+                  // reading: as small as a button, and a button for the rest.
+                  Expanded(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: result == null
+                          ? const SizedBox.shrink()
+                          : _ScoreMedal(
+                              key: ValueKey(result),
+                              result: result,
+                              l10n: l10n,
+                              onTap: () => unawaited(
+                                _showDetails(
+                                  context,
+                                  result,
+                                  state.scoringTime,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          SizedBox(
-            height: _Layout.footer,
-            child: Row(
-              children: [
-                // Hear it, then say it: the reading stands just before the
-                // button that records, on the side a sentence starts.
-                Expanded(
-                  child: Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: RiseIn(
-                      delay: const Duration(milliseconds: 160),
-                      child: _ListenControl(
-                        lang: widget.lang,
-                        state: state,
-                        l10n: l10n,
-                        onListen: () => unawaited(controller.listen()),
-                      ),
-                    ),
-                  ),
-                ),
-                // A slot of its own size, so the reading beside it stays
-                // put while the record button comes and goes.
-                SizedBox.square(
-                  dimension: _RoundButton.size + 40,
-                  child: Center(
-                    child: RiseIn(
-                      delay: const Duration(milliseconds: 120),
-                      child: _RecordControl(
-                        stage: state.stage,
-                        l10n: l10n,
-                        onRecord: () => unawaited(controller.startRecording()),
-                        onStop: () => unawaited(controller.stopAndScore()),
-                      ),
-                    ),
-                  ),
-                ),
-                // The score, on the other side of the button from the
-                // reading: as small as a button, and a button for the rest.
-                Expanded(
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: result == null
-                        ? const SizedBox.shrink()
-                        : _ScoreMedal(
-                            key: ValueKey(result),
-                            result: result,
-                            l10n: l10n,
-                            onTap: () => unawaited(
-                              _showDetails(
-                                context,
-                                result,
-                                state.scoringTime,
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
+
+/// Moves [pages] by a horizontal swipe anywhere over [child], exactly as a
+/// swipe on the pager itself does: the drag is handed to the pager's own
+/// position, so it follows the finger, flings and settles on a page the
+/// same way.
+///
+/// A swipe that starts on the [deck] is left to the deck alone - not even
+/// contested, so the deck takes it from the first pixel as it always has -
+/// and a vertical one is left to whatever scrolls. Translucent, so it reaches
+/// the page's empty stretches too, where there is nothing to hit but the
+/// scene.
+class _SwipeAnywhere extends StatefulWidget {
+  const _SwipeAnywhere({
+    required this.pages,
+    required this.deck,
+    required this.child,
+  });
+
+  final PageController pages;
+
+  /// The pager's own box: swipes that start in it are its own.
+  final GlobalKey deck;
+  final Widget child;
+
+  @override
+  State<_SwipeAnywhere> createState() => _SwipeAnywhereState();
+}
+
+class _SwipeAnywhereState extends State<_SwipeAnywhere> {
+  Drag? _drag;
+
+  @override
+  void dispose() {
+    _drag?.cancel();
+    super.dispose();
+  }
+
+  bool _onDeck(Offset global) {
+    final box = widget.deck.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return false;
+    return (Offset.zero & box.size).contains(box.globalToLocal(global));
+  }
+
+  @override
+  Widget build(BuildContext context) => RawGestureDetector(
+    behavior: HitTestBehavior.translucent,
+    gestures: {
+      _OffDeckDrag: GestureRecognizerFactoryWithHandlers<_OffDeckDrag>(
+        () => _OffDeckDrag(onDeck: _onDeck, debugOwner: this),
+        (drag) => drag
+          ..onStart = (details) {
+            if (!widget.pages.hasClients) return;
+            _drag = widget.pages.position.drag(details, () => _drag = null);
+          }
+          ..onUpdate = (details) {
+            _drag?.update(details);
+          }
+          ..onEnd = (details) {
+            _drag?.end(details);
+          }
+          ..onCancel = () {
+            _drag?.cancel();
+          },
+      ),
+    },
+    child: widget.child,
+  );
+}
+
+/// A horizontal drag that does not even enter the arena for a pointer put
+/// down on the deck, so the deck's own drag is never contested there.
+class _OffDeckDrag extends HorizontalDragGestureRecognizer {
+  _OffDeckDrag({required this.onDeck, super.debugOwner});
+
+  final bool Function(Offset global) onDeck;
+
+  @override
+  bool isPointerAllowed(PointerEvent event) =>
+      !onDeck(event.position) && super.isPointerAllowed(event);
 }
 
 /// One card of the deck, flipped through as a hand of cards is fanned:
@@ -992,8 +1093,8 @@ Sound chimeFor(PronunciationResult result) =>
       ScoreBand.weak => Sound.scoreWeak,
     };
 
-/// The one thing to do on this screen, as one round button: record, stop,
-/// or wait while the attempt is scored.
+/// The one thing to do on this screen, as one round button: held to
+/// record ([HoldToRecord]), and busy while the attempt is scored.
 ///
 /// Absent while there is nothing to record with - the pane above then
 /// carries the way forward, the settings page - so the footer never offers
@@ -1001,38 +1102,43 @@ Sound chimeFor(PronunciationResult result) =>
 class _RecordControl extends StatelessWidget {
   const _RecordControl({
     required this.stage,
+    required this.firstTime,
     required this.l10n,
-    required this.onRecord,
-    required this.onStop,
+    required this.onPress,
+    required this.onRelease,
+    required this.onCancel,
   });
 
   final PracticeStage stage;
+  final bool firstTime;
   final AppLocalizations l10n;
-  final VoidCallback onRecord;
-  final VoidCallback onStop;
+  final VoidCallback onPress;
+  final VoidCallback onRelease;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) => switch (stage) {
-    PracticeStage.ready || PracticeStage.scored => _RoundButton(
+    // One button from the press to the release: the microphone opens a
+    // moment after the finger goes down, and a button swapped for another
+    // then would lose the finger holding it.
+    PracticeStage.ready ||
+    PracticeStage.scored ||
+    PracticeStage.recording => HoldToRecord(
       key: const Key('practice-record'),
+      seconds: PracticeController.maxRecording.inSeconds,
+      recording: stage == PracticeStage.recording,
+      firstTime: firstTime,
       label: stage == PracticeStage.scored
-          ? l10n.practiceTryAgain
+          ? l10n.practiceHoldToTryAgain
           : l10n.practiceRecord,
-      icon: Icons.mic_rounded,
-      onPressed: onRecord,
+      recordingLabel: l10n.practiceRecordingLeft,
+      offer: l10n.practiceHoldOffer(PracticeController.maxRecording.inSeconds),
+      holdLonger: l10n.practiceHoldLonger,
+      onPress: onPress,
+      onRelease: onRelease,
+      onCancel: onCancel,
     ),
-    PracticeStage.recording => _RoundButton(
-      key: const Key('practice-stop'),
-      label: l10n.practiceStop,
-      icon: Icons.stop_rounded,
-      onPressed: onStop,
-      live: true,
-    ),
-    PracticeStage.scoring => _RoundButton(
-      key: const Key('practice-scoring'),
-      label: l10n.practiceScoring,
-      busy: true,
-    ),
+    PracticeStage.scoring => _Scoring(label: l10n.practiceScoring),
     PracticeStage.noMicrophone => const SizedBox.shrink(),
   };
 }
@@ -1094,124 +1200,40 @@ class _ListenControl extends ConsumerWidget {
   }
 }
 
-/// A round button in a soft halo of its own colour.
-///
-/// [live] turns it to the error colour and sets the halo rippling outward:
-/// the microphone is open. That ripple is the one motion on this screen that
-/// lasts, and it lasts only for as long as it is true - at most the fifteen
-/// seconds an attempt may run. Under reduced motion the halo simply holds.
-class _RoundButton extends StatefulWidget {
-  const _RoundButton({
-    required this.label,
-    this.icon,
-    this.onPressed,
-    this.live = false,
-    this.busy = false,
-    super.key,
-  });
-
-  static const size = 76.0;
+/// The record button while the attempt is scored: the same round button,
+/// in the colour it had while held, busy.
+class _Scoring extends StatelessWidget {
+  const _Scoring({required this.label});
 
   final String label;
-  final IconData? icon;
-  final VoidCallback? onPressed;
-  final bool live;
-  final bool busy;
-
-  @override
-  State<_RoundButton> createState() => _RoundButtonState();
-}
-
-class _RoundButtonState extends State<_RoundButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ripple = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1400),
-  );
-
-  void _sync() {
-    final ripple = widget.live && !context.still;
-    if (ripple && !_ripple.isAnimating) {
-      _ripple.repeat();
-    } else if (!ripple && _ripple.isAnimating) {
-      _ripple
-        ..stop()
-        ..value = 0;
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _sync();
-  }
-
-  @override
-  void didUpdateWidget(_RoundButton old) {
-    super.didUpdateWidget(old);
-    _sync();
-  }
-
-  @override
-  void dispose() {
-    _ripple.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    // Live, it turns from the call to action to the calm colour: the red is
-    // already what it is at rest, and a change the eye can catch is the
-    // point.
-    final fill = widget.live ? scheme.secondary : scheme.primary;
-    final ink = widget.live ? scheme.onSecondary : scheme.onPrimary;
-    const size = _RoundButton.size;
-
     return SizedBox.square(
-      dimension: size + 40,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          AnimatedBuilder(
-            animation: _ripple,
-            builder: (context, _) {
-              final t = _ripple.value;
-              return Container(
-                width: size + 20 + 20 * t,
-                height: size + 20 + 20 * t,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: fill.withValues(alpha: 0.22 * (1 - t * 0.85)),
-                ),
-              );
-            },
+      key: const Key('practice-scoring'),
+      dimension: HoldToRecord.extent,
+      child: Center(
+        child: IconButton.filled(
+          onPressed: null,
+          tooltip: label,
+          iconSize: 34,
+          style: IconButton.styleFrom(
+            fixedSize: const Size.square(HoldToRecord.size),
+            // Busy, not off: the colour stays.
+            disabledBackgroundColor: scheme.secondary,
+            disabledForegroundColor: scheme.onSecondary,
+            elevation: 3,
+            shadowColor: scheme.secondary,
           ),
-          IconButton.filled(
-            onPressed: widget.busy ? null : widget.onPressed,
-            tooltip: widget.label,
-            iconSize: 34,
-            style: IconButton.styleFrom(
-              fixedSize: const Size.square(size),
-              backgroundColor: fill,
-              foregroundColor: ink,
-              // Scoring keeps the button's colour: it is busy, not off.
-              disabledBackgroundColor: fill,
-              disabledForegroundColor: ink,
-              elevation: 3,
-              shadowColor: fill,
+          icon: SizedBox.square(
+            dimension: 28,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              color: scheme.onSecondary,
             ),
-            icon: widget.busy
-                ? SizedBox.square(
-                    dimension: 28,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      color: ink,
-                    ),
-                  )
-                : Icon(widget.icon),
           ),
-        ],
+        ),
       ),
     );
   }

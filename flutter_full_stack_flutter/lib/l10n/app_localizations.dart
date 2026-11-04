@@ -140,29 +140,17 @@ abstract class AppLocalizations {
   /// **'Calling the server'**
   String get callingServer;
 
-  /// Tooltip on the theme switch button.
+  /// Tooltip on the theme button while the app is light.
   ///
   /// In en, this message translates to:
-  /// **'Theme: {mode}'**
-  String themeTooltip(String mode);
+  /// **'Switch to the dark theme'**
+  String get themeToDark;
 
-  /// Theme is whatever the device asks for.
+  /// Tooltip on the theme button while the app is dark.
   ///
   /// In en, this message translates to:
-  /// **'following the device'**
-  String get themeModeSystem;
-
-  /// Theme is pinned to light.
-  ///
-  /// In en, this message translates to:
-  /// **'light'**
-  String get themeModeLight;
-
-  /// Theme is pinned to dark.
-  ///
-  /// In en, this message translates to:
-  /// **'dark'**
-  String get themeModeDark;
+  /// **'Switch to the light theme'**
+  String get themeToLight;
 
   /// Tooltip on the language switch button.
   ///
@@ -272,17 +260,35 @@ abstract class AppLocalizations {
   /// **'{current} of {total}'**
   String practicePosition(int current, int total);
 
-  /// Button that starts recording the learner reading the sentence.
+  /// The record button, for a screen reader: it is held while the learner reads the sentence.
   ///
   /// In en, this message translates to:
-  /// **'Record'**
+  /// **'Hold to record'**
   String get practiceRecord;
 
-  /// Button that ends the recording and scores it.
+  /// The record button once an attempt has been scored, for a screen reader.
   ///
   /// In en, this message translates to:
-  /// **'Stop'**
-  String get practiceStop;
+  /// **'Hold to try again'**
+  String get practiceHoldToTryAgain;
+
+  /// The record button while it records, for a screen reader.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording, {seconds} s left. Let go to finish.'**
+  String practiceRecordingLeft(int seconds);
+
+  /// Bubble over the record button until the learner first records: how to use it, and how long an attempt may be.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to speak · up to {seconds} s'**
+  String practiceHoldOffer(int seconds);
+
+  /// Bubble over the record button after it was tapped rather than held.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the button while you speak'**
+  String get practiceHoldLonger;
 
   /// Shown while the recording is being scored.
   ///
@@ -359,7 +365,7 @@ abstract class AppLocalizations {
   /// Shown when a recording holds too little audio to score.
   ///
   /// In en, this message translates to:
-  /// **'That was too short. Tap Stop once you have finished reading.'**
+  /// **'That was too short. Hold the button until you have finished reading.'**
   String get practiceTooShort;
 
   /// Shown when a recording holds no speech, or only a fragment of the prompt.

@@ -32,18 +32,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get callingServer => 'Chamando o servidor';
 
   @override
-  String themeTooltip(String mode) {
-    return 'Tema: $mode';
-  }
+  String get themeToDark => 'Mudar para o tema escuro';
 
   @override
-  String get themeModeSystem => 'seguindo o aparelho';
-
-  @override
-  String get themeModeLight => 'claro';
-
-  @override
-  String get themeModeDark => 'escuro';
+  String get themeToLight => 'Mudar para o tema claro';
 
   @override
   String languageTooltip(String name) {
@@ -111,10 +103,23 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get practiceRecord => 'Gravar';
+  String get practiceRecord => 'Segure para gravar';
 
   @override
-  String get practiceStop => 'Parar';
+  String get practiceHoldToTryAgain => 'Segure para tentar de novo';
+
+  @override
+  String practiceRecordingLeft(int seconds) {
+    return 'Gravando, faltam $seconds s. Solte para terminar.';
+  }
+
+  @override
+  String practiceHoldOffer(int seconds) {
+    return 'Segure para falar · até $seconds s';
+  }
+
+  @override
+  String get practiceHoldLonger => 'Segure o botão enquanto fala';
 
   @override
   String get practiceScoring => 'Avaliando';
@@ -168,7 +173,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get practiceTooShort =>
-      'Ficou curto demais. Toque em Parar depois de terminar de ler.';
+      'Ficou curto demais. Segure o botão até terminar de ler.';
 
   @override
   String get practiceNotHeard =>

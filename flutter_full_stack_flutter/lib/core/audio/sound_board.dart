@@ -189,9 +189,17 @@ class PlatformSoundOutput implements SoundOutput {
   final List<AudioPlayer> _ready = [];
   int _next = 0;
 
-  /// The player recordings are played back on, and where they are written.
+  /// The player recordings are played back on, and the folder they are
+  /// written to.
   AudioPlayer? _clip;
-  String? _clipPath;
+  String? _clips;
+
+  /// How many recordings have been played back: they take turns between
+  /// two files. A player handed the path it already has loaded keeps what
+  /// it loaded from it - on iOS and Android alike - so a recording written
+  /// over the last one played for the last one's length: the whole attempt
+  /// cut off where the word heard before it ended.
+  int _clipsPlayed = 0;
 
   /// Writes the sounds, then sets up the players. Setting up a player is a
   /// native object on the platform's main thread - cheap once, but not
@@ -214,7 +222,7 @@ class PlatformSoundOutput implements SoundOutput {
     final directory = Directory('${temporary.path}/sounds');
     await directory.create(recursive: true);
     final made = await compute(_renderAll, null);
-    _clipPath = '${directory.path}/attempt.wav';
+    _clips = directory.path;
     final files = <Sound, String>{};
     for (final sound in Sound.values) {
       final file = File('${directory.path}/${sound.name}.wav');
@@ -260,8 +268,9 @@ class PlatformSoundOutput implements SoundOutput {
   Future<void> playClip(Uint8List wav) async {
     await warm();
     final player = _clip;
-    final path = _clipPath;
-    if (player == null || path == null) return;
+    final clips = _clips;
+    if (player == null || clips == null) return;
+    final path = '$clips/attempt-${_clipsPlayed++ % 2}.wav';
     await quietly('play the recording back', () async {
       await File(path).writeAsBytes(wav, flush: true);
       await _useSession(_clipContext);

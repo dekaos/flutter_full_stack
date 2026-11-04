@@ -32,18 +32,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callingServer => 'Calling the server';
 
   @override
-  String themeTooltip(String mode) {
-    return 'Theme: $mode';
-  }
+  String get themeToDark => 'Switch to the dark theme';
 
   @override
-  String get themeModeSystem => 'following the device';
-
-  @override
-  String get themeModeLight => 'light';
-
-  @override
-  String get themeModeDark => 'dark';
+  String get themeToLight => 'Switch to the light theme';
 
   @override
   String languageTooltip(String name) {
@@ -111,10 +103,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get practiceRecord => 'Record';
+  String get practiceRecord => 'Hold to record';
 
   @override
-  String get practiceStop => 'Stop';
+  String get practiceHoldToTryAgain => 'Hold to try again';
+
+  @override
+  String practiceRecordingLeft(int seconds) {
+    return 'Recording, $seconds s left. Let go to finish.';
+  }
+
+  @override
+  String practiceHoldOffer(int seconds) {
+    return 'Hold to speak · up to $seconds s';
+  }
+
+  @override
+  String get practiceHoldLonger => 'Hold the button while you speak';
 
   @override
   String get practiceScoring => 'Scoring';
@@ -168,7 +173,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get practiceTooShort =>
-      'That was too short. Tap Stop once you have finished reading.';
+      'That was too short. Hold the button until you have finished reading.';
 
   @override
   String get practiceNotHeard =>

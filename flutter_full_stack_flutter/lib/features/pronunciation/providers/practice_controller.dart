@@ -173,6 +173,19 @@ class PracticeController extends _$PracticeController {
 
   /// Set only while the microphone is open.
   AttemptRecorder? _live;
+
+  /// Set while the microphone is opening: from the press of the record
+  /// button until [_live] is set, or the opening has failed.
+  bool _opening = false;
+
+  /// What the learner did with the record button while the microphone was
+  /// still opening - let go, or tapped rather than held - done as soon as
+  /// it has opened.
+  _LetGo? _letGo;
+
+  /// How things stood when the record button was pressed, to go back to
+  /// when the press turns out to have been a tap ([cancelRecording]).
+  PracticeState? _beforeRecording;
   Timer? _limit;
 
   /// What the microphone silenced, for as long as it is open.
@@ -356,23 +369,71 @@ class PracticeController extends _$PracticeController {
     _ => PracticeStage.ready,
   };
 
+  /// Opens the microphone: the learner has pressed the record button, and
+  /// holds it while they read. Letting go is [stopAndScore]; a press that
+  /// was a tap is [cancelRecording]. Either may come before the microphone
+  /// has opened - asking for the permission alone takes a moment - and is
+  /// then done as soon as it has.
   Future<void> startRecording() async {
+    if (_live != null || _opening) return;
     final recorder = ref.read(attemptRecorderProvider);
-    await _attempt(PracticeStep.record, PracticeStage.ready, () async {
-      if (!await recorder.hasPermission()) {
-        return _now.copyWith(stage: PracticeStage.noMicrophone);
-      }
-      await _silenceSpeakers();
-      try {
-        await recorder.start();
-      } on Object {
-        _releaseSpeakers();
-        rethrow;
-      }
-      _live = recorder;
-      _limit = Timer(maxRecording, () => unawaited(stopAndScore()));
-      return _now.copyWith(stage: PracticeStage.recording, clearResult: true);
-    });
+    _beforeRecording = _now;
+    _letGo = null;
+    _opening = true;
+    try {
+      await _attempt(PracticeStep.record, PracticeStage.ready, () async {
+        if (!await recorder.hasPermission()) {
+          return _now.copyWith(stage: PracticeStage.noMicrophone);
+        }
+        await _silenceSpeakers();
+        try {
+          await recorder.start();
+        } on Object {
+          _releaseSpeakers();
+          rethrow;
+        }
+        _live = recorder;
+        _limit = Timer(maxRecording, () => unawaited(stopAndScore()));
+        return _now.copyWith(stage: PracticeStage.recording, clearResult: true);
+      });
+    } finally {
+      _opening = false;
+    }
+    if (!ref.mounted) return;
+    switch (_letGo) {
+      case _LetGo.score:
+        await stopAndScore();
+      case _LetGo.discard:
+        cancelRecording();
+      case null:
+        break;
+    }
+  }
+
+  /// Throws the attempt being recorded away, and puts back how things stood
+  /// before the record button was pressed - the last score with it.
+  ///
+  /// For a press too short to have been meant as one: the button is held
+  /// while the learner reads, and a tap on it is someone finding that out.
+  /// That should cost them neither their last score nor a "too short".
+  void cancelRecording() {
+    if (_opening) {
+      _letGo = _LetGo.discard;
+      return;
+    }
+    if (_live == null) return;
+    _discardRecording();
+    final before = _beforeRecording;
+    _beforeRecording = null;
+    state = AsyncData(
+      (before ?? _now).copyWith(
+        stage: before?.stage ?? _readyStage(),
+        // Whatever was being read or played was stopped as the microphone
+        // opened, and is not picked up again.
+        speaking: false,
+        clearReplaying: true,
+      ),
+    );
   }
 
   /// Looks at the microphone permission again, without asking for it.
@@ -392,9 +453,15 @@ class PracticeController extends _$PracticeController {
   }
 
   Future<void> stopAndScore() async {
-    // Both the Stop button and the time limit land here; whichever comes
-    // second finds nothing to stop.
+    // Let go before the microphone had opened: scored once it has.
+    if (_opening) {
+      _letGo = _LetGo.score;
+      return;
+    }
+    // Both letting go and the time limit land here; whichever comes second
+    // finds nothing to stop.
     if (_live == null) return;
+    _beforeRecording = null;
     _limit?.cancel();
     _live = null;
     final recorder = ref.read(attemptRecorderProvider);
@@ -464,4 +531,14 @@ class PracticeController extends _$PracticeController {
     _engine = engine;
     return engine;
   }
+}
+
+/// What the learner did with the record button while the microphone was
+/// still opening.
+enum _LetGo {
+  /// Let go of it: score what was said.
+  score,
+
+  /// Tapped it: throw it away.
+  discard,
 }

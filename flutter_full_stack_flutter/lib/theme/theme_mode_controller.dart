@@ -16,28 +16,34 @@ class ThemeModeController extends _$ThemeModeController {
   @override
   ThemeMode build() => ThemeMode.system;
 
-  /// Cycles through the three modes, leaving `system` by flipping away from
-  /// [deviceBrightness].
+  /// Flips what is on screen, light to dark or dark to light, whatever the
+  /// mode - one tap, one change.
   ///
-  /// The order depends on the device for a reason. Stepping from `system` to a
-  /// fixed `ThemeMode.light` changes nothing on screen when the device is
-  /// already light: the state moves, the pixels do not, and the tap reads as
-  /// one the app missed. Leaving `system` therefore always flips the
-  /// brightness, so the first tap is always visible. The one step that looks
-  /// like nothing happened is now the return to following the device, by
-  /// which point both brightnesses have been seen.
-  ///
-  /// A settings screen with three explicit choices would add its own method
-  /// here. There is no generic setter: `use_setters_to_change_properties`
-  /// and `avoid_setters_without_getters` cannot both be satisfied by one.
-  void cycle(Brightness deviceBrightness) {
-    final isDark = deviceBrightness == Brightness.dark;
-    final opposite = isDark ? ThemeMode.light : ThemeMode.dark;
-    final matching = isDark ? ThemeMode.dark : ThemeMode.light;
-    state = switch (state) {
-      ThemeMode.system => opposite,
-      final mode when mode == opposite => matching,
-      _ => ThemeMode.system,
+  /// It used to cycle through the three modes, and one step of the cycle
+  /// was always invisible: following a light device, and pinned to light,
+  /// look the same. That tap read as one the app had missed, and the user
+  /// tapped again. Now there are only the two brightnesses to choose
+  /// between, and flipping back to the one [deviceBrightness] asks for is
+  /// following the device again - so it is still followed when it changes,
+  /// at night, say.
+  void toggle(Brightness deviceBrightness) {
+    final next = switch (shownIn(state, device: deviceBrightness)) {
+      Brightness.light => Brightness.dark,
+      Brightness.dark => Brightness.light,
     };
+    state = next == deviceBrightness
+        ? ThemeMode.system
+        : switch (next) {
+            Brightness.light => ThemeMode.light,
+            Brightness.dark => ThemeMode.dark,
+          };
   }
 }
+
+/// The brightness on screen in [mode], on a device that asks for [device].
+Brightness shownIn(ThemeMode mode, {required Brightness device}) =>
+    switch (mode) {
+      ThemeMode.system => device,
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+    };

@@ -208,17 +208,19 @@ costs nothing — no provider, no listener. `ThemeModeController` exists only so
 user can *override* it, and the choice is deliberately not persisted; that would
 need a storage dependency the app does not have yet.
 
-The one-button cycle is ordered against the device, not written down as a fixed
-sequence: `cycle` takes the device's brightness and leaves `system` by flipping
-*away* from it. On a light device that is system → dark → light → system, and
-on a dark one system → light → dark → system. The reason is worth keeping: a
-fixed system → light step changes the state and nothing on screen when the
-device is already light, and a tap that changes nothing reads as a tap that was
-missed — users press again. Every tap now flips the brightness except the last,
-which returns to following the device and is reported by the icon
-(`brightness_auto`). `test/follow_the_device_test.dart` pins this from both
-device settings. The language button in `LocaleController` is ordered the same
-way, for the same reason.
+The theme button is a switch between the two brightnesses, not a cycle through
+the three modes: every tap flips what is on screen, light to dark or dark to
+light (`ThemeModeController.toggle`). It used to cycle system → dark → light →
+system on a light device, and the last step changed the state but nothing on
+screen, because following a light device looks exactly like pinned light. A tap
+that changes nothing reads as a tap that was missed, so users had to press twice.
+Following the device is still the default, and flipping back to the device's own
+brightness returns to `system` rather than pinning it, so the app keeps following
+a device that turns dark at night. The icon and tooltip say what a tap will do:
+the moon while light, the sun while dark. `test/follow_the_device_test.dart`
+pins this from both device settings, and after the device changes under a pinned
+choice. The language button in `LocaleController` still cycles, ordered against
+the device so that its first tap always changes the copy.
 
 These are real screenshots of the app, taken by flipping the simulator's own
 appearance and "Increase Contrast" settings:
@@ -345,16 +347,16 @@ nothing else moves:
 | State change | `AnimatedSwitcher` slides a new response over the old one instead of blinking it into place |
 | State change | While the learner records and the attempt is scored, a `sceneHush` veil fades over the scene so the sentence is the one thing in focus, and fades off with the score |
 | The learner's moment | A black cat hides somewhere in every English scene, a different place in each — behind the hotel's corner, in the toolbox, on the cottage roof — only a tail tip or its ears showing. It comes out to answer the learner (`HidingCat`), briefly: it washes a paw after 8s on a prompt without starting, gives a slow blink after a weak attempt, and swishes its tail after a strong one — 3.4–4.4s, out and back, once per prompt or attempt, never while recording or scoring. Where it hides at ground level it comes out on foot (`SceneScript(catWalks: true)`): it walks out side on, turns round to the learner as it sits, then gets up and turns about as it walks home in a curve. It is one cat, modelled once in three dimensions and seen from wherever it faces (`CatFigure`): every part has one size, so it is in proportion walking, turning, sitting and gesturing alike, and a turn is seen as a turn rather than a side picture swapped for a front one. `cat_figure_test.dart` holds it to that |
-| Swipe | The prompt cards fan like a hand of cards: the one going tips away about the foot of the deck and shrinks a little, the one coming straightens and grows into place. They pass a gutter apart, because the deck runs edge to edge and each card keeps its gutter inside its own page. Only while the finger moves; under reduced motion they simply slide (`_DeckCard`) |
+| Swipe | The prompt cards fan like a hand of cards: the one going tips away about the foot of the deck and shrinks a little, the one coming straightens and grows into place. They pass a gutter apart, because the deck runs edge to edge and each card keeps its gutter inside its own page. Only while the finger moves; under reduced motion they simply slide (`_DeckCard`). The swipe works anywhere on the page, as on the language chooser: over the scene, the feedback or the footer it is handed to the deck, so it follows the finger and settles the same way. A swipe that starts on a card stays the deck's own, and a vertical one still scrolls (`_SwipeAnywhere`) |
 | A score arrives | No card over the scene, so the island and the cat answering the attempt stay in view. A medal pops in beside the record button: the number counts up inside a ring filling to it, in the band's colour, and one to three stars pop in along its foot. One line rises under the sentence for the word that most needs fixing (`weather /ð/ sounded like /t/`). Tapping a coloured word moves the line to that word and reads it aloud; tapping the medal opens everything else in a sheet |
 | Hearing the sentence | Read aloud from the listen button, the sentence plays the same karaoke as a playback of the learner's attempt, before an attempt as much as after one: the word being said hops and is underlined, those still to come wait faded. It follows the speech engine's own word-by-word progress (`PhraseVoice.spoken`), not a guessed timing. The prompt is always laid out a word at a time for this, which also stops it from shifting when a score arrives |
 | Hearing yourself | The attempt is a voice message under the sentence: its outline drawn from the recording, each bar in the colour of the word it falls in. Played back, a playhead runs along it, the bars filling in behind it, and the sentence plays karaoke: the word being heard hops up and grows a touch, those still to come wait faded. It is drawn bigger and never laid out bigger, so the sentence does not shuffle. Under reduced motion the word lights without hopping |
-| Recording | The record button's halo ripples outward — the one motion that lasts, and only while the microphone is open (at most 15 s); under reduced motion the halo holds still |
+| Recording | The record button is held while the learner reads and let go when they are done, as a voice message is sent (`HoldToRecord`). The 15 seconds an attempt may run are strung round it as beads, one a second, faint at rest. Pressed, the button swells and the beads light up round it; while it records, a thread runs round through them and each bead it reaches pops like a soap bubble, so what is left of the string is what is left of the time, and the button counts it down. The last five turn red and the button nudges each second, with a tap on the hand in the last three. Until the first attempt, a bubble over the button offers it with the time there is ("Hold to speak · up to 15 s"). A press shorter than 300 ms was a tap: it is thrown away, the last score comes back, and the bubble says to hold the button, with a shake. A finger drifting sideways is still holding it, not swiping the deck. A screen reader starts it by activating it and stops it by activating it again. The halo ripples while the microphone is open; under reduced motion the beads simply go out, and nothing ripples or nudges |
 | Press | `GlassSurface` scales to 0.97 while held, when it has an `onTap` |
 | Sound | The scene and the cat are heard only while they move, each sound on the beat its drawing keeps time by, and everything stops before the microphone opens — see [sound.md](sound.md) |
 
 **Nothing animates at rest**, and that is a decision rather than an omission.
-(Recording is not rest: the ripple says the microphone is open, and it stops
+(Recording is not rest: the ripple and the beads say the microphone is open, and they stop
 the moment that stops being true. Nor is the cat restless: it comes out only to
 answer something the learner did, and is back in hiding a moment later.
 It is painted from `Tint`s like the rest of the world, so it is as black as

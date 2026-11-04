@@ -13,7 +13,7 @@ import 'package:flutter_full_stack_flutter/core/audio/synth.dart';
 enum Sound {
   /// The cat calling softly as it comes out to wash: the learner has been
   /// quiet a while.
-  meow(0.5),
+  meow(0.45),
 
   /// The rolled "mrrp" a cat greets with - for an attempt that went well.
   trill(0.62),
@@ -174,97 +174,64 @@ Tape _glottis(double seconds, double Function(double t) hz) {
   return tape;
 }
 
-/// "Mi-a-ow", as a cat says it: a throat's voice, unsteady as a living one
-/// is, shaped by a small mouth.
+/// "Mi-a-ow", as a cat says it to someone it knows: a throat's voice,
+/// steady as a held note is, shaped by a small mouth.
 ///
-/// It starts on a hum through the nose with the mouth closed - the "m" -
-/// then the mouth opens wide on the "a" and rounds as it closes on the
-/// "ow", its resonances moving with it: higher than a person's, as a cat's
-/// mouth and throat are shorter. The pitch rises quickly, arches and falls
-/// away slower, and the voice goes breathy as it gives out. No vibrato -
-/// that is a singer's - but the small irregularity of every period that
-/// makes it an animal's.
+/// Measured against recorded meows, and against the meow of soundgen (a
+/// synthesiser of animal and human voices): a cat holds its pitch almost
+/// level, about 550 Hz, after one quick lift as the mouth opens, and lets it
+/// down a little as the mouth closes - the arch a voice climbs and falls in
+/// is a yowl's, and heard from a cat it is a scream. Nor is its pitch what is
+/// loudest: a cat's short mouth rings at about 1.6 kHz, on the third
+/// harmonic, the first one down at a whisper beside it. The mouth opens wide
+/// on the "a" over a sixth of the call, then closes slowly through the "ow",
+/// the bright upper harmonics going with it. No vibrato and little
+/// unsteadiness - a contented cat's voice is a clean one.
 Float32List _meow() {
-  const seconds = 0.8;
+  const seconds = 0.92;
   final jitter = _wobble(11, rate: 30);
-  final drift = _wobble(12, rate: 6);
-  final shimmer = _wobble(13, rate: 36);
+  final drift = _wobble(12, rate: 5);
+  final shimmer = _wobble(13, rate: 24);
   double pitch(double t) =>
       through(const [
-        (0, 480),
-        (0.07, 610),
-        (0.18, 760),
-        (0.34, 780),
-        (0.5, 690),
-        (0.66, 550),
-        (0.8, 440),
+        (0, 450),
+        (0.1, 562),
+        (0.22, 572),
+        (0.52, 550),
+        (0.76, 528),
+        (0.92, 480),
       ], t) *
-      (1 + 0.014 * jitter(t) + 0.012 * drift(t));
+      (1 + 0.003 * jitter(t) + 0.008 * drift(t));
 
-  final source = _glottis(seconds, pitch)
-    ..shape((t) => 1 + 0.14 * shimmer(t))
-    // Breath through it: most as the mouth parts, and in the tail, as the
-    // voice gives out.
+  // The throat's voice, its lowest harmonics thinned as a small throat
+  // thins them, with a breath of air through it - a little more as the
+  // voice gives out.
+  final source = highPass(_glottis(seconds, pitch), (_) => 800)
+    ..shape((t) => 1 + 0.04 * shimmer(t))
     ..mix(
-      noise(seconds, seed: 14)..shape(
-        (t) =>
-            0.012 + 0.014 * (1 - ease(t, 0, 0.12)) + 0.02 * ease(t, 0.5, 0.8),
-      ),
+      noise(seconds, seed: 14)
+        ..shape((t) => 0.003 + 0.005 * ease(t, 0.62, 0.92)),
     );
 
-  // The mouth: closed on the "m", wide on the "a", rounding on the "ow".
+  // The mouth: shut, wide open by a sixth of the way through, then closing
+  // slowly to the end (soundgen's meow opens and closes the same way).
   double open(double t) => through(const [
     (0, 0),
-    (0.08, 0.45),
-    (0.2, 1),
-    (0.42, 0.95),
-    (0.62, 0.7),
-    (0.8, 0.5),
+    (0.19, 1),
+    (0.45, 0.86),
+    (0.84, 0.32),
+    (0.92, 0.08),
   ], t);
-  final mouth =
-      bandPass(
-          source,
-          (t) => through(const [
-            (0, 650),
-            (0.1, 900),
-            (0.22, 1350),
-            (0.42, 1250),
-            (0.62, 920),
-            (0.8, 780),
-          ], t),
-          q: 5,
-        )
-        ..mix(
-          bandPass(
-            source,
-            (t) => through(const [
-              (0, 2500),
-              (0.12, 2350),
-              (0.26, 2050),
-              (0.45, 1800),
-              (0.62, 1450),
-              (0.8, 1350),
-            ], t),
-            q: 8,
-          ),
-          gain: 0.8,
-        )
-        ..mix(
-          bandPass(
-            source,
-            (t) => through(const [(0, 3700), (0.3, 3500), (0.8, 3200)], t),
-            q: 10,
-          ),
-          gain: 0.4,
-        )
-        ..mix(bandPass(source, (_) => 4700, q: 10), gain: 0.16)
-        ..shape((t) => 0.3 + 0.7 * open(t));
-  // The "m": a hum through the nose before the mouth opens.
-  final nose = bandPass(source, (_) => 320, q: 3)
-    ..shape((t) => 1 - ease(t, 0.02, 0.14));
-  final tape = mouth
-    ..mix(nose, gain: 0.8)
-    ..shape((t) => swell(t, seconds: seconds, rise: 0.035, fall: 0.22));
+  final mouth = bandPass(source, (t) => 1100 + 680 * open(t), q: 4)
+    ..mix(bandPass(source, (t) => 2900 + 700 * open(t), q: 5), gain: 0.5)
+    ..mix(bandPass(source, (t) => 4300 + 500 * open(t), q: 6), gain: 0.18);
+  // A closing mouth takes the bright harmonics first: the "ow".
+  final tape = lowPass(mouth, (t) => 2600 + 4400 * open(t))
+    ..shape(
+      (t) =>
+          (0.3 + 0.7 * open(t)) *
+          swell(t, seconds: seconds, rise: 0.22, fall: 0.18),
+    );
   return tape.finish();
 }
 

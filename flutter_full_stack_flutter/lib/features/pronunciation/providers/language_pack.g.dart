@@ -119,7 +119,7 @@ final class LanguagePackControllerProvider
 }
 
 String _$languagePackControllerHash() =>
-    r'1e7d14a27c86214165b5913e84418634f185c3f9';
+    r'fe46b2e27969f69302087b6a07bca351f85cd7ce';
 
 /// One language's pack, as the chooser shows it - and the download that
 /// brings it, which starts there.

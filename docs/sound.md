@@ -72,7 +72,11 @@ that makes a sound goes through it.
    it starts gives way to the later one instead of starting on top of it.
    The attempt is played back as it was recorded, only brought up to a clear
    level (at most 8 times) and eased in and out so a word cut from the middle
-   does not click.
+   does not click. Each playback is written to a different file from the one
+   before it (two take turns): handed a path it already has loaded, the
+   player on iOS and Android keeps what it loaded, and a recording written
+   over the last one was cut off at the last one's length.
+   `platform_sound_output_test.dart` checks it.
 3. **The sounds can be turned off** from the app bar (`SoundEffects`, shown
    by `AppBarActions.sounds`). The
    reading cannot: the learner asks for it, and it is part of the lesson. Like
@@ -113,8 +117,16 @@ Prefer notes to noise for anything new.
   puffs of air through the vocal folds, with the small irregularity of a
   living voice in their pitch and loudness (`_wobble`) and breath through
   them; resonances of a small mouth, higher than a person's, then move with
-  the "m-i-a-ow" - a hum through the nose, wide open, rounding to close.
-  The pitch arches over 450-780 Hz, a domestic cat's range.
+  the "m-i-a-ow" - shut, wide open by a sixth of the way through, closing
+  slowly to the end, the bright harmonics going first.
+- **The meow is held level, not arched.** Its shape was measured against
+  recorded meows (Wikimedia Commons) and soundgen's meow preset. A cat holds
+  its pitch nearly level, about 550 Hz after one quick lift, and lets it
+  down a little as the mouth closes; a pitch that climbs and falls in an
+  arch, as the first version's did (450-780 Hz), is heard as a scream. Its
+  loudest harmonic is the third, about 1.6 kHz, where a cat's mouth rings,
+  with the fundamental some 18 dB below; a strong fundamental makes it
+  shrill. The rise takes about a tenth of a second, as a real one's does.
 - **The fanfare is brass, built from harmonics.** Each note is a trumpet's
   stack of ten harmonics through a filter that opens as it is blown - the
   "blat" that makes brass sound like brass - with vibrato on the held chord.

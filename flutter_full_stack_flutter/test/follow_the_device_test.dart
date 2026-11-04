@@ -88,27 +88,57 @@ void main() {
       });
     }
 
-    testWidgets('three taps show both brightnesses and return to following', (
-      tester,
-    ) async {
+    testWidgets('every tap flips it, and flipping back follows the device '
+        'again', (tester) async {
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
       await tester.pumpWidget(_app());
       await tester.pumpAndSettle();
 
-      await _tap(tester, 'app-theme');
-      expect(_showing(tester), Brightness.dark);
-      await _tap(tester, 'app-theme');
-      expect(_showing(tester), Brightness.light);
-      await _tap(tester, 'app-theme');
+      // The regression: the cycle had a third step - back to following a
+      // light device from pinned light - that changed nothing on screen,
+      // so it took two taps to see the dark again.
+      for (var tap = 1; tap <= 4; tap++) {
+        final before = _showing(tester);
+        await _tap(tester, 'app-theme');
+        expect(_showing(tester), isNot(before), reason: 'tap $tap');
+      }
 
-      // Back to following, which is the one step that looks the same as the
-      // one before it. The icon is what reports it.
-      expect(find.byIcon(Icons.brightness_auto_outlined), findsOneWidget);
+      // Back on the device's own brightness is following it, not pinning it.
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
       await tester.pumpAndSettle();
       expect(_showing(tester), Brightness.dark);
+    });
+
+    testWidgets('pinned, it still flips in one tap once the device has turned '
+        'the same way', (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+      await _tap(tester, 'app-theme');
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+      await tester.pumpAndSettle();
+      expect(_showing(tester), Brightness.dark);
+
+      await _tap(tester, 'app-theme');
+      expect(_showing(tester), Brightness.light);
+    });
+
+    testWidgets('the button says what a tap will do', (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Switch to the dark theme'), findsOneWidget);
+      expect(find.byIcon(Icons.dark_mode_outlined), findsOneWidget);
+
+      await _tap(tester, 'app-theme');
+      expect(find.byTooltip('Switch to the light theme'), findsOneWidget);
+      expect(find.byIcon(Icons.light_mode_outlined), findsOneWidget);
     });
   });
 

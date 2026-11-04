@@ -466,6 +466,94 @@ void main() {
     );
   });
 
+  group('holding the record button', () {
+    test('let go while the microphone was opening, what was said is scored '
+        'as soon as it has', () async {
+      final c = container(model: _SilentModel());
+      final practice = c.read(practiceControllerProvider('en').notifier);
+      await c.read(practiceControllerProvider('en').future);
+      // Let go before it was open: asking for the permission alone takes
+      // a moment, and a quick reader can be done by then.
+      recorder.onStart = () => unawaited(practice.stopAndScore());
+
+      await practice.startRecording();
+
+      expect(recorder.recording, isFalse, reason: 'left open to the limit');
+      expect(
+        ((c.read(practiceControllerProvider('en')).error! as PracticeFailure)
+                    .cause
+                as AttemptRejected)
+            .reason,
+        RejectedBecause.notHeard,
+        reason: 'not scored',
+      );
+      expect(board.hushed, isFalse);
+    });
+
+    test(
+      'a tap puts back the last score, and the attempt it came from',
+      () async {
+        // Tapped rather than held: the press says nothing about the attempt,
+        // and should not cost the learner the one they had.
+        final c = ProviderContainer(
+          overrides: [
+            attemptRecorderProvider.overrideWithValue(recorder),
+            soundBoardProvider.overrideWithValue(board),
+            practiceControllerProvider.overrideWith2((_) => _Scored()),
+          ],
+        );
+        addTearDown(c.dispose);
+        c.listen(practiceControllerProvider('en'), (_, _) {});
+        final practice = c.read(practiceControllerProvider('en').notifier);
+        await c.read(practiceControllerProvider('en').future);
+
+        await practice.startRecording();
+        expect(
+          c.read(practiceControllerProvider('en')).value?.result,
+          isNull,
+          reason: 'the score goes while the microphone is open',
+        );
+        practice.cancelRecording();
+
+        final back = c.read(practiceControllerProvider('en')).value!;
+        expect(recorder.recording, isFalse);
+        expect(board.hushed, isFalse);
+        expect(back.stage, PracticeStage.scored);
+        expect(back.result, same(_Scored.result));
+        expect(back.attempt, same(_Scored.attempt));
+      },
+    );
+
+    test('a tap that came while the microphone was opening throws it away '
+        'as soon as it has', () async {
+      final c = container();
+      final practice = c.read(practiceControllerProvider('en').notifier);
+      await c.read(practiceControllerProvider('en').future);
+      recorder.onStart = practice.cancelRecording;
+
+      await practice.startRecording();
+
+      expect(recorder.recording, isFalse);
+      expect(board.hushed, isFalse);
+      final now = c.read(practiceControllerProvider('en'));
+      expect(now.hasError, isFalse, reason: 'scored as too short');
+      expect(now.value?.stage, PracticeStage.ready);
+    });
+
+    test('a second press while the first holds opens nothing more', () async {
+      final c = container();
+      final practice = c.read(practiceControllerProvider('en').notifier);
+      await c.read(practiceControllerProvider('en').future);
+      var opened = 0;
+      recorder.onStart = () => opened++;
+
+      await Future.wait([practice.startRecording(), practice.startRecording()]);
+      await practice.startRecording();
+
+      expect(opened, 1);
+    });
+  });
+
   group('hearing yourself', () {
     ProviderContainer scored() {
       final c = ProviderContainer(

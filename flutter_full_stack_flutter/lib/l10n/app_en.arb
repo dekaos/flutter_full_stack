@@ -36,24 +36,15 @@
     "description": "Shown while the request is in flight."
   },
 
-  "themeTooltip": "Theme: {mode}",
-  "@themeTooltip": {
-    "description": "Tooltip on the theme switch button.",
-    "placeholders": {
-      "mode": { "type": "String", "example": "dark" }
-    }
+  "themeToDark": "Switch to the dark theme",
+  "@themeToDark": {
+    "description": "Tooltip on the theme button while the app is light."
   },
 
-  "themeModeSystem": "following the device",
-  "@themeModeSystem": {
-    "description": "Theme is whatever the device asks for."
+  "themeToLight": "Switch to the light theme",
+  "@themeToLight": {
+    "description": "Tooltip on the theme button while the app is dark."
   },
-
-  "themeModeLight": "light",
-  "@themeModeLight": { "description": "Theme is pinned to light." },
-
-  "themeModeDark": "dark",
-  "@themeModeDark": { "description": "Theme is pinned to dark." },
 
   "languageTooltip": "Language: {name}",
   "@languageTooltip": {
@@ -153,14 +144,35 @@
     }
   },
 
-  "practiceRecord": "Record",
+  "practiceRecord": "Hold to record",
   "@practiceRecord": {
-    "description": "Button that starts recording the learner reading the sentence."
+    "description": "The record button, for a screen reader: it is held while the learner reads the sentence."
   },
 
-  "practiceStop": "Stop",
-  "@practiceStop": {
-    "description": "Button that ends the recording and scores it."
+  "practiceHoldToTryAgain": "Hold to try again",
+  "@practiceHoldToTryAgain": {
+    "description": "The record button once an attempt has been scored, for a screen reader."
+  },
+
+  "practiceRecordingLeft": "Recording, {seconds} s left. Let go to finish.",
+  "@practiceRecordingLeft": {
+    "description": "The record button while it records, for a screen reader.",
+    "placeholders": {
+      "seconds": { "type": "int", "example": "12" }
+    }
+  },
+
+  "practiceHoldOffer": "Hold to speak · up to {seconds} s",
+  "@practiceHoldOffer": {
+    "description": "Bubble over the record button until the learner first records: how to use it, and how long an attempt may be.",
+    "placeholders": {
+      "seconds": { "type": "int", "example": "15" }
+    }
+  },
+
+  "practiceHoldLonger": "Hold the button while you speak",
+  "@practiceHoldLonger": {
+    "description": "Bubble over the record button after it was tapped rather than held."
   },
 
   "practiceScoring": "Scoring",
@@ -228,7 +240,7 @@
     "description": "Shown when a recording was made but could not be scored."
   },
 
-  "practiceTooShort": "That was too short. Tap Stop once you have finished reading.",
+  "practiceTooShort": "That was too short. Hold the button until you have finished reading.",
   "@practiceTooShort": {
     "description": "Shown when a recording holds too little audio to score."
   },

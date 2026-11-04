@@ -30,7 +30,7 @@ class AppBarActions extends ConsumerWidget {
   /// language, and the cycle stays in place for when it is offered again.
   final bool language;
 
-  /// The theme switch: following the device, or pinned light or dark.
+  /// The theme switch: light to dark, or dark to light, in one tap.
   final bool theme;
 
   /// The way to the licences page - which is where the attribution the
@@ -41,7 +41,11 @@ class AppBarActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final mode = ref.watch(themeModeControllerProvider);
+    final device = MediaQuery.platformBrightnessOf(context);
+    final shown = shownIn(
+      ref.watch(themeModeControllerProvider),
+      device: device,
+    );
     final locale = ref.watch(localeControllerProvider);
     final soundsOn = ref.watch(soundEffectsProvider);
 
@@ -69,11 +73,17 @@ class AppBarActions extends ConsumerWidget {
         if (theme)
           IconButton(
             key: const Key('app-theme'),
-            onPressed: () => ref
-                .read(themeModeControllerProvider.notifier)
-                .cycle(MediaQuery.platformBrightnessOf(context)),
-            icon: Icon(_iconFor(mode)),
-            tooltip: l10n.themeTooltip(_themeName(l10n, mode)),
+            onPressed: () =>
+                ref.read(themeModeControllerProvider.notifier).toggle(device),
+            // What a tap does: the moon in the light, the sun in the dark.
+            icon: Icon(switch (shown) {
+              Brightness.light => Icons.dark_mode_outlined,
+              Brightness.dark => Icons.light_mode_outlined,
+            }),
+            tooltip: switch (shown) {
+              Brightness.light => l10n.themeToDark,
+              Brightness.dark => l10n.themeToLight,
+            },
           ),
         if (licenses)
           IconButton(
@@ -87,23 +97,10 @@ class AppBarActions extends ConsumerWidget {
   }
 
   /// A globe for "whatever the device speaks", a translate mark for a language
-  /// the user picked — the same distinction [_iconFor] draws for the theme.
-  /// Pinning the language the device already speaks renders identical copy, so
-  /// the icon is the only thing that can report the change.
+  /// the user picked. Pinning the language the device already speaks renders
+  /// identical copy, so the icon is the only thing that can report the change.
   IconData _localeIconFor(Locale? locale) =>
       locale == null ? Icons.language_outlined : Icons.translate_outlined;
-
-  IconData _iconFor(ThemeMode mode) => switch (mode) {
-    ThemeMode.system => Icons.brightness_auto_outlined,
-    ThemeMode.light => Icons.light_mode_outlined,
-    ThemeMode.dark => Icons.dark_mode_outlined,
-  };
-
-  String _themeName(AppLocalizations l10n, ThemeMode mode) => switch (mode) {
-    ThemeMode.system => l10n.themeModeSystem,
-    ThemeMode.light => l10n.themeModeLight,
-    ThemeMode.dark => l10n.themeModeDark,
-  };
 
   /// A locale's own name, never translated: a language picker that renders
   /// every option in the language you are already reading is useless to

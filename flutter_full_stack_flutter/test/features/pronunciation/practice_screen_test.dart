@@ -313,11 +313,11 @@ void main() {
         index: 0,
       ),
     );
-    // The ripple around the stop button runs while the microphone is open,
-    // so this cannot settle - which is the point of it.
+    // The beads popping round the button run while the microphone is open,
+    // so this cannot settle - which is the point of them.
     await tester.pump(const Duration(milliseconds: 500));
     expect(hush(), 1);
-    expect(find.byKey(const Key('practice-stop')), findsOneWidget);
+    expect(find.byKey(const Key('practice-record-left')), findsOneWidget);
     expect(tester.hasRunningAnimations, isTrue);
   });
 
@@ -407,6 +407,35 @@ void main() {
       tester.widget<PromptScene>(find.byType(PromptScene)).topic,
       PromptTopic.coffee,
     );
+    expect(drawn(), PromptTopic.coffee);
+  });
+
+  testWidgets('a swipe anywhere on the page moves the deck, not only on '
+      'the card', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const PracticeState(
+          stage: PracticeStage.ready,
+          kind: ExerciseKind.phrase,
+          items: [_sunny, _coffee],
+          index: 0,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    PromptTopic? drawn() =>
+        tester.widget<PromptScene>(find.byType(PromptScene)).topic;
+    final card = tester.getRect(find.byKey(ValueKey(_sunny.id)));
+    // Well below the card, over the scene.
+    final below = Offset(card.center.dx, card.bottom + 160);
+
+    // Up and down is not across: it leaves the deck where it is.
+    await tester.flingFrom(below, const Offset(0, -300), 1000);
+    await tester.pumpAndSettle();
+    expect(drawn(), PromptTopic.weather);
+
+    await tester.flingFrom(below, const Offset(-600, 0), 1000);
+    await tester.pumpAndSettle();
     expect(drawn(), PromptTopic.coffee);
   });
 
@@ -969,6 +998,147 @@ void main() {
       );
       final voice = container.read(soundBoardProvider).voice as FakeVoice;
       expect(voice.said, isEmpty);
+    });
+  });
+
+  group('holding to record', () {
+    const ready = PracticeState(
+      stage: PracticeStage.ready,
+      kind: ExerciseKind.phrase,
+      items: [_sunny, _coffee],
+      index: 0,
+    );
+
+    StubPracticeController practice(WidgetTester tester) =>
+        ProviderScope.containerOf(
+              tester.element(find.byType(PracticeScreen)),
+            ).read(practiceControllerProvider('en').notifier)
+            as StubPracticeController;
+
+    Offset button(WidgetTester tester) =>
+        tester.getCenter(find.byKey(const Key('practice-record')));
+
+    testWidgets('pressed, it records; let go, what was said is scored', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app(ready));
+      await tester.pumpAndSettle();
+
+      final finger = await tester.startGesture(button(tester));
+      await tester.pump();
+      expect(practice(tester).asked, ['start']);
+
+      await tester.pump(const Duration(seconds: 2));
+      await finger.up();
+      await tester.pumpAndSettle();
+      expect(practice(tester).asked, ['start', 'score']);
+    });
+
+    testWidgets('a tap is thrown away, and a bubble says to hold the button', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app(ready));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('practice-record')));
+      await tester.pumpAndSettle();
+      expect(practice(tester).asked, ['start', 'cancel']);
+      expect(find.text('Hold the button while you speak'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      expect(find.text('Hold the button while you speak'), findsNothing);
+    });
+
+    testWidgets('until the first attempt, a bubble offers it, with the time '
+        'there is', (tester) async {
+      await tester.pumpWidget(_app(ready));
+      await tester.pumpAndSettle();
+      expect(find.text('Hold to speak · up to 15 s'), findsOneWidget);
+
+      practice(tester).show(ready.copyWith(stage: PracticeStage.recording));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Hold to speak · up to 15 s'), findsNothing);
+
+      // Recorded once, it is known how; scored, it is not offered again.
+      practice(tester).show(ready.copyWith(stage: PracticeStage.scored));
+      await tester.pumpAndSettle();
+      expect(find.text('Hold to speak · up to 15 s'), findsNothing);
+    });
+
+    testWidgets('while it records, the button counts the seconds left down', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(_app(ready));
+      await tester.pumpAndSettle();
+      practice(tester).show(ready.copyWith(stage: PracticeStage.recording));
+      await tester.pump();
+
+      Finder left(int seconds) => find.descendant(
+        of: find.byKey(const Key('practice-record')),
+        matching: find.text('$seconds'),
+      );
+      expect(left(15), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(left(10), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Recording, 10 s left. Let go to finish.'),
+        findsOneWidget,
+      );
+
+      // Scored once the time is up, by the controller's own limit.
+      practice(tester).show(ready.copyWith(stage: PracticeStage.scoring));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byKey(const Key('practice-scoring')), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testWidgets('a finger drifting sideways while it holds the button does '
+        'not swipe to the next prompt', (tester) async {
+      await tester.pumpWidget(_app(ready));
+      await tester.pumpAndSettle();
+      final sunny = tester.getRect(find.byKey(ValueKey(_sunny.id)));
+
+      final finger = await tester.startGesture(button(tester));
+      await tester.pump(const Duration(milliseconds: 400));
+      await finger.moveBy(const Offset(-220, 0));
+      await tester.pump();
+      await finger.moveBy(const Offset(-80, 0));
+      await tester.pump();
+
+      expect(tester.getRect(find.byKey(ValueKey(_sunny.id))), sunny);
+      expect(practice(tester).asked, ['start']);
+
+      // Let go wherever the finger has wandered to, it is still a hold.
+      await finger.up();
+      await tester.pumpAndSettle();
+      expect(practice(tester).asked, ['start', 'score']);
+      expect(tester.getRect(find.byKey(ValueKey(_sunny.id))), sunny);
+    });
+
+    testWidgets('a screen reader starts it, and stops it, by activating it', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(_app(ready));
+      await tester.pumpAndSettle();
+
+      tester.semantics.tap(find.semantics.byLabel('Hold to record'));
+      await tester.pump();
+      expect(practice(tester).asked, ['start']);
+
+      practice(tester).show(ready.copyWith(stage: PracticeStage.recording));
+      await tester.pump();
+      tester.semantics.tap(
+        find.semantics.byLabel(RegExp('Recording, 15 s left')),
+      );
+      await tester.pump();
+      expect(practice(tester).asked, ['start', 'score']);
+      semantics.dispose();
     });
   });
 }
