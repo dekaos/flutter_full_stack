@@ -107,7 +107,25 @@
     "placeholders": { "megabytes": { "type": "int" } }
   },
 
+  "packDownloading": "Downloading the pack",
+  "@packDownloading": {
+    "description": "On a language card while its pack downloads; a ring beside it shows how far."
+  },
 
+  "packChecking": "Checking the pack",
+  "@packChecking": {
+    "description": "On a language card for the couple of seconds after its pack has downloaded, while it is checked against its SHA-256."
+  },
+
+  "packInterrupted": "Stopped partway. Tap to pick up where it left off.",
+  "@packInterrupted": {
+    "description": "On a language card whose download failed. What arrived is kept, so a tap resumes it."
+  },
+
+  "packDamaged": "Arrived damaged. Tap to download it again.",
+  "@packDamaged": {
+    "description": "On a language card whose downloaded pack did not match its SHA-256. It was deleted, so a tap downloads it from the start."
+  },
 
   "practicePosition": "{current} of {total}",
   "@practicePosition": {
@@ -116,29 +134,6 @@
       "current": { "type": "int" },
       "total": { "type": "int" }
     }
-  },
-
-
-
-  "practiceDownloadPack": "Download the language pack",
-  "@practiceDownloadPack": {
-    "description": "Button that fetches the acoustic model for a language."
-  },
-
-  "practiceDownloadExplainer": "About {megabytes} MB, once. After that, practice works with no connection.",
-  "@practiceDownloadExplainer": {
-    "description": "Explains the size and the one-off nature of the download.",
-    "placeholders": { "megabytes": { "type": "int" } }
-  },
-
-  "practiceDownloading": "Downloading the language pack",
-  "@practiceDownloading": {
-    "description": "Shown while the model is being fetched."
-  },
-
-  "practiceChecking": "Checking the language pack",
-  "@practiceChecking": {
-    "description": "Shown for the couple of seconds after the model has downloaded, while it is checked against its SHA-256 before first use."
   },
 
   "practiceRecord": "Record",
@@ -204,16 +199,6 @@
   "practiceUnavailable": "Practice could not open.",
   "@practiceUnavailable": {
     "description": "Shown when the practice screen could not load at all."
-  },
-
-  "practiceDownloadFailed": "The language pack did not finish downloading. Check your connection and try again: it picks up where it stopped.",
-  "@practiceDownloadFailed": {
-    "description": "Shown when fetching the acoustic model failed. What already arrived is kept, so trying again resumes the download."
-  },
-
-  "practiceDownloadDamaged": "The language pack arrived damaged. Try again to download it afresh.",
-  "@practiceDownloadDamaged": {
-    "description": "Shown when the downloaded model did not match its SHA-256. It has been deleted, so trying again downloads it from the start."
   },
 
   "practiceRecordFailed": "The microphone could not start. Try again.",

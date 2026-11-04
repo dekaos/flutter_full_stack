@@ -81,23 +81,22 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get packDownloading => 'Baixando o pacote';
+
+  @override
+  String get packChecking => 'Conferindo o pacote';
+
+  @override
+  String get packInterrupted =>
+      'Parou no meio. Toque para continuar de onde parou.';
+
+  @override
+  String get packDamaged => 'Chegou com defeito. Toque para baixar de novo.';
+
+  @override
   String practicePosition(int current, int total) {
     return '$current de $total';
   }
-
-  @override
-  String get practiceDownloadPack => 'Baixar o pacote do idioma';
-
-  @override
-  String practiceDownloadExplainer(int megabytes) {
-    return 'Cerca de $megabytes MB, uma vez só. Depois disso, a prática funciona sem conexão.';
-  }
-
-  @override
-  String get practiceDownloading => 'Baixando o pacote do idioma';
-
-  @override
-  String get practiceChecking => 'Conferindo o pacote do idioma';
 
   @override
   String get practiceRecord => 'Gravar';
@@ -146,14 +145,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get practiceUnavailable => 'A prática não abriu.';
-
-  @override
-  String get practiceDownloadFailed =>
-      'O pacote do idioma não terminou de baixar. Confira a conexão e tente de novo: ele continua de onde parou.';
-
-  @override
-  String get practiceDownloadDamaged =>
-      'O pacote do idioma chegou com defeito. Tente de novo para baixá-lo do zero.';
 
   @override
   String get practiceRecordFailed =>

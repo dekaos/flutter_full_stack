@@ -8,6 +8,7 @@ import 'package:flutter_full_stack_flutter/app/locale_controller.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/features/greetings/providers/greeting_controller.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/providers/language_pack.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
 import 'package:flutter_full_stack_flutter/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

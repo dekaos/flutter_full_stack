@@ -199,16 +199,24 @@ server.
   supported version of the app names it.
 - **Real files or hard links only.** The static handler will not follow a
   symbolic link out of the folder, and answers 404 for one.
+- **Downloaded from the chooser.** Tapping a language whose pack is not on
+  the device starts the download on that language's card. A ring fills as it
+  comes down, and practice opens once the pack has landed and been checked.
+  It only opens for the language tapped last, and only if the learner is
+  still on the chooser. The `practice/:lang` route redirects to the chooser
+  when that language's pack is not on the device, so practice never has a
+  download step. The code is `LanguagePackController` in
+  `lib/features/pronunciation/providers/language_pack.dart`.
 - **Resumed, then checked.** `ModelStore` downloads into
   `<pack>.part`. If the connection drops, that file is kept, and the next try
   asks for the rest with `Range: bytes=<kept>-`. A server that ignores the
   range sends the whole pack, and the file is rewritten from the start. Once
   every byte is in, the store hashes the file on a background isolate. That
   took 3.9 s for 355 MB on an M-series Mac, and can take longer on a phone;
-  the screen says it is checking the pack meanwhile. Only a matching file
+  the card says it is checking the pack meanwhile. Only a matching file
   becomes the pack. A mismatch deletes the `.part` too, because resuming would
-  only add to the same wrong bytes, and the learner sees "arrived damaged,
-  try again".
+  only add to the same wrong bytes, and the card says the pack arrived
+  damaged and that a tap downloads it again.
 - **Checked once.** A pack already on disk is trusted. It was checked when it
   arrived, and reading 355 MB every time practice opens is not free.
 

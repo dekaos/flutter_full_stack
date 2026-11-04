@@ -65,11 +65,11 @@ List<WordScore> theWeather() => [
 /// on the device yet, which reaches for no platform channel - and moved on
 /// by the test, as the real controller would move it.
 class StubPracticeController extends PracticeController {
-  StubPracticeController([this.value = waiting]);
+  StubPracticeController([this.value = opened]);
 
-  /// One prompt, its pack still to download.
-  static const waiting = PracticeState(
-    stage: PracticeStage.needsModel,
+  /// One prompt, as practice opens.
+  static const opened = PracticeState(
+    stage: PracticeStage.ready,
     kind: ExerciseKind.phrase,
     items: [Exercise(id: 'x', text: 'hello', words: [], phones: [])],
     index: 0,

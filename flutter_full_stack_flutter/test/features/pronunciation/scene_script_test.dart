@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/prompt_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
@@ -63,7 +62,6 @@ void main() {
   // the lexicon, as content. This is what notices when one is reworded and
   // its scene still lights words that are no longer there.
   test('every English phrase has a story told on its own words', () async {
-    addTearDown(rootBundle.clear);
     final lexicon = await Lexicon.load('en');
     final phrases = lexicon.byKind(ExerciseKind.phrase);
     expect(phrases, isNotEmpty);

@@ -10,10 +10,8 @@ import 'package:flutter_full_stack_flutter/core/audio/synth.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/attempt_recorder.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
-import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/hiding_cat.dart';
-import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/prompt_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/score_band.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_audio.dart';
@@ -366,14 +364,6 @@ class _PracticeState extends ConsumerState<_Practice>
                     const SizedBox(height: 12),
                   ],
                   switch (state.stage) {
-                    PracticeStage.needsModel => _DownloadPrompt(
-                      l10n: l10n,
-                      onDownload: () => unawaited(controller.downloadModel()),
-                    ),
-                    PracticeStage.downloading => _Downloading(
-                      l10n: l10n,
-                      progress: state.download,
-                    ),
                     // A refusal is final as far as the system dialog goes, so
                     // the only way forward is the settings page - and it has
                     // to be one tap away.
@@ -1002,71 +992,12 @@ Sound chimeFor(PronunciationResult result) =>
       ScoreBand.weak => Sound.scoreWeak,
     };
 
-class _DownloadPrompt extends StatelessWidget {
-  const _DownloadPrompt({required this.l10n, required this.onDownload});
-
-  final AppLocalizations l10n;
-  final VoidCallback onDownload;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return GlassSurface(
-      dense: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.practiceDownloadExplainer(packMegabytes),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            key: const Key('practice-download'),
-            onPressed: onDownload,
-            icon: const Icon(Icons.download_outlined),
-            label: Text(l10n.practiceDownloadPack),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Downloading extends StatelessWidget {
-  const _Downloading({required this.l10n, this.progress});
-
-  final AppLocalizations l10n;
-  final DownloadProgress? progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final checking = progress?.checking ?? false;
-    return GlassSurface(
-      dense: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(checking ? l10n.practiceChecking : l10n.practiceDownloading),
-          const SizedBox(height: 12),
-          // An indeterminate bar when the server sent no length, or while
-          // the pack is checked: a bar that pretends to know how far along
-          // it is, is worse than one that does not claim to.
-          LinearProgressIndicator(value: checking ? null : progress?.fraction),
-        ],
-      ),
-    );
-  }
-}
-
 /// The one thing to do on this screen, as one round button: record, stop,
 /// or wait while the attempt is scored.
 ///
 /// Absent while there is nothing to record with - the pane above then
-/// carries the way forward, the download or the settings page - so the
-/// footer never offers a button that cannot work.
+/// carries the way forward, the settings page - so the footer never offers
+/// a button that cannot work.
 class _RecordControl extends StatelessWidget {
   const _RecordControl({
     required this.stage,
@@ -1102,8 +1033,6 @@ class _RecordControl extends StatelessWidget {
       label: l10n.practiceScoring,
       busy: true,
     ),
-    PracticeStage.needsModel ||
-    PracticeStage.downloading ||
     PracticeStage.noMicrophone => const SizedBox.shrink(),
   };
 }
@@ -1295,13 +1224,6 @@ class _RoundButtonState extends State<_RoundButton>
 /// phone it reads as the app breaking rather than as something to try again.
 String failureMessage(AppLocalizations l10n, Object failure) =>
     switch (failure) {
-      PracticeFailure(
-        step: PracticeStep.download,
-        cause: ModelIntegrityException(),
-      ) =>
-        l10n.practiceDownloadDamaged,
-      PracticeFailure(step: PracticeStep.download) =>
-        l10n.practiceDownloadFailed,
       PracticeFailure(step: PracticeStep.record) => l10n.practiceRecordFailed,
       PracticeFailure(
         cause: AttemptRejected(reason: RejectedBecause.tooShort),

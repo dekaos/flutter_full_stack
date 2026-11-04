@@ -8,55 +8,6 @@ part of 'practice_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Kept alive because the downloads it runs must outlive the screen that
-/// started them.
-
-@ProviderFor(modelStore)
-final modelStoreProvider = ModelStoreProvider._();
-
-/// Kept alive because the downloads it runs must outlive the screen that
-/// started them.
-
-final class ModelStoreProvider
-    extends $FunctionalProvider<ModelStore, ModelStore, ModelStore>
-    with $Provider<ModelStore> {
-  /// Kept alive because the downloads it runs must outlive the screen that
-  /// started them.
-  ModelStoreProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'modelStoreProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$modelStoreHash();
-
-  @$internal
-  @override
-  $ProviderElement<ModelStore> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  ModelStore create(Ref ref) {
-    return modelStore(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(ModelStore value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<ModelStore>(value),
-    );
-  }
-}
-
-String _$modelStoreHash() => r'79d71dcd6f4e9ad6b95d9bcaac19c40f31f2c3c4';
-
 /// The microphone, for as long as the app is running.
 ///
 /// Deliberately not auto-disposed. `AudioRecorder` wraps a native recorder,
@@ -231,140 +182,24 @@ final class PhonemeModelLoaderProvider
 String _$phonemeModelLoaderHash() =>
     r'a2786aa3ffd8c0cfc38cc31e686e5d5a919d3bd1';
 
-/// Whether a language's pack is already on the device.
-///
-/// Auto-disposed on purpose: it is read by the chooser, which has to see the
-/// pack appear after a download without the app being restarted.
-/// Auto-disposal alone is not enough, because the chooser stays mounted under
-/// the practice route and so never lets go of this. It is invalidated instead
-/// whenever a pack lands or leaves - including a download that finished after
-/// the learner walked away from it.
-
-@ProviderFor(packDownloaded)
-final packDownloadedProvider = PackDownloadedFamily._();
-
-/// Whether a language's pack is already on the device.
-///
-/// Auto-disposed on purpose: it is read by the chooser, which has to see the
-/// pack appear after a download without the app being restarted.
-/// Auto-disposal alone is not enough, because the chooser stays mounted under
-/// the practice route and so never lets go of this. It is invalidated instead
-/// whenever a pack lands or leaves - including a download that finished after
-/// the learner walked away from it.
-
-final class PackDownloadedProvider
-    extends $FunctionalProvider<AsyncValue<bool>, bool, FutureOr<bool>>
-    with $FutureModifier<bool>, $FutureProvider<bool> {
-  /// Whether a language's pack is already on the device.
-  ///
-  /// Auto-disposed on purpose: it is read by the chooser, which has to see the
-  /// pack appear after a download without the app being restarted.
-  /// Auto-disposal alone is not enough, because the chooser stays mounted under
-  /// the practice route and so never lets go of this. It is invalidated instead
-  /// whenever a pack lands or leaves - including a download that finished after
-  /// the learner walked away from it.
-  PackDownloadedProvider._({
-    required PackDownloadedFamily super.from,
-    required String super.argument,
-  }) : super(
-         retry: null,
-         name: r'packDownloadedProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
-  @override
-  String debugGetCreateSourceHash() => _$packDownloadedHash();
-
-  @override
-  String toString() {
-    return r'packDownloadedProvider'
-        ''
-        '($argument)';
-  }
-
-  @$internal
-  @override
-  $FutureProviderElement<bool> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<bool> create(Ref ref) {
-    final argument = this.argument as String;
-    return packDownloaded(ref, argument);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is PackDownloadedProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$packDownloadedHash() => r'10555e3b9ac0474affd57541ae3eb7ffb82cc7b7';
-
-/// Whether a language's pack is already on the device.
-///
-/// Auto-disposed on purpose: it is read by the chooser, which has to see the
-/// pack appear after a download without the app being restarted.
-/// Auto-disposal alone is not enough, because the chooser stays mounted under
-/// the practice route and so never lets go of this. It is invalidated instead
-/// whenever a pack lands or leaves - including a download that finished after
-/// the learner walked away from it.
-
-final class PackDownloadedFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<bool>, String> {
-  PackDownloadedFamily._()
-    : super(
-        retry: null,
-        name: r'packDownloadedProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  /// Whether a language's pack is already on the device.
-  ///
-  /// Auto-disposed on purpose: it is read by the chooser, which has to see the
-  /// pack appear after a download without the app being restarted.
-  /// Auto-disposal alone is not enough, because the chooser stays mounted under
-  /// the practice route and so never lets go of this. It is invalidated instead
-  /// whenever a pack lands or leaves - including a download that finished after
-  /// the learner walked away from it.
-
-  PackDownloadedProvider call(String lang) =>
-      PackDownloadedProvider._(argument: lang, from: this);
-
-  @override
-  String toString() => r'packDownloadedProvider';
-}
-
 /// Drives read-aloud practice for one language.
 ///
-/// Everything here happens on the device. The one thing that reaches the
-/// network is the first download of the language pack, and only because a
-/// 355 MB model cannot ship inside the app.
+/// Everything here happens on the device, and nothing reaches the network:
+/// the language pack is already there when practice opens.
 
 @ProviderFor(PracticeController)
 final practiceControllerProvider = PracticeControllerFamily._();
 
 /// Drives read-aloud practice for one language.
 ///
-/// Everything here happens on the device. The one thing that reaches the
-/// network is the first download of the language pack, and only because a
-/// 355 MB model cannot ship inside the app.
+/// Everything here happens on the device, and nothing reaches the network:
+/// the language pack is already there when practice opens.
 final class PracticeControllerProvider
     extends $AsyncNotifierProvider<PracticeController, PracticeState> {
   /// Drives read-aloud practice for one language.
   ///
-  /// Everything here happens on the device. The one thing that reaches the
-  /// network is the first download of the language pack, and only because a
-  /// 355 MB model cannot ship inside the app.
+  /// Everything here happens on the device, and nothing reaches the network:
+  /// the language pack is already there when practice opens.
   PracticeControllerProvider._({
     required PracticeControllerFamily super.from,
     required String super.argument,
@@ -402,13 +237,12 @@ final class PracticeControllerProvider
 }
 
 String _$practiceControllerHash() =>
-    r'50f96fe567619e80e1fbcabc4a55920a0fda4401';
+    r'6cae24d3e1d4490204b987f80cf8a232cc748944';
 
 /// Drives read-aloud practice for one language.
 ///
-/// Everything here happens on the device. The one thing that reaches the
-/// network is the first download of the language pack, and only because a
-/// 355 MB model cannot ship inside the app.
+/// Everything here happens on the device, and nothing reaches the network:
+/// the language pack is already there when practice opens.
 
 final class PracticeControllerFamily extends $Family
     with
@@ -430,9 +264,8 @@ final class PracticeControllerFamily extends $Family
 
   /// Drives read-aloud practice for one language.
   ///
-  /// Everything here happens on the device. The one thing that reaches the
-  /// network is the first download of the language pack, and only because a
-  /// 355 MB model cannot ship inside the app.
+  /// Everything here happens on the device, and nothing reaches the network:
+  /// the language pack is already there when practice opens.
 
   PracticeControllerProvider call(String lang) =>
       PracticeControllerProvider._(argument: lang, from: this);
@@ -443,9 +276,8 @@ final class PracticeControllerFamily extends $Family
 
 /// Drives read-aloud practice for one language.
 ///
-/// Everything here happens on the device. The one thing that reaches the
-/// network is the first download of the language pack, and only because a
-/// 355 MB model cannot ship inside the app.
+/// Everything here happens on the device, and nothing reaches the network:
+/// the language pack is already there when practice opens.
 
 abstract class _$PracticeController extends $AsyncNotifier<PracticeState> {
   late final _$args = ref.$arg as String;

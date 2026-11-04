@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -84,11 +83,6 @@ void main() {
     // The product rule, pinned where the content lives. Giving a Spanish
     // phrase or an English word a topic is a decision, so it should fail
     // here and be changed on purpose rather than slip in.
-    //
-    // rootBundle caches the *future* of every asset it loads, and these were
-    // created in this test's fake clock. A later test awaiting the cached
-    // Korean lexicon would wait on a clock nobody advances any more - forever.
-    addTearDown(rootBundle.clear);
     final english = await Lexicon.load('en');
     for (final exercise in english.exercises) {
       if (exercise.kind == ExerciseKind.phrase) {
@@ -115,9 +109,6 @@ void main() {
     // What a download is checked against. A lexicon without it - or with
     // something that is not a SHA-256 - would turn away every download of
     // its language as damaged.
-    //
-    // Cleared after, for the reason the test above gives.
-    addTearDown(rootBundle.clear);
     for (final lang in practiceLanguages) {
       final lexicon = await Lexicon.load(lang);
       expect(

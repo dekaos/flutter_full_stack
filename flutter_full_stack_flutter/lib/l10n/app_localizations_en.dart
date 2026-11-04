@@ -81,23 +81,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get packDownloading => 'Downloading the pack';
+
+  @override
+  String get packChecking => 'Checking the pack';
+
+  @override
+  String get packInterrupted =>
+      'Stopped partway. Tap to pick up where it left off.';
+
+  @override
+  String get packDamaged => 'Arrived damaged. Tap to download it again.';
+
+  @override
   String practicePosition(int current, int total) {
     return '$current of $total';
   }
-
-  @override
-  String get practiceDownloadPack => 'Download the language pack';
-
-  @override
-  String practiceDownloadExplainer(int megabytes) {
-    return 'About $megabytes MB, once. After that, practice works with no connection.';
-  }
-
-  @override
-  String get practiceDownloading => 'Downloading the language pack';
-
-  @override
-  String get practiceChecking => 'Checking the language pack';
 
   @override
   String get practiceRecord => 'Record';
@@ -146,14 +145,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get practiceUnavailable => 'Practice could not open.';
-
-  @override
-  String get practiceDownloadFailed =>
-      'The language pack did not finish downloading. Check your connection and try again: it picks up where it stopped.';
-
-  @override
-  String get practiceDownloadDamaged =>
-      'The language pack arrived damaged. Try again to download it afresh.';
 
   @override
   String get practiceRecordFailed =>

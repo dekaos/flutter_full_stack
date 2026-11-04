@@ -8,20 +8,19 @@ import 'package:flutter_full_stack_flutter/core/audio/synth.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/attempt_recorder.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
-import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/phoneme_model.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/providers/language_pack.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_audio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'practice_controller.g.dart';
 
 /// Where one practice session is.
+///
+/// Practice opens only once its language pack is on the device - the chooser
+/// is where a pack is downloaded - so there is no stage for fetching one.
 enum PracticeStage {
-  /// The language pack is not on the device yet.
-  needsModel,
-
-  downloading,
   ready,
   recording,
   scoring,
@@ -32,7 +31,7 @@ enum PracticeStage {
 }
 
 /// What the learner was doing when something went wrong.
-enum PracticeStep { download, record, score }
+enum PracticeStep { record, score }
 
 /// A failed action, carried as the error of the controller's [AsyncValue]
 /// while the deck it happened on stays on screen.
@@ -56,7 +55,6 @@ class PracticeState {
     required this.kind,
     required this.items,
     required this.index,
-    this.download,
     this.result,
     this.scoringTime,
     this.speaking = false,
@@ -73,7 +71,6 @@ class PracticeState {
   final List<Exercise> items;
   final int index;
 
-  final DownloadProgress? download;
   final PronunciationResult? result;
 
   /// How long the last attempt took to score. Almost all of it is the
@@ -108,7 +105,6 @@ class PracticeState {
     ExerciseKind? kind,
     List<Exercise>? items,
     int? index,
-    DownloadProgress? download,
     PronunciationResult? result,
     Duration? scoringTime,
     bool? speaking,
@@ -121,7 +117,6 @@ class PracticeState {
     kind: kind ?? this.kind,
     items: items ?? this.items,
     index: index ?? this.index,
-    download: download ?? this.download,
     result: clearResult ? null : (result ?? this.result),
     scoringTime: clearResult ? null : (scoringTime ?? this.scoringTime),
     speaking: speaking ?? this.speaking,
@@ -130,15 +125,6 @@ class PracticeState {
         ? null
         : (replaying ?? this.replaying),
   );
-}
-
-/// Kept alive because the downloads it runs must outlive the screen that
-/// started them.
-@Riverpod(keepAlive: true)
-ModelStore modelStore(Ref ref) {
-  final store = ModelStore();
-  ref.onDispose(store.dispose);
-  return store;
 }
 
 /// The microphone, for as long as the app is running.
@@ -167,28 +153,10 @@ Future<PhonemeAcousticModel> Function(String path) phonemeModelLoader(
   Ref ref,
 ) => OnnxPhonemeModel.load;
 
-/// Whether a language's pack is already on the device.
-///
-/// Auto-disposed on purpose: it is read by the chooser, which has to see the
-/// pack appear after a download without the app being restarted.
-/// Auto-disposal alone is not enough, because the chooser stays mounted under
-/// the practice route and so never lets go of this. It is invalidated instead
-/// whenever a pack lands or leaves - including a download that finished after
-/// the learner walked away from it.
-@riverpod
-Future<bool> packDownloaded(Ref ref, String lang) async {
-  final store = ref.watch(modelStoreProvider);
-  final changes = store.changes.listen((_) => ref.invalidateSelf());
-  ref.onDispose(changes.cancel);
-  final lexicon = await Lexicon.load(lang);
-  return await store.isDownloaded(lexicon.model);
-}
-
 /// Drives read-aloud practice for one language.
 ///
-/// Everything here happens on the device. The one thing that reaches the
-/// network is the first download of the language pack, and only because a
-/// 355 MB model cannot ship inside the app.
+/// Everything here happens on the device, and nothing reaches the network:
+/// the language pack is already there when practice opens.
 @riverpod
 class PracticeController extends _$PracticeController {
   /// The longest attempt recorded before it is stopped and scored on its own.
@@ -233,36 +201,15 @@ class PracticeController extends _$PracticeController {
       unawaited(_engine?.dispose() ?? Future.value());
     });
 
-    final store = ref.read(modelStoreProvider);
     // Practice opens on the phrases: a sentence is what a learner came to
     // say, and the scene behind it is drawn for sentences. The word deck is
     // still there for [selectKind].
-    //
-    // A download started on an earlier visit is still running: pick it up
-    // where it is instead of offering to start it again.
-    if (store.isDownloading(lexicon.model)) {
-      unawaited(_rejoinDownload());
-      return PracticeState(
-        stage: PracticeStage.downloading,
-        kind: ExerciseKind.phrase,
-        items: lexicon.byKind(ExerciseKind.phrase),
-        index: 0,
-        download: store.progressOf(lexicon.model),
-      );
-    }
-    final downloaded = await store.isDownloaded(lexicon.model);
     return PracticeState(
-      stage: downloaded ? PracticeStage.ready : PracticeStage.needsModel,
+      stage: PracticeStage.ready,
       kind: ExerciseKind.phrase,
       items: lexicon.byKind(ExerciseKind.phrase),
       index: 0,
     );
-  }
-
-  Future<void> _rejoinDownload() async {
-    // Waits for build to hand over the state this reports into.
-    await future;
-    await _followDownload();
   }
 
   PracticeState get _now => state.requireValue;
@@ -402,42 +349,12 @@ class PracticeController extends _$PracticeController {
     }
   }
 
-  /// Moving between prompts must not clear a download prompt or a refused
-  /// microphone: those are about the device, not about which prompt is up.
+  /// Moving between prompts must not clear a refused microphone: that is
+  /// about the device, not about which prompt is up.
   PracticeStage _readyStage() => switch (_now.stage) {
-    PracticeStage.needsModel ||
-    PracticeStage.downloading ||
     PracticeStage.noMicrophone => _now.stage,
     _ => PracticeStage.ready,
   };
-
-  Future<void> downloadModel() async {
-    if (_lexicon == null) return;
-    state = AsyncData(_now.copyWith(stage: PracticeStage.downloading));
-    await _followDownload();
-  }
-
-  /// Starts the download, or joins the one already running. The store owns
-  /// it, so if the learner leaves, it carries on without this controller.
-  Future<void> _followDownload() async {
-    final lexicon = _lexicon!;
-    await _attempt(PracticeStep.download, PracticeStage.needsModel, () async {
-      await ref
-          .read(modelStoreProvider)
-          .ensure(
-            lexicon.model,
-            sha256: lexicon.modelSha256,
-            onProgress: (progress) {
-              // Called by the store for as long as the download runs, which
-              // can be long after this controller is gone.
-              if (ref.mounted && state.hasValue) {
-                state = AsyncData(_now.copyWith(download: progress));
-              }
-            },
-          );
-      return _now.copyWith(stage: PracticeStage.ready);
-    });
-  }
 
   Future<void> startRecording() async {
     final recorder = ref.read(attemptRecorderProvider);

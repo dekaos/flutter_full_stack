@@ -7,6 +7,7 @@ import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/features/greetings/presentation/greetings_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/practice_screen.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/providers/language_pack.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,14 +25,39 @@ Future<void> _settle(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-ProviderContainer _container() => ProviderContainer(
-  overrides: [
-    practiceControllerProvider.overrideWith2((_) => StubPracticeController()),
-    modelStoreProvider.overrideWithValue(
-      ModelStore(directory: Directory.systemTemp),
-    ),
-  ],
-);
+/// A container whose store holds the packs named in [packs] - English and
+/// Spanish unless a test says otherwise. Practice only opens on a pack that
+/// is on the device.
+ProviderContainer _container({List<String> packs = const ['en', 'es']}) {
+  final folder = Directory.systemTemp.createTempSync('router_test');
+  addTearDown(() => folder.deleteSync(recursive: true));
+  for (final lang in packs) {
+    File('${folder.path}/phoneme_${lang}_r2.int8.onnx').writeAsStringSync('w');
+  }
+  return ProviderContainer(
+    overrides: [
+      practiceControllerProvider.overrideWith2(
+        (_) => StubPracticeController(),
+      ),
+      modelStoreProvider.overrideWithValue(ModelStore(directory: folder)),
+    ],
+  );
+}
+
+/// Lets a navigation finish whose redirect reads the lexicon and the disk.
+///
+/// That is real I/O, which the test's clock does not wait for, interleaved
+/// with steps that only the test's clock runs - so the two take turns until
+/// the redirect has had its answer.
+Future<void> _navigate(WidgetTester tester) async {
+  for (var i = 0; i < 5; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
+}
 
 void main() {
   testWidgets('the app opens on the language chooser', (tester) async {
@@ -69,7 +95,7 @@ void main() {
     await _settle(tester);
 
     await tester.tap(find.text('English'));
-    await tester.pumpAndSettle();
+    await _navigate(tester);
     expect(find.byType(PracticeScreen), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
@@ -91,9 +117,26 @@ void main() {
     // Nothing was tapped: this is the deep-link case, and it is the one that
     // sibling routes plus `push` would have left stranded.
     container.read(routerProvider).go('/practice/es');
-    await tester.pumpAndSettle();
+    await _navigate(tester);
 
     expect(find.byType(PracticeScreen), findsOneWidget);
     expect(find.byType(BackButton), findsOneWidget);
+  });
+
+  testWidgets('a link into practice for a pack not on the device lands on '
+      'the chooser, where it is downloaded', (tester) async {
+    final container = _container(packs: const []);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const App()),
+    );
+    await _settle(tester);
+
+    container.read(routerProvider).go('/practice/ko');
+    await _navigate(tester);
+
+    expect(find.byType(PracticeScreen), findsNothing);
+    expect(find.byType(LanguageScreen), findsOneWidget);
   });
 }

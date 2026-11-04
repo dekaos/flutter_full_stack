@@ -224,35 +224,35 @@ abstract class AppLocalizations {
   /// **'{megabytes} MB to download'**
   String packMissing(int megabytes);
 
+  /// On a language card while its pack downloads; a ring beside it shows how far.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading the pack'**
+  String get packDownloading;
+
+  /// On a language card for the couple of seconds after its pack has downloaded, while it is checked against its SHA-256.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the pack'**
+  String get packChecking;
+
+  /// On a language card whose download failed. What arrived is kept, so a tap resumes it.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped partway. Tap to pick up where it left off.'**
+  String get packInterrupted;
+
+  /// On a language card whose downloaded pack did not match its SHA-256. It was deleted, so a tap downloads it from the start.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrived damaged. Tap to download it again.'**
+  String get packDamaged;
+
   /// Which prompt of the deck is on screen.
   ///
   /// In en, this message translates to:
   /// **'{current} of {total}'**
   String practicePosition(int current, int total);
-
-  /// Button that fetches the acoustic model for a language.
-  ///
-  /// In en, this message translates to:
-  /// **'Download the language pack'**
-  String get practiceDownloadPack;
-
-  /// Explains the size and the one-off nature of the download.
-  ///
-  /// In en, this message translates to:
-  /// **'About {megabytes} MB, once. After that, practice works with no connection.'**
-  String practiceDownloadExplainer(int megabytes);
-
-  /// Shown while the model is being fetched.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloading the language pack'**
-  String get practiceDownloading;
-
-  /// Shown for the couple of seconds after the model has downloaded, while it is checked against its SHA-256 before first use.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking the language pack'**
-  String get practiceChecking;
 
   /// Button that starts recording the learner reading the sentence.
   ///
@@ -325,18 +325,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Practice could not open.'**
   String get practiceUnavailable;
-
-  /// Shown when fetching the acoustic model failed. What already arrived is kept, so trying again resumes the download.
-  ///
-  /// In en, this message translates to:
-  /// **'The language pack did not finish downloading. Check your connection and try again: it picks up where it stopped.'**
-  String get practiceDownloadFailed;
-
-  /// Shown when the downloaded model did not match its SHA-256. It has been deleted, so trying again downloads it from the start.
-  ///
-  /// In en, this message translates to:
-  /// **'The language pack arrived damaged. Try again to download it afresh.'**
-  String get practiceDownloadDamaged;
 
   /// Shown when recording could not begin.
   ///
