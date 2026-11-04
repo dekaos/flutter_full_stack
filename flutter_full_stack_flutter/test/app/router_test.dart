@@ -94,7 +94,8 @@ void main() {
     );
     await _settle(tester);
 
-    await tester.tap(find.text('English'));
+    // Its pack is on the device, so the button starts practice.
+    await tester.tap(find.byKey(const Key('language-action-en')));
     await _navigate(tester);
     expect(find.byType(PracticeScreen), findsOneWidget);
 

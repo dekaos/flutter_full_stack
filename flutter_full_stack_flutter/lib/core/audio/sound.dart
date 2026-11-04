@@ -61,7 +61,22 @@ enum Sound {
   clockBell(0.47),
 
   /// A plane taking off.
-  takeoff(0.29);
+  takeoff(0.29),
+
+  /// The language chooser's places, each answering in its own way: New
+  /// York's - a Broadway brass fanfare, "ba-da... DAAA!", as the firework
+  /// from the Statue of Liberty's torch bursts into a heart, and its
+  /// sparkle coming down.
+  fanfare(0.42, hit: Duration(milliseconds: 550)),
+
+  /// A flamenco guitar, as a dancer in Seville's Plaza de España strikes
+  /// her pose: a soft stroke, then the quick flourish of a rasgueado on the
+  /// chord a flamenco cadence comes home to.
+  guitarStrum(0.42),
+
+  /// A Korean temple bell, struck with a log: deep, soft at the start, and
+  /// pulsing slowly as it rings.
+  templeBell(0.72);
 
   Sound(this.volume, {this.hit = Duration.zero});
 
@@ -99,6 +114,9 @@ enum Sound {
     Sound.horn => _horn(),
     Sound.clockBell => _clockBell(),
     Sound.takeoff => _takeoff(),
+    Sound.fanfare => _fanfare(),
+    Sound.guitarStrum => _guitarStrum(),
+    Sound.templeBell => _templeBell(),
   };
 }
 
@@ -509,5 +527,132 @@ Float32List _takeoff() {
         ..shape(
           (t) => through(const [(0, 0), (1.1, 1), (1.5, 0.85), (2.2, 0)], t),
         );
+  return tape.finish();
+}
+
+// ------------------------------------------------------------- the places --
+
+/// One brass note at [hz], [seconds] long: a trumpet's bright stack of
+/// harmonics, the brightness opening up as it is blown - the "blat" that
+/// makes brass sound like brass - and, held, a [shake]: the vibrato a big
+/// band's trumpets put on a long note.
+Tape _brass(double seconds, double hz, {double shake = 0}) {
+  final note = tone(
+    seconds,
+    hz: (t) =>
+        hz *
+        (1 +
+            shake *
+                0.012 *
+                math.sin(2 * math.pi * 5.6 * t) *
+                ease(t, 0.12, 0.4)),
+    partials: const [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    loudness: const [1, 0.85, 0.7, 0.55, 0.42, 0.32, 0.24, 0.18, 0.13, 0.1],
+    attack: 0.012,
+  );
+  return lowPass(note, (t) => 900 + 3000 * ease(t, 0, 0.07))..shape(
+    (t) => swell(t, seconds: seconds, rise: 0.015, fall: seconds * 0.35),
+  );
+}
+
+/// New York's answer: a Broadway brass fanfare. Two trumpet notes lead in,
+/// "ba-da...", and as the firework bursts into its heart the band hits the
+/// chord - a major with its sixth, the big band's sound - and shakes it,
+/// with the sparkle of the firework falling through it. Its [Sound.hit] is
+/// the chord.
+Float32List _fanfare() {
+  // The sparkle: little high pings, here and there, as the sparks fall.
+  Tape sparkle(int seed, double seconds, int count) {
+    final tape = Tape(seconds);
+    final random = math.Random(seed);
+    for (var i = 0; i < count; i++) {
+      tape.mix(
+        strike(
+          2600 + random.nextDouble() * 2200,
+          ratios: const [1, 2.76],
+          loudness: const [1, 0.25],
+          decays: const [0.05, 0.02],
+          seconds: 0.15,
+        ),
+        at: random.nextDouble() * seconds * 0.8,
+        gain: 0.1 + 0.1 * random.nextDouble(),
+      );
+    }
+    return tape;
+  }
+
+  // C major with its sixth, trumpets and trombones spread over it, each a
+  // hair off the next so it sounds like a section and not one horn.
+  const chord = [261.63, 329.63, 392.0, 440.0, 523.25, 659.26];
+  final hit = Tape(1.6);
+  for (final (i, hz) in chord.indexed) {
+    hit.mix(
+      _brass(1.6, hz * (1 + (i.isEven ? 0.002 : -0.002)), shake: 1),
+      gain: i < 2 ? 0.5 : 0.36,
+    );
+  }
+
+  final tape = Tape(2.3)
+    ..mix(_brass(0.12, 392), at: 0.26, gain: 0.55)
+    ..mix(_brass(0.16, 392), at: 0.4, gain: 0.6)
+    ..mix(hit, at: 0.55)
+    ..mix(sparkle(131, 1.1, 14), at: 0.6)
+    ..shape((t) => 1 - ease(t, 1.85, 2.3));
+  return tape.finish();
+}
+
+/// A flamenco guitar: a soft down-stroke on F, then a rasgueado - three
+/// fingers flicked across the strings one after another - on E, the chord a
+/// flamenco cadence comes home to, left to ring.
+Float32List _guitarStrum() {
+  const f = [87.31, 130.81, 174.61, 220.0, 261.63, 349.23];
+  const e = [82.41, 123.47, 164.81, 207.65, 246.94, 329.63];
+  var seed = 101;
+  Tape stroke(List<double> chord, {required double spread}) {
+    final tape = Tape(2);
+    for (var i = 0; i < chord.length; i++) {
+      tape.mix(
+        string(2, hz: chord[i], seed: seed++, decay: 1.1 - i * 0.08),
+        at: i * spread,
+        // The bass strings carry less on a phone's speaker; the top ones
+        // are what is heard.
+        gain: 0.7 + i * 0.06,
+      );
+    }
+    return tape;
+  }
+
+  final tape = Tape(2.2)
+    ..mix(stroke(f, spread: 0.012), gain: 0.55)
+    ..mix(stroke(e, spread: 0.007), at: 0.34, gain: 0.5)
+    ..mix(stroke(e, spread: 0.006), at: 0.385, gain: 0.6)
+    ..mix(stroke(e, spread: 0.005), at: 0.43, gain: 0.85)
+    ..shape((t) => 1 - ease(t, 1.7, 2.2));
+  return lowPass(tape, (_) => 4200).finish();
+}
+
+/// A Korean temple bell, struck with a hanging log: a soft thud, then a
+/// deep hum and the partials over it ringing on - and the slow pulse a
+/// Korean bell is known for, from pairs of partials a fraction of a hertz
+/// apart. Pitched where a phone's speaker can carry it; a real one is
+/// lower still.
+Float32List _templeBell() {
+  const seconds = 2.5;
+  final tape =
+      tone(
+          seconds,
+          hz: (_) => 196,
+          partials: const [1, 1.0032, 2, 2.0075, 2.76, 3.9, 5.4],
+          loudness: const [0.9, 0.8, 0.75, 0.6, 0.55, 0.32, 0.12],
+          decays: const [3.2, 3.2, 2, 2, 1.1, 0.6, 0.3],
+          attack: 0.012,
+        )
+        ..mix(
+          lowPass(noise(0.06, seed: 111), (_) => 420)
+            ..shape((t) => pluck(t, attack: 0.002, decay: 0.012)),
+          gain: 0.6,
+        )
+        // Let it die away inside its length rather than be cut off.
+        ..shape((t) => 1 - ease(t, 1.6, seconds));
   return tape.finish();
 }

@@ -73,6 +73,12 @@ class SceneScript {
   /// is as quiet as it is still.
   final List<SceneSound> sounds;
 
+  /// When to start each of its [sounds] over an [arrival] that long, as
+  /// fractions of it - for `Passing` to set them off on their frames.
+  List<(double, Sound)> soundsIn(Duration arrival) => [
+    for (final cue in sounds) (cue.startIn(arrival), cue.sound),
+  ];
+
   /// Whether the hiding cat comes out on foot rather than rising out of its
   /// hiding place (`IsoStage.hidingCat`) - which also decides when, through
   /// its visit, it is heard.

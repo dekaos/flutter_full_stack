@@ -87,6 +87,7 @@ class IsoStage {
     this.clear = EdgeInsets.zero,
     this.cat = CatPose.hidden,
     this.catWalks = false,
+    this.centred = false,
     SceneTone? world,
   }) : world = world ?? tone,
        _t = clock;
@@ -129,6 +130,13 @@ class IsoStage {
   /// seen whole instead of behind a button.
   final EdgeInsets clear;
 
+  /// Whether the island stands in the middle of the clear stretch, sized to
+  /// fit inside it - across as well as down, so a panel at the side moves it
+  /// over - rather than along its foot. Behind a prompt the island
+  /// is a backdrop to the page's controls and keeps to the bottom; on a
+  /// page that is about the place, it is the subject, and takes the middle.
+  final bool centred;
+
   /// The island is this many tiles along each side.
   static const span = 6.0;
 
@@ -145,27 +153,59 @@ class IsoStage {
   /// capped on a tablet, and shrinks when the screen is short (a phone on
   /// its side) so it never climbs over the headline.
   late final double unit = math.min(
-    math.min(size.width * 0.92, 600) / (2 * span * _cos),
+    math.min(
+          math.max(
+                size.width - (centred ? clear.horizontal : 0),
+                size.width * 0.3,
+              ) *
+              0.92,
+          600,
+        ) /
+        (2 * span * _cos),
     // The clear stretch must hold the island and what stands on it - about
     // [headroom] tiles above the back corner. A phone on its side has
     // almost no clear stretch at all, and then half the screen is used
-    // anyway: a small island behind the controls beats a speck.
-    math.max(size.height - clear.vertical, size.height * 0.5) /
-        (2 * span * _sin + soil + rock + headroom),
+    // anyway: a small island behind the controls beats a speck. Centred, it
+    // only ever takes the stretch: it is not behind the controls but between
+    // them, and must not climb over either.
+    centred
+        // Never nothing, nor less: a page short enough to leave no room
+        // between what covers it still gets a small island, behind them.
+        ? math.max(size.height - clear.vertical, size.height * 0.2) /
+              (_tall - headroom + centredHeadroom)
+        : math.max(size.height - clear.vertical, size.height * 0.5) / _tall,
   );
+
+  /// How tall the island stands, in tiles: from what stands tallest on it
+  /// to the tip of the rock under it.
+  static const double _tall = 2 * span * _sin + soil + rock + headroom;
+
+  /// [headroom], for an island [centred] on its page: what stands on those
+  /// is landmark-sized, not a clock tower, and a block sized for a tower
+  /// leaves the island small and high in the middle of the page.
+  static const centredHeadroom = 2.0;
 
   /// How far above the island's back corner the tallest things on it reach,
   /// in tiles, for sizing the island to the clear stretch.
   static const headroom = 3.0;
 
   /// The screen point of world `(0, 0, 0)`, the island's back corner. The
-  /// island hangs just above whatever covers the bottom of the canvas.
+  /// island hangs just above whatever covers the bottom of the canvas - or,
+  /// [centred], in the middle of the stretch between what covers the top and
+  /// the bottom.
   late final Offset origin = Offset(
-    size.width / 2,
-    size.height -
-        clear.bottom -
-        unit * (2 * span * _sin + soil + rock) -
-        size.height * 0.015,
+    centred ? clear.left + (size.width - clear.horizontal) / 2 : size.width / 2,
+    centred
+        ? clear.top +
+              (size.height -
+                      clear.vertical -
+                      (_tall - headroom + centredHeadroom) * unit) /
+                  2 +
+              centredHeadroom * unit
+        : size.height -
+              clear.bottom -
+              unit * (2 * span * _sin + soil + rock) -
+              size.height * 0.015,
   );
 
   // ---------------------------------------------------------------- colour --
@@ -209,6 +249,11 @@ class IsoStage {
   /// A screen point given as fractions of the canvas, for backdrop.
   Offset screen(double fx, double fy) =>
       Offset(size.width * fx, size.height * fy);
+
+  /// How far down the canvas the island's side corners are: where a
+  /// horizon behind it lies. Backdrop placed from here and in [unit]s stands
+  /// in the same place behind the island on any canvas, tall or wide.
+  double get horizon => at(span, 0).dy;
 
   /// The polygon through world points [points].
   Path face(List<V3> points) {
@@ -851,21 +896,26 @@ class IsoStage {
   /// [baseline], peaking [height] tiles above it. [seed] varies the profile,
   /// so two ridges in one scene do not repeat each other.
   void ridge(double baseline, double height, Tint tint, {int seed = 0}) {
-    final base = size.height * baseline;
     final path = Path()..moveTo(0, size.height);
     const steps = 48;
     for (var i = 0; i <= steps; i++) {
       final f = i / steps;
-      final wave =
-          0.55 * math.sin(f * math.pi * 2.2 + seed * 1.7) +
-          0.3 * math.sin(f * math.pi * 5.3 + seed * 0.9) +
-          0.15 * math.sin(f * math.pi * 11.0 + seed * 2.3);
-      path.lineTo(size.width * f, base - height * unit * (0.6 + 0.4 * wave));
+      path.lineTo(size.width * f, ridgeTop(f, baseline, height, seed: seed));
     }
     path
       ..lineTo(size.width, size.height)
       ..close();
     canvas.drawPath(path, fill(tint));
+  }
+
+  /// How far down the canvas the top of [ridge] with these arguments is at
+  /// screen fraction [fx] - for standing something on it.
+  double ridgeTop(double fx, double baseline, double height, {int seed = 0}) {
+    final wave =
+        0.55 * math.sin(fx * math.pi * 2.2 + seed * 1.7) +
+        0.3 * math.sin(fx * math.pi * 5.3 + seed * 0.9) +
+        0.15 * math.sin(fx * math.pi * 11.0 + seed * 2.3);
+    return size.height * baseline - height * unit * (0.6 + 0.4 * wave);
   }
 
   // ---------------------------------------------------------------- island --

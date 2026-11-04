@@ -206,43 +206,61 @@ abstract class AppLocalizations {
   /// **'What are you practising?'**
   String get pickLanguageHeadline;
 
-  /// Sentence under the chooser heading.
-  ///
-  /// In en, this message translates to:
-  /// **'Each language has its own pack. Once it is on the device, practice works offline.'**
-  String get pickLanguageTagline;
-
   /// Shown on a language whose pack is already downloaded.
   ///
   /// In en, this message translates to:
   /// **'On this device'**
   String get packReady;
 
-  /// Shown on a language whose pack still has to be fetched.
+  /// Under a language whose pack is not on the device yet, before the download button.
   ///
   /// In en, this message translates to:
-  /// **'{megabytes} MB to download'**
-  String packMissing(int megabytes);
+  /// **'Downloaded once, then practice works offline.'**
+  String get packOnce;
 
-  /// On a language card while its pack downloads; a ring beside it shows how far.
+  /// The button that downloads a language's pack, with its size.
+  ///
+  /// In en, this message translates to:
+  /// **'Download · {megabytes} MB'**
+  String languageDownload(int megabytes);
+
+  /// The button that opens practice in a language whose pack is on the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Start practising'**
+  String get languageStart;
+
+  /// On the download button before the server has said how big the pack is.
   ///
   /// In en, this message translates to:
   /// **'Downloading the pack'**
   String get packDownloading;
 
-  /// On a language card for the couple of seconds after its pack has downloaded, while it is checked against its SHA-256.
+  /// On the download button as it fills: how much of the pack has come down.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading · {percent}%'**
+  String packDownloadingPercent(int percent);
+
+  /// Under a language whose pack is downloading: how much has come down, in megabytes.
+  ///
+  /// In en, this message translates to:
+  /// **'{received} of {total} MB'**
+  String packProgress(int received, int total);
+
+  /// On the download button, full, for the couple of seconds after the pack has come down, while it is checked against its SHA-256.
   ///
   /// In en, this message translates to:
   /// **'Checking the pack'**
   String get packChecking;
 
-  /// On a language card whose download failed. What arrived is kept, so a tap resumes it.
+  /// Under a language whose download failed. What arrived is kept, so trying again resumes it.
   ///
   /// In en, this message translates to:
   /// **'Stopped partway. Tap to pick up where it left off.'**
   String get packInterrupted;
 
-  /// On a language card whose downloaded pack did not match its SHA-256. It was deleted, so a tap downloads it from the start.
+  /// Under a language whose downloaded pack did not match its SHA-256. It was deleted, so trying again downloads it from the start.
   ///
   /// In en, this message translates to:
   /// **'Arrived damaged. Tap to download it again.'**

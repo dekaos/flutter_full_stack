@@ -8,6 +8,7 @@ import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/s
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/help_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/hotel_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/iso_stage.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/scene_painter.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/script.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/thinking_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/scenes/time_scene.dart';
@@ -145,10 +146,10 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
   /// Plays each of the story's sounds on the frame the arrival reaches it -
   /// and none of them under reduced motion, where the story is not played.
   void _hear() {
-    final cues = PromptScene.scriptOf(widget.topic).sounds;
-    final due = _passing.passed(_arrival, [
-      for (final cue in cues) (cue.startIn(PromptScene.arrival), cue.sound),
-    ]);
+    final due = _passing.passed(
+      _arrival,
+      PromptScene.scriptOf(widget.topic).soundsIn(PromptScene.arrival),
+    );
     final play = widget.onSound;
     if (play != null) due.forEach(play);
   }
@@ -176,7 +177,7 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
     return RepaintBoundary(
       child: CustomPaint(
         isComplex: true,
-        painter: _ScenePainter(
+        painter: ScenePainter(
           script: PromptScene.scriptOf(widget.topic),
           clear: widget.clear,
           progress: _arrival,
@@ -189,55 +190,4 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
       ),
     );
   }
-}
-
-class _ScenePainter extends CustomPainter {
-  _ScenePainter({
-    required this.script,
-    required this.clear,
-    required this.progress,
-    required this.cat,
-    required this.tone,
-    required this.world,
-    required this.haze,
-    required this.opacity,
-  }) : super(repaint: Listenable.merge([progress, cat]));
-
-  final SceneScript script;
-  final EdgeInsets clear;
-  final Animation<double> progress;
-  final Animation<CatPose> cat;
-  final SceneTone tone;
-  final SceneTone world;
-  final Color haze;
-  final double opacity;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (opacity <= 0) return;
-    final stage = IsoStage(
-      canvas,
-      size,
-      progress.value,
-      tone,
-      clear: clear,
-      world: world,
-      haze: haze,
-      cat: cat.value,
-      catWalks: script.catWalks,
-    );
-    // Only while a theme change fades the scene out for high contrast.
-    stage.faded(opacity, () => script.paint(stage));
-  }
-
-  @override
-  bool shouldRepaint(_ScenePainter old) =>
-      old.script != script ||
-      old.clear != clear ||
-      old.progress != progress ||
-      old.cat != cat ||
-      old.tone != tone ||
-      old.world != world ||
-      old.haze != haze ||
-      old.opacity != opacity;
 }

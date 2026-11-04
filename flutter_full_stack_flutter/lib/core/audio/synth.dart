@@ -163,6 +163,45 @@ Tape strike(
   attack: 0.0015,
 );
 
+/// A string plucked at [hz] - a guitar's, a harp's - by Karplus-Strong: a
+/// burst of noise going round a loop one period long, each time round a
+/// little softer and a little duller, which is what a string does to the
+/// shape it was plucked into. It rings for about [decay] seconds, falling by
+/// `1/e` over that; [brightness], `0` to `1`, is how much of the pluck's top
+/// survives it - a nail's against a thumb's.
+///
+/// The same every time for the same [seed].
+Tape string(
+  double seconds, {
+  required double hz,
+  required int seed,
+  double decay = 1.2,
+  double brightness = 0.6,
+}) {
+  final tape = Tape(seconds);
+  final period = math.max(2, (sampleRate / hz).round());
+  final loop = Float64List(period);
+  final random = math.Random(seed);
+  // The pluck: noise, smoothed as much as [brightness] leaves it.
+  var smooth = 0.0;
+  for (var i = 0; i < period; i++) {
+    final raw = random.nextDouble() * 2 - 1;
+    smooth += (raw - smooth) * (0.15 + 0.85 * brightness);
+    loop[i] = smooth;
+  }
+  // Each time round the loop, the average of neighbours - the string's own
+  // damping, which takes the top off first - times the loss that makes it
+  // fade over [decay].
+  final loss = math.exp(-period / (decay * sampleRate));
+  for (var i = 0; i < tape.length; i++) {
+    final at = i % period;
+    final next = (at + 1) % period;
+    tape.samples[i] = loop[at];
+    loop[at] = loss * 0.5 * (loop[at] + loop[next]);
+  }
+  return tape;
+}
+
 /// A voice, a tone whose loudness by frequency is reshaped as it goes by
 /// formants - the resonances of a mouth: [formants] gives their centres in
 /// Hz over time, and [widths] how wide each is. Harmonics of [hz] up to the

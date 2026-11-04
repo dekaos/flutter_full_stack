@@ -69,19 +69,31 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pickLanguageHeadline => 'O que você vai praticar?';
 
   @override
-  String get pickLanguageTagline =>
-      'Cada idioma tem seu pacote. Depois que ele está no aparelho, a prática funciona sem conexão.';
-
-  @override
   String get packReady => 'Neste aparelho';
 
   @override
-  String packMissing(int megabytes) {
-    return '$megabytes MB para baixar';
+  String get packOnce => 'Baixado uma vez, a prática funciona sem internet.';
+
+  @override
+  String languageDownload(int megabytes) {
+    return 'Baixar · $megabytes MB';
   }
 
   @override
+  String get languageStart => 'Começar a praticar';
+
+  @override
   String get packDownloading => 'Baixando o pacote';
+
+  @override
+  String packDownloadingPercent(int percent) {
+    return 'Baixando · $percent%';
+  }
+
+  @override
+  String packProgress(int received, int total) {
+    return '$received de $total MB';
+  }
 
   @override
   String get packChecking => 'Conferindo o pacote';

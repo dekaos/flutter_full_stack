@@ -69,19 +69,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pickLanguageHeadline => 'What are you practising?';
 
   @override
-  String get pickLanguageTagline =>
-      'Each language has its own pack. Once it is on the device, practice works offline.';
-
-  @override
   String get packReady => 'On this device';
 
   @override
-  String packMissing(int megabytes) {
-    return '$megabytes MB to download';
+  String get packOnce => 'Downloaded once, then practice works offline.';
+
+  @override
+  String languageDownload(int megabytes) {
+    return 'Download · $megabytes MB';
   }
 
   @override
+  String get languageStart => 'Start practising';
+
+  @override
   String get packDownloading => 'Downloading the pack';
+
+  @override
+  String packDownloadingPercent(int percent) {
+    return 'Downloading · $percent%';
+  }
+
+  @override
+  String packProgress(int received, int total) {
+    return '$received of $total MB';
+  }
 
   @override
   String get packChecking => 'Checking the pack';

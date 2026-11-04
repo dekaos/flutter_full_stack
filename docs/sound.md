@@ -2,7 +2,8 @@
 
 Practice is heard as well as seen: the scenes and the hiding cat make a few
 soft sounds as they move, an attempt's score is answered with a chime, and the
-sentence can be listened to before it is said. This page covers what plays,
+sentence can be listened to before it is said. So is the language chooser:
+each language's place is heard as its page comes into view. This page covers what plays,
 the rules about when, and how to change any of it.
 
 ## What plays
@@ -10,6 +11,7 @@ the rules about when, and how to change any of it.
 | What | When | Where it is defined |
 |---|---|---|
 | A scene's sounds | As its story is told, each on its beat: the clock tower's bell on each stroke, a cup as it lands on its saucer, a robin as each one lands. Nothing once the scene is at rest | `SceneScript.sounds`, in each `*_scene.dart`, on the same constants its drawing keeps time by |
+| The chooser's places | When a language's page comes into view, its place arrives and is heard once its story is told: a Broadway brass fanfare as the firework from the Statue of Liberty's torch bursts into a heart over New York, a flamenco guitar as a dancer strikes her pose in Seville's Plaza de España, a Korean temple bell. Only the page in view is heard, so a page only peeked at in a swipe stays silent. Brought back into view, a place tells its story again | `SceneSound` in `new_york_scene.dart`, `seville_scene.dart` and `temple_bell_scene.dart`; `CountryScene.heard` |
 | The cat's sounds | During a visit: a meow as it starts to wash (the washing itself is silent, as a cat's is); a soft closed-mouthed "mrrm" through the slow blink; a trill as it hops | `CatGesture.sounds` in `cat.dart`, timed through a visit by `CatPose.at` |
 | The score's chime | When an attempt is scored, in its `ScoreBand`: brighter the better, and never a buzzer | `chimeFor` in `practice_screen.dart` |
 | The sentence, read aloud | When the learner taps the listen button beside the record button, or a word of the sentence once it is scored. The sentence lights up word by word as it is read, following the engine's progress (`PhraseVoice.spoken`: iOS `willSpeakRange`, Android `onRangeStart`) | `PracticeController.listen` and `hear`, `PlatformPhraseVoice` |
@@ -76,8 +78,8 @@ that makes a sound goes through it.
    reading cannot: the learner asks for it, and it is part of the lesson. Like
    the theme and the language, the setting is not persisted.
 4. **Under reduced motion nothing is heard but the score and the reading.**
-   The scene's story and the cat's visit are not played, so their sounds are
-   not either.
+   The scene's story, the places' stories and the cat's visit are not
+   played, so their sounds are not either.
 
 ## Levels
 
@@ -88,7 +90,7 @@ measuring each sound with A-weighting and a phone-speaker roll-off below
 
 - score chimes: about -21 to -25 dB;
 - the cat: about -25 to -30 dB;
-- the scenes: about -27 to -30 dB;
+- the scenes and the places: about -27 to -30 dB;
 - the breeze: softer still, about -32 dB.
 
 Noise is the hardest thing to make sound gentle on a phone. White noise
@@ -104,6 +106,21 @@ low rumble that would cover that hiss.
   phone.
 
 Prefer notes to noise for anything new.
+
+- **The fanfare is brass, built from harmonics.** Each note is a trumpet's
+  stack of ten harmonics through a filter that opens as it is blown - the
+  "blat" that makes brass sound like brass - with vibrato on the held chord.
+  Two notes lead in, then a major chord with its sixth, the big band's sound,
+  spread over a section's worth of voices a hair apart. It starts 550 ms
+  ahead of its cue (`Sound.hit`), so the chord lands as the heart opens.
+- **The guitar is plucked strings.** `string` in `synth.dart` is
+  Karplus-Strong: a burst of noise going round a loop one period long, each
+  time round a little softer and duller, as a string is. The noise is only
+  the pluck; what is heard is a note.
+- **The temple bell is pitched up.** A real one hums far below what a phone
+  can play, so its hum is at 196 Hz and its upper partials are loud enough
+  to carry it. The slow pulse a Korean bell is known for comes from pairs of
+  partials a fraction of a hertz apart.
 
 All of them sit well below a reading, which plays at full volume.
 
@@ -158,4 +175,6 @@ ship one.
 
 `scene_script_test.dart` holds every scene's sounds inside act two and in order.
 `prompt_scene_test.dart` and `hiding_cat_test.dart` check each one is heard
-once, on its moment.
+once, on its moment. `country_scene_test.dart` does both for the chooser's
+places, and `language_screen_test.dart` checks each is heard as its page
+comes into view.
