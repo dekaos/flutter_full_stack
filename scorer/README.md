@@ -44,7 +44,10 @@ uv sync --group export
 # modelo para o device: ONNX int8 (355 MB por idioma)
 .venv/bin/python tool/export_onnx.py en
 
-# léxico que o app embarca (G2P roda aqui, nunca no device)
+# léxico que o app embarca (G2P roda aqui, nunca no device); um "topic" na
+# frase (exercises/en.json) vira a cena desenhada atrás dela no app — os
+# valores válidos são o enum PromptTopic em lib/core/pronunciation/lexicon.dart,
+# e hoje só as frases em inglês têm um (travado em lexicon_test.dart)
 .venv/bin/python tool/build_lexicon.py exercises/en.json \
   > ../flutter_full_stack_flutter/assets/lexicons/en.json
 

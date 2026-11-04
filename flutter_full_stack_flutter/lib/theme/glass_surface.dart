@@ -19,6 +19,7 @@ class GlassSurface extends StatefulWidget {
     required this.child,
     this.padding = const EdgeInsets.all(20),
     this.onTap,
+    this.dense = false,
     super.key,
   });
 
@@ -28,6 +29,10 @@ class GlassSurface extends StatefulWidget {
   /// When set, the pane becomes a button: it takes an ink ripple and a small
   /// press scale. Without it there is no gesture handling and no controller.
   final VoidCallback? onTap;
+
+  /// Frosted rather than clear, with [AppTokens.glassDense]: for what has to
+  /// stay legible over a busy, brightly lit scene.
+  final bool dense;
 
   @override
   State<GlassSurface> createState() => _GlassSurfaceState();
@@ -46,7 +51,7 @@ class _GlassSurfaceState extends State<GlassSurface> {
     Widget pane = DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: radius,
-        color: tokens.glassTint,
+        color: widget.dense ? tokens.glassDense : tokens.glassTint,
         border: Border.all(color: tokens.glassBorder),
         // The sheen is what sells the material: a highlight that fades out
         // before the middle, as if light caught the top edge.

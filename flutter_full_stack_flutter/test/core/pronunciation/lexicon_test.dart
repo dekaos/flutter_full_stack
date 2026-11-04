@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -60,6 +61,51 @@ void main() {
     expect(lexicon.exercises.single.targetIds, [2, 3]);
     expect(lexicon.vocabSize, 4);
     expect(lexicon.specialIds, containsAll([0, 1]));
+  });
+
+  test('a prompt carries its topic, and loses only that to an unknown one', () {
+    Exercise parse(Map<String, dynamic> extra) {
+      final raw = json.decode(_json) as Map<String, dynamic>;
+      ((raw['exercises'] as List).single as Map<String, dynamic>).addAll(extra);
+      return Lexicon.fromJson(raw).exercises.single;
+    }
+
+    expect(parse({'topic': 'coffee'}).topic, PromptTopic.coffee);
+    expect(parse({}).topic, isNull);
+    // A lexicon built for a newer app must still open on this one: the
+    // prompt stays, the picture goes.
+    final newer = parse({'topic': 'volcano'});
+    expect(newer.topic, isNull);
+    expect(newer.text, 'ab');
+  });
+
+  testWidgets('only the English phrases have a scene', (tester) async {
+    // The product rule, pinned where the content lives. Giving a Spanish
+    // phrase or an English word a topic is a decision, so it should fail
+    // here and be changed on purpose rather than slip in.
+    //
+    // rootBundle caches the *future* of every asset it loads, and these were
+    // created in this test's fake clock. A later test awaiting the cached
+    // Korean lexicon would wait on a clock nobody advances any more - forever.
+    addTearDown(rootBundle.clear);
+    final english = await Lexicon.load('en');
+    for (final exercise in english.exercises) {
+      if (exercise.kind == ExerciseKind.phrase) {
+        // Also what catches a typo in scorer/exercises/en.json: an unknown
+        // topic parses to null rather than failing anywhere else.
+        expect(exercise.topic, isNotNull, reason: '${exercise.id}: no topic');
+      } else {
+        expect(exercise.topic, isNull, reason: '${exercise.id}: a word');
+      }
+    }
+    for (final lang in ['es', 'ko']) {
+      final lexicon = await Lexicon.load(lang);
+      expect(
+        lexicon.exercises.where((e) => e.topic != null),
+        isEmpty,
+        reason: '$lang has no scenes',
+      );
+    }
   });
 
   testWidgets('the bundled Korean lexicon parses fully resolved', (

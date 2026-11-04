@@ -402,7 +402,7 @@ final class PracticeControllerProvider
 }
 
 String _$practiceControllerHash() =>
-    r'5b6a5711675b8622902f6d36203d8c46d0a55907';
+    r'e7eaa0c1f9e343b2a5d9078a221d487885d6cc06';
 
 /// Drives read-aloud practice for one language.
 ///

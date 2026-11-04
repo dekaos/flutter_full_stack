@@ -41,6 +41,7 @@ def build(exercises: list[dict], lang: str) -> dict:
             # sentido em item de uma palavra so.
             "kind": ex.get("kind", "phrase"),
             "text": ex["text"],
+            **({"topic": ex["topic"]} if "topic" in ex else {}),
             "words": ranges,
             "phones": [{"s": p.symbol, "t": p.token_ids} for p in phones],
         })

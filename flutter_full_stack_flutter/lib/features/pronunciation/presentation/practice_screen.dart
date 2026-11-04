@@ -8,6 +8,7 @@ import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/prompt_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
 import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
 import 'package:flutter_full_stack_flutter/theme/app_tokens.dart';
@@ -17,6 +18,13 @@ import 'package:flutter_full_stack_flutter/theme/rise_in.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Read-aloud practice for one language.
+///
+/// Laid out so the world behind the sentence can be seen without the sentence
+/// losing the eye. The prompt sits at the top, compact and on glass; the
+/// scene's island stands in the open middle; and the one thing to do -
+/// record - is a single round button in the footer. Anything else to read (a
+/// score, a failure, the download) appears between the two only while there
+/// is something to say, and while the learner speaks the world steps back.
 class PracticeScreen extends ConsumerWidget {
   const PracticeScreen({required this.lang, super.key});
 
@@ -25,77 +33,108 @@ class PracticeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final tokens = Theme.of(context).appTokens;
     final state = ref.watch(practiceControllerProvider(lang));
+    final value = state.value;
+    // From the moment the microphone opens until the score is in, the
+    // sentence is the one thing left in focus.
+    final hushed = switch (value?.stage) {
+      PracticeStage.recording || PracticeStage.scoring => true,
+      _ => false,
+    };
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(actions: const [AppBarActions()]),
       body: AuroraBackdrop(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        // A Builder because the padding that includes the app bar only
+        // exists below the Scaffold, and the scene needs it.
+        child: Builder(
+          builder: (context) {
+            final padding = MediaQuery.paddingOf(context);
+            final still = MediaQuery.disableAnimationsOf(context);
+            return Stack(
+              fit: StackFit.expand,
               children: [
-                RiseIn(child: _Headline(l10n: l10n)),
-                const SizedBox(height: 32),
-                switch (state) {
-                  // A failed action keeps its deck: the error travels beside
-                  // the value, so the learner can simply try again.
-                  AsyncValue(:final value?) => RiseIn(
-                    delay: const Duration(milliseconds: 90),
-                    child: _Practice(
+                // On the page, not in the card: fixed while the deck swipes
+                // over it, and blurred by the glass like the rest of the
+                // backdrop. Told what the deck and the footer cover, so its
+                // island stands whole in the open space between them.
+                PromptScene(
+                  topic: value?.topic,
+                  clear: EdgeInsets.only(
+                    top: padding.top + _Layout.deckBottom,
+                    bottom: padding.bottom + _Layout.footer,
+                  ),
+                ),
+                IgnorePointer(
+                  child: AnimatedOpacity(
+                    key: const Key('practice-hush'),
+                    opacity: hushed ? 1 : 0,
+                    duration: still
+                        ? Duration.zero
+                        : const Duration(milliseconds: 280),
+                    curve: Curves.easeOut,
+                    child: ColoredBox(color: tokens.sceneHush),
+                  ),
+                ),
+                SafeArea(
+                  child: switch (state) {
+                    // A failed action keeps its deck: the error travels
+                    // beside the value, so the learner can simply try again.
+                    AsyncValue(:final value?) => _Practice(
                       lang: lang,
                       state: value,
                       failure: state.error,
                     ),
-                  ),
-                  AsyncError(:final error) => RiseIn(
-                    delay: const Duration(milliseconds: 90),
-                    child: _Failure(
-                      message: l10n.practiceUnavailable,
-                      detail: error,
-                      actionLabel: l10n.practiceTryAgain,
-                      onAction: () =>
-                          ref.invalidate(practiceControllerProvider(lang)),
+                    AsyncError(:final error) => Padding(
+                      padding: const EdgeInsets.all(_Layout.gutter),
+                      child: RiseIn(
+                        child: _Failure(
+                          message: l10n.practiceUnavailable,
+                          detail: error,
+                          actionLabel: l10n.practiceTryAgain,
+                          onAction: () =>
+                              ref.invalidate(practiceControllerProvider(lang)),
+                        ),
+                      ),
                     ),
-                  ),
-                  _ => const Center(child: CircularProgressIndicator()),
-                },
+                    _ => const Center(child: CircularProgressIndicator()),
+                  },
+                ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _Headline extends StatelessWidget {
-  const _Headline({required this.l10n});
+/// The page's fixed measures: shared by the layout and by what the scene is
+/// told to keep its island clear of, so the two cannot disagree.
+abstract final class _Layout {
+  static const gutter = 20.0;
 
-  final AppLocalizations l10n;
+  /// Between the app bar and the deck.
+  static const top = 8.0;
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.practiceHeadline, style: theme.textTheme.displaySmall),
-        const SizedBox(height: 12),
-        Text(
-          l10n.practiceTagline,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
+  /// Two lines of a sentence at the prompt's size, and the glass around
+  /// them. The longest prompt in any language takes two.
+  static const phraseDeck = 132.0;
+  static const wordDeck = 104.0;
+
+  static const dots = 8.0;
+  static const gap = 14.0;
+
+  /// From under the app bar to just below the page dots.
+  static const double deckBottom = top + phraseDeck + gap + dots + gap;
+
+  /// The footer the record button stands in.
+  static const footer = 132.0;
 }
 
-/// The deck, the control that fits the current stage, and the last score.
+/// The deck, what there is to read about the last attempt, and the button.
 class _Practice extends ConsumerStatefulWidget {
   const _Practice({required this.lang, required this.state, this.failure});
 
@@ -155,114 +194,187 @@ class _PracticeState extends ConsumerState<_Practice> {
     final controller = ref.read(
       practiceControllerProvider(widget.lang).notifier,
     );
+    final words = state.kind == ExerciseKind.word;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SegmentedButton<ExerciseKind>(
-          key: const Key('practice-kind'),
-          segments: [
-            ButtonSegment(
-              value: ExerciseKind.word,
-              label: Text(l10n.practiceWords),
-            ),
-            ButtonSegment(
-              value: ExerciseKind.phrase,
-              label: Text(l10n.practicePhrases),
-            ),
-          ],
-          selected: {state.kind},
-          onSelectionChanged: (selection) =>
-              controller.selectKind(selection.first),
-        ),
-        const SizedBox(height: 20),
-        // A deck, not a list: one prompt at a time is what a learner reads
-        // aloud, and swiping is how they move on.
-        SizedBox(
-          height: state.kind == ExerciseKind.word ? 120 : 180,
-          child: PageView.builder(
-            controller: _pages,
-            itemCount: state.items.length,
-            onPageChanged: controller.goTo,
-            itemBuilder: (context, index) => GlassSurface(
-              child: Center(
-                child: _Prompt(
-                  text: state.items[index].text,
-                  large: state.kind == ExerciseKind.word,
-                  // The score belongs to the attempt that produced it, so it
-                  // is only painted on the prompt it came from.
-                  result: index == state.index ? state.result : null,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        _Layout.gutter,
+        _Layout.top,
+        _Layout.gutter,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // A deck, not a list: one prompt at a time is what a learner reads
+          // aloud, and swiping is how they move on.
+          RiseIn(
+            child: SizedBox(
+              height: words ? _Layout.wordDeck : _Layout.phraseDeck,
+              child: PageView.builder(
+                controller: _pages,
+                itemCount: state.items.length,
+                onPageChanged: controller.goTo,
+                itemBuilder: (context, index) => GlassSurface(
+                  dense: true,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Center(
+                    child: _Prompt(
+                      text: state.items[index].text,
+                      large: words,
+                      // The score belongs to the attempt that produced it,
+                      // so it is only painted on the prompt it came from.
+                      result: index == state.index ? state.result : null,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          l10n.practicePosition(state.index + 1, state.items.length),
-          textAlign: TextAlign.center,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+          const SizedBox(height: _Layout.gap),
+          _PageDots(
+            index: state.index,
+            count: state.items.length,
+            label: l10n.practicePosition(state.index + 1, state.items.length),
           ),
-        ),
-        const SizedBox(height: 20),
-        if (widget.failure case final failure?) ...[
-          _Failure(message: failureMessage(l10n, failure), detail: failure),
-          const SizedBox(height: 12),
-        ],
-        switch (state.stage) {
-          PracticeStage.needsModel => _DownloadPrompt(
-            l10n: l10n,
-            onDownload: () => unawaited(controller.downloadModel()),
-          ),
-          PracticeStage.downloading => _Downloading(
-            l10n: l10n,
-            progress: state.download,
-          ),
-          PracticeStage.ready || PracticeStage.scored => _RecordButton(
-            key: const Key('practice-record'),
-            label: state.stage == PracticeStage.scored
-                ? l10n.practiceTryAgain
-                : l10n.practiceRecord,
-            icon: Icons.mic_none_outlined,
-            onPressed: () => unawaited(controller.startRecording()),
-          ),
-          PracticeStage.recording => _RecordButton(
-            key: const Key('practice-stop'),
-            label: l10n.practiceStop,
-            icon: Icons.stop_circle_outlined,
-            onPressed: () => unawaited(controller.stopAndScore()),
-          ),
-          PracticeStage.scoring => _Busy(label: l10n.practiceScoring),
-          // A refusal is final as far as the system dialog goes, so the only
-          // way forward is the settings page - and it has to be one tap away.
-          PracticeStage.noMicrophone => _Failure(
-            message: l10n.practiceNoMicrophone,
-            actionLabel: l10n.practiceOpenSettings,
-            onAction: () => unawaited(ref.read(appSettingsProvider).open()),
-          ),
-        },
-        if (state.result case final result?) ...[
-          const SizedBox(height: 20),
-          RiseIn(
-            delay: const Duration(milliseconds: 60),
-            child: _Score(result: result, l10n: l10n),
-          ),
-        ],
-        // Not localised and not shipped: this is here so the cost of the
-        // model is a measured number instead of an argument.
-        if (kDebugMode && state.scoringTime != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              'scored in ${state.scoringTime!.inMilliseconds} ms',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+          const SizedBox(height: _Layout.gap),
+          // Whatever there is to read besides the sentence, and only while
+          // there is. Empty, it leaves the world in view.
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (widget.failure case final failure?) ...[
+                    _Failure(
+                      message: failureMessage(l10n, failure),
+                      detail: failure,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  switch (state.stage) {
+                    PracticeStage.needsModel => _DownloadPrompt(
+                      l10n: l10n,
+                      onDownload: () => unawaited(controller.downloadModel()),
+                    ),
+                    PracticeStage.downloading => _Downloading(
+                      l10n: l10n,
+                      progress: state.download,
+                    ),
+                    // A refusal is final as far as the system dialog goes, so
+                    // the only way forward is the settings page - and it has
+                    // to be one tap away.
+                    PracticeStage.noMicrophone => _Failure(
+                      message: l10n.practiceNoMicrophone,
+                      actionLabel: l10n.practiceOpenSettings,
+                      onAction: () =>
+                          unawaited(ref.read(appSettingsProvider).open()),
+                    ),
+                    _ => const SizedBox.shrink(),
+                  },
+                  if (state.result case final result?)
+                    RiseIn(
+                      delay: const Duration(milliseconds: 60),
+                      child: _Score(result: result, l10n: l10n),
+                    ),
+                  // Not localised and not shipped: this is here so the cost
+                  // of the model is a measured number instead of an argument.
+                  if (kDebugMode && state.scoringTime != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'scored in ${state.scoringTime!.inMilliseconds} ms',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-      ],
+          SizedBox(
+            height: _Layout.footer,
+            child: Center(
+              child: RiseIn(
+                delay: const Duration(milliseconds: 120),
+                child: _RecordControl(
+                  stage: state.stage,
+                  l10n: l10n,
+                  onRecord: () => unawaited(controller.startRecording()),
+                  onStop: () => unawaited(controller.stopAndScore()),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Where in the deck the learner is, as dots: the sentence keeps the eye, and
+/// this only has to be glanced at. A screen reader gets the words.
+class _PageDots extends StatelessWidget {
+  const _PageDots({
+    required this.index,
+    required this.count,
+    required this.label,
+  });
+
+  /// Past this many, dots stop being countable at a glance and the position
+  /// is written out instead.
+  static const most = 12;
+
+  final int index;
+  final int count;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    if (count > most) {
+      return Text(
+        label,
+        textAlign: TextAlign.center,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      );
+    }
+    final still = MediaQuery.disableAnimationsOf(context);
+    return Semantics(
+      label: label,
+      child: ExcludeSemantics(
+        child: SizedBox(
+          height: _Layout.dots,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < count; i++)
+                AnimatedContainer(
+                  duration: still
+                      ? Duration.zero
+                      : const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == index ? 22 : _Layout.dots,
+                  decoration: BoxDecoration(
+                    color: i == index
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(_Layout.dots / 2),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -289,11 +401,14 @@ class _Prompt extends StatelessWidget {
         : theme.textTheme.headlineSmall;
     final scored = result;
 
+    // Centred: in a compact card the sentence is the whole of it, and reads
+    // as a line to say rather than a paragraph to scan.
     if (scored == null || scored.words.isEmpty) {
-      return Text(text, style: style);
+      return Text(text, style: style, textAlign: TextAlign.center);
     }
 
     return Wrap(
+      alignment: WrapAlignment.center,
       spacing: 8,
       runSpacing: 4,
       children: [
@@ -331,6 +446,7 @@ class _DownloadPrompt extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GlassSurface(
+      dense: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -363,6 +479,7 @@ class _Downloading extends StatelessWidget {
   Widget build(BuildContext context) {
     final fraction = progress?.fraction;
     return GlassSurface(
+      dense: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -378,47 +495,171 @@ class _Downloading extends StatelessWidget {
   }
 }
 
-class _RecordButton extends StatelessWidget {
-  const _RecordButton({
+/// The one thing to do on this screen, as one round button: record, stop,
+/// or wait while the attempt is scored.
+///
+/// Absent while there is nothing to record with - the pane above then
+/// carries the way forward, the download or the settings page - so the
+/// footer never offers a button that cannot work.
+class _RecordControl extends StatelessWidget {
+  const _RecordControl({
+    required this.stage,
+    required this.l10n,
+    required this.onRecord,
+    required this.onStop,
+  });
+
+  final PracticeStage stage;
+  final AppLocalizations l10n;
+  final VoidCallback onRecord;
+  final VoidCallback onStop;
+
+  @override
+  Widget build(BuildContext context) => switch (stage) {
+    PracticeStage.ready || PracticeStage.scored => _RoundButton(
+      key: const Key('practice-record'),
+      label: stage == PracticeStage.scored
+          ? l10n.practiceTryAgain
+          : l10n.practiceRecord,
+      icon: Icons.mic_rounded,
+      onPressed: onRecord,
+    ),
+    PracticeStage.recording => _RoundButton(
+      key: const Key('practice-stop'),
+      label: l10n.practiceStop,
+      icon: Icons.stop_rounded,
+      onPressed: onStop,
+      live: true,
+    ),
+    PracticeStage.scoring => _RoundButton(
+      key: const Key('practice-scoring'),
+      label: l10n.practiceScoring,
+      busy: true,
+    ),
+    PracticeStage.needsModel ||
+    PracticeStage.downloading ||
+    PracticeStage.noMicrophone => const SizedBox.shrink(),
+  };
+}
+
+/// A round button in a soft halo of its own colour.
+///
+/// [live] turns it to the error colour and sets the halo rippling outward:
+/// the microphone is open. That ripple is the one motion on this screen that
+/// lasts, and it lasts only for as long as it is true - at most the fifteen
+/// seconds an attempt may run. Under reduced motion the halo simply holds.
+class _RoundButton extends StatefulWidget {
+  const _RoundButton({
     required this.label,
-    required this.icon,
-    required this.onPressed,
+    this.icon,
+    this.onPressed,
+    this.live = false,
+    this.busy = false,
     super.key,
   });
 
+  static const size = 76.0;
+
   final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
+  final IconData? icon;
+  final VoidCallback? onPressed;
+  final bool live;
+  final bool busy;
 
   @override
-  Widget build(BuildContext context) => FilledButton.icon(
-    onPressed: onPressed,
-    icon: Icon(icon),
-    label: Text(label),
-    style: FilledButton.styleFrom(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-    ),
-  );
+  State<_RoundButton> createState() => _RoundButtonState();
 }
 
-class _Busy extends StatelessWidget {
-  const _Busy({required this.label});
+class _RoundButtonState extends State<_RoundButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ripple = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  );
 
-  final String label;
+  void _sync() {
+    final ripple = widget.live && !MediaQuery.disableAnimationsOf(context);
+    if (ripple && !_ripple.isAnimating) {
+      _ripple.repeat();
+    } else if (!ripple && _ripple.isAnimating) {
+      _ripple
+        ..stop()
+        ..value = 0;
+    }
+  }
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      const SizedBox(
-        width: 16,
-        height: 16,
-        child: CircularProgressIndicator(strokeWidth: 2),
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_RoundButton old) {
+    super.didUpdateWidget(old);
+    _sync();
+  }
+
+  @override
+  void dispose() {
+    _ripple.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final fill = widget.live ? scheme.error : scheme.primary;
+    final ink = widget.live ? scheme.onError : scheme.onPrimary;
+    const size = _RoundButton.size;
+
+    return SizedBox.square(
+      dimension: size + 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          AnimatedBuilder(
+            animation: _ripple,
+            builder: (context, _) {
+              final t = _ripple.value;
+              return Container(
+                width: size + 20 + 20 * t,
+                height: size + 20 + 20 * t,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: fill.withValues(alpha: 0.22 * (1 - t * 0.85)),
+                ),
+              );
+            },
+          ),
+          IconButton.filled(
+            onPressed: widget.busy ? null : widget.onPressed,
+            tooltip: widget.label,
+            iconSize: 34,
+            style: IconButton.styleFrom(
+              fixedSize: const Size.square(size),
+              backgroundColor: fill,
+              foregroundColor: ink,
+              // Scoring keeps the button's colour: it is busy, not off.
+              disabledBackgroundColor: fill,
+              disabledForegroundColor: ink,
+              elevation: 3,
+              shadowColor: fill,
+            ),
+            icon: widget.busy
+                ? SizedBox.square(
+                    dimension: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: ink,
+                    ),
+                  )
+                : Icon(widget.icon),
+          ),
+        ],
       ),
-      const SizedBox(width: 12),
-      Text(label),
-    ],
-  );
+    );
+  }
 }
 
 /// What to tell the learner about a failed action.
@@ -463,6 +704,7 @@ class _Failure extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GlassSurface(
+      dense: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -512,6 +754,7 @@ class _Score extends StatelessWidget {
     ];
 
     return GlassSurface(
+      dense: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -224,35 +224,11 @@ abstract class AppLocalizations {
   /// **'{megabytes} MB to download'**
   String packMissing(int megabytes);
 
-  /// Tab for the single-word prompts.
-  ///
-  /// In en, this message translates to:
-  /// **'Words'**
-  String get practiceWords;
-
-  /// Tab for the full-sentence prompts.
-  ///
-  /// In en, this message translates to:
-  /// **'Phrases'**
-  String get practicePhrases;
-
   /// Which prompt of the deck is on screen.
   ///
   /// In en, this message translates to:
   /// **'{current} of {total}'**
   String practicePosition(int current, int total);
-
-  /// Main heading on the pronunciation practice screen.
-  ///
-  /// In en, this message translates to:
-  /// **'Read it out loud.'**
-  String get practiceHeadline;
-
-  /// Sentence under the heading, explaining that scoring is local.
-  ///
-  /// In en, this message translates to:
-  /// **'Your pronunciation is scored on this device.'**
-  String get practiceTagline;
 
   /// Button that fetches the acoustic model for a language.
   ///

@@ -107,15 +107,7 @@
     "placeholders": { "megabytes": { "type": "int" } }
   },
 
-  "practiceWords": "Words",
-  "@practiceWords": {
-    "description": "Tab for the single-word prompts."
-  },
 
-  "practicePhrases": "Phrases",
-  "@practicePhrases": {
-    "description": "Tab for the full-sentence prompts."
-  },
 
   "practicePosition": "{current} of {total}",
   "@practicePosition": {
@@ -126,15 +118,7 @@
     }
   },
 
-  "practiceHeadline": "Read it out loud.",
-  "@practiceHeadline": {
-    "description": "Main heading on the pronunciation practice screen."
-  },
 
-  "practiceTagline": "Your pronunciation is scored on this device.",
-  "@practiceTagline": {
-    "description": "Sentence under the heading, explaining that scoring is local."
-  },
 
   "practiceDownloadPack": "Download the language pack",
   "@practiceDownloadPack": {

@@ -81,22 +81,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get practiceWords => 'Palavras';
-
-  @override
-  String get practicePhrases => 'Frases';
-
-  @override
   String practicePosition(int current, int total) {
     return '$current de $total';
   }
-
-  @override
-  String get practiceHeadline => 'Leia em voz alta.';
-
-  @override
-  String get practiceTagline =>
-      'Sua pronúncia é avaliada neste aparelho. Nada é enviado.';
 
   @override
   String get practiceDownloadPack => 'Baixar o pacote do idioma';

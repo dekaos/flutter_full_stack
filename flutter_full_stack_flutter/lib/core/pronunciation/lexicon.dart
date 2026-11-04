@@ -50,6 +50,30 @@ enum ExerciseKind {
       value == 'word' ? ExerciseKind.word : ExerciseKind.phrase;
 }
 
+/// What a prompt is about, which decides the scene drawn behind it.
+///
+/// Content, not code: it is written next to the text in
+/// `scorer/exercises/<lang>.json`, by whoever wrote the sentence and knows
+/// what it describes. Only the English phrases carry one today, and
+/// `test/core/pronunciation/lexicon_test.dart` pins that.
+enum PromptTopic {
+  weather,
+  thinking,
+  coffee,
+  beach,
+  birds,
+  hotel,
+  help,
+  traffic,
+  time,
+  travel;
+
+  /// `null` for a prompt with no topic, and for one this build does not know:
+  /// a lexicon newer than the app should lose its picture, not its prompts.
+  static PromptTopic? parse(String? value) =>
+      value == null ? null : values.asNameMap()[value];
+}
+
 /// A read-aloud prompt with its phonemes resolved at build time.
 class Exercise {
   const Exercise({
@@ -58,11 +82,13 @@ class Exercise {
     required this.words,
     required this.phones,
     this.kind = ExerciseKind.phrase,
+    this.topic,
   });
 
   factory Exercise.fromJson(Map<String, dynamic> json) => Exercise(
     id: json['id'] as String,
     kind: ExerciseKind.parse(json['kind'] as String?),
+    topic: PromptTopic.parse(json['topic'] as String?),
     text: json['text'] as String,
     words: (json['words'] as List)
         .map((w) => LexiconWord.fromJson(w as Map<String, dynamic>))
@@ -74,6 +100,10 @@ class Exercise {
 
   final String id;
   final ExerciseKind kind;
+
+  /// What the prompt describes, or `null` when it has no scene.
+  final PromptTopic? topic;
+
   final String text;
   final List<LexiconWord> words;
   final List<LexiconPhone> phones;

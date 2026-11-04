@@ -6,6 +6,7 @@ import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/practice_screen.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/prompt_scene.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
 import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
 import 'package:flutter_full_stack_flutter/theme/app_theme.dart';
@@ -25,6 +26,9 @@ class _StubPracticeController extends PracticeController {
   /// top of the value it happened to, which Riverpod keeps.
   void fail(PracticeFailure failure) =>
       state = AsyncError(failure, StackTrace.empty);
+
+  /// Moves the screen on, as the real controller would.
+  void show(PracticeState next) => state = AsyncData(next);
 
   int rechecks = 0;
 
@@ -88,6 +92,22 @@ const _word = Exercise(
   phones: [
     LexiconPhone(symbol: 'θ', tokenIds: [10]),
   ],
+);
+
+const _sunny = Exercise(
+  id: 'en-p01',
+  text: 'The weather is beautiful today',
+  topic: PromptTopic.weather,
+  words: [],
+  phones: [],
+);
+
+const _coffee = Exercise(
+  id: 'en-p03',
+  text: 'I would like a cup of coffee please',
+  topic: PromptTopic.coffee,
+  words: [],
+  phones: [],
 );
 
 void main() {
@@ -267,20 +287,88 @@ void main() {
   });
 
   testWidgets('the deck says which prompt of how many is up', (tester) async {
+    final semantics = tester.ensureSemantics();
     await tester.pumpWidget(
       _app(
         const PracticeState(
           stage: PracticeStage.ready,
-          kind: ExerciseKind.word,
-          items: [_word, _exercise],
+          kind: ExerciseKind.phrase,
+          items: [_sunny, _coffee],
           index: 0,
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('1 of 2'), findsOneWidget);
-    expect(find.byKey(const Key('practice-kind')), findsOneWidget);
+    // Dots on screen, words for a screen reader.
+    expect(find.bySemanticsLabel('1 of 2'), findsOneWidget);
+    // The screen is the sentence, the world and the button - no headline,
+    // no deck switcher competing with them.
+    expect(find.byType(SegmentedButton<ExerciseKind>), findsNothing);
+    semantics.dispose();
+  });
+
+  testWidgets('while the learner speaks, the world steps back', (
+    tester,
+  ) async {
+    double hush() => tester
+        .widget<AnimatedOpacity>(find.byKey(const Key('practice-hush')))
+        .opacity;
+
+    await tester.pumpWidget(
+      _app(
+        const PracticeState(
+          stage: PracticeStage.ready,
+          kind: ExerciseKind.phrase,
+          items: [_sunny],
+          index: 0,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(hush(), 0);
+    expect(find.byKey(const Key('practice-record')), findsOneWidget);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PracticeScreen)),
+    );
+    (container.read(
+      practiceControllerProvider('en').notifier,
+    ) as _StubPracticeController).show(
+      const PracticeState(
+        stage: PracticeStage.recording,
+        kind: ExerciseKind.phrase,
+        items: [_sunny],
+        index: 0,
+      ),
+    );
+    // The ripple around the stop button runs while the microphone is open,
+    // so this cannot settle - which is the point of it.
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(hush(), 1);
+    expect(find.byKey(const Key('practice-stop')), findsOneWidget);
+    expect(tester.hasRunningAnimations, isTrue);
+  });
+
+  testWidgets('scoring keeps the button, busy', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const PracticeState(
+          stage: PracticeStage.scoring,
+          kind: ExerciseKind.phrase,
+          items: [_sunny],
+          index: 0,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+
+    final button = find.descendant(
+      of: find.byKey(const Key('practice-scoring')),
+      matching: find.byType(IconButton),
+    );
+    expect(tester.widget<IconButton>(button).onPressed, isNull);
+    expect(find.byTooltip('Scoring'), findsOneWidget);
   });
 
   testWidgets('a word attempt shows no fluency block', (tester) async {
@@ -314,6 +402,51 @@ void main() {
 
     expect(find.text('72'), findsOneWidget);
     expect(find.textContaining('diagnostic only'), findsNothing);
+  });
+
+  testWidgets('a phrase is drawn behind, and swiping moves the picture on', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const PracticeState(
+          stage: PracticeStage.ready,
+          kind: ExerciseKind.phrase,
+          items: [_sunny, _coffee],
+          index: 0,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    PromptTopic? drawn() =>
+        tester.widget<PromptScene>(find.byType(PromptScene)).topic;
+    expect(drawn(), PromptTopic.weather);
+
+    await tester.fling(find.text(_sunny.text), const Offset(-600, 0), 1000);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<PromptScene>(find.byType(PromptScene)).topic,
+      PromptTopic.coffee,
+    );
+    expect(drawn(), PromptTopic.coffee);
+  });
+
+  testWidgets('a word has no scene', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const PracticeState(
+          stage: PracticeStage.ready,
+          kind: ExerciseKind.word,
+          items: [_word],
+          index: 0,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<PromptScene>(find.byType(PromptScene)).topic, isNull);
   });
 
   testWidgets('the prompt is coloured word by word', (tester) async {

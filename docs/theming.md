@@ -54,6 +54,8 @@ team prefers plainer names.
 | `lib/theme/glass_surface.dart` | the translucent pane |
 | `lib/theme/aurora_backdrop.dart` | the surface a screen sits on |
 | `lib/theme/rise_in.dart` | the staggered entrance |
+| `lib/theme/scene_tone.dart` | the lightness band a prompt's scene is painted in |
+| `lib/features/pronunciation/presentation/scenes/` | the isometric kit (`iso_stage.dart`) and one file per prompt topic |
 | `lib/theme/theme_mode_controller.dart` | lets a user override the device |
 | `assets/fonts/` | Inter, bundled, plus its OFL licence |
 
@@ -116,6 +118,40 @@ materials over the strongest aurora pool, in all four themes, and asserts at
 least 4.5:1 against `onSurface`. At the defaults it measures 13.0:1 on a light
 field and 6.0:1 on a dark one; if a change takes it under 4.5, `melos run
 check` fails.
+
+The same test holds the scene drawn behind an English practice prompt — a
+small isometric island in a sky of its own, full-bleed and opaque, so it is
+what the headline is read on and what the glass shows through. It is not
+vetted colour by colour. It is confined to a *band of lightness*
+(`sceneLow`, `sceneHigh`, in CIE L*) that `AppTokens.of` derives from the text
+colours, so that **anything** painted inside it keeps `onSurface` and
+`onSurfaceVariant` at 4.5:1, bare and through the glass, errors on a card at
+4.5:1, and the score colours (24 px and up, so large text) at 3:1. On a light
+theme that band is L* ≈ 78–98, airy pastels; on a dark one L* ≈ 5–32, deep
+jewel tones. Any hue fits, which is what lets the scenes be colourful.
+
+There are two bands, because the screen asks two different things of the
+scene. The **sky** — behind the deck, the page dots and the app bar's icons —
+keeps the narrow band above, and stays calm. The **world** on the island is
+where the sentence is acted out, and it gets a far wider one (`worldLow`,
+`worldHigh`: L* 36–98 light, 5–68 dark) so it can have real light: sun-struck
+roofs, deep shadows, windows that glow. Nothing is read straight off the
+world. The sentence and every pane over it use `glassDense`, a frosted glass
+(surface at 0.86 light, 0.74 dark) that keeps all text at AA over anything the
+world band can paint — and that makes the sentence the one solid, still thing
+on a lively screen. The kit picks the band by *where* something is drawn
+(inside `IsoStage.rising` is world), so a scene never chooses.
+
+Scenes never hold a `Color`: they ask for a `Tint` — a hue, a saturation and a
+level within the band — and `SceneTone` (`lib/theme/scene_tone.dart`) makes
+the colour for the live theme. Three numbers in it were measured, not chosen:
+the margin is 5 L* on light and 3 on dark, because the light glass is denser
+and composites a saturated green darker than its lightness promises;
+saturation is capped at 0.85, because at full saturation a channel drops to
+zero and the same thing happens; and `level` is bent by a gamma (1.7 light,
+0.8 dark) so the middle levels a scene uses most have body on both themes.
+`test/theme_contrast_test.dart` sweeps the band, every 15° of hue, and
+`prompt_scene_test.dart` checks that every scene, at rest, paints inside it.
 
 **A new token.** Add the field, run the generator:
 
@@ -247,17 +283,22 @@ replacing the files, since the bundled faces are family-specific.
 
 ## Motion
 
-The rule is that motion has to mean something. Three places qualify, and
+The rule is that motion has to mean something. These places qualify, and
 nothing else moves:
 
 | Moment | What happens |
 |---|---|
 | Arrival | `RiseIn` fades and lifts the headline, the field and the response, staggered ~90ms apart |
 | Arrival | `AuroraBackdrop` drifts its three colour pools into place over 2.2s, then stops |
+| A prompt arrives | `PromptScene` assembles the island for an English phrase — it rises, things drop onto it and spring up, the car pulls up to the light — over 2.4s, then stops; the next prompt cross-fades to its own |
 | State change | `AnimatedSwitcher` slides a new response over the old one instead of blinking it into place |
+| State change | While the learner records and the attempt is scored, a `sceneHush` veil fades over the scene so the sentence is the one thing in focus, and fades off with the score |
+| Recording | The record button's halo ripples outward — the one motion that lasts, and only while the microphone is open (at most 15 s); under reduced motion the halo holds still |
 | Press | `GlassSurface` scales to 0.97 while held, when it has an `onTap` |
 
-**Nothing animates at rest**, and that is a decision rather than an omission. A
+**Nothing animates at rest**, and that is a decision rather than an omission.
+(Recording is not rest: the ripple says the microphone is open, and it stops
+the moment that stops being true.) A
 `BackdropFilter` re-rasterises whatever moves behind it, so a backdrop that
 drifts forever costs a blur every frame for the life of the screen — multiplied
 by every pane on it. Motion on arrival is paid once.

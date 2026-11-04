@@ -75,6 +75,11 @@ class PracticeState {
   final Duration? scoringTime;
 
   Exercise get exercise => items[index];
+
+  /// What the prompt on screen is about, for the scene behind the deck.
+  /// Which prompts have one is the lexicon's call, not the screen's.
+  PromptTopic? get topic => items.isEmpty ? null : exercise.topic;
+
   bool get hasPrevious => index > 0;
   bool get hasNext => index < items.length - 1;
 
@@ -187,14 +192,18 @@ class PracticeController extends _$PracticeController {
     });
 
     final store = ref.read(modelStoreProvider);
+    // Practice opens on the phrases: a sentence is what a learner came to
+    // say, and the scene behind it is drawn for sentences. The word deck is
+    // still there for [selectKind].
+    //
     // A download started on an earlier visit is still running: pick it up
     // where it is instead of offering to start it again.
     if (store.isDownloading(lexicon.model)) {
       unawaited(_rejoinDownload());
       return PracticeState(
         stage: PracticeStage.downloading,
-        kind: ExerciseKind.word,
-        items: lexicon.byKind(ExerciseKind.word),
+        kind: ExerciseKind.phrase,
+        items: lexicon.byKind(ExerciseKind.phrase),
         index: 0,
         download: store.progressOf(lexicon.model),
       );
@@ -202,8 +211,8 @@ class PracticeController extends _$PracticeController {
     final downloaded = await store.isDownloaded(lexicon.model);
     return PracticeState(
       stage: downloaded ? PracticeStage.ready : PracticeStage.needsModel,
-      kind: ExerciseKind.word,
-      items: lexicon.byKind(ExerciseKind.word),
+      kind: ExerciseKind.phrase,
+      items: lexicon.byKind(ExerciseKind.phrase),
       index: 0,
     );
   }
