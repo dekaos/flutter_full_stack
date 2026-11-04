@@ -13,7 +13,7 @@ import 'package:flutter_full_stack_flutter/core/audio/synth.dart';
 enum Sound {
   /// The cat calling softly as it comes out to wash: the learner has been
   /// quiet a while.
-  meow(0.54),
+  meow(0.5),
 
   /// The rolled "mrrp" a cat greets with - for an attempt that went well.
   trill(0.62),
@@ -132,46 +132,140 @@ Tape _tick(int seed, {required double above, double decay = 0.0015}) =>
 
 // ------------------------------------------------------------------ cat --
 
-/// "Mi-a-ow": a kitten's, high and short. The pitch climbs into the open
-/// vowel and falls away through the "ow", while the mouth - the formants -
-/// opens from a hum to an "a" and closes again.
+/// A smooth wobble, `-1` to `1`, wandering about [rate] times a second:
+/// the small unsteadiness of a living voice - in its pitch, cycle to cycle,
+/// and in its loudness - that no instrument has, and without which a voice
+/// sounds played rather than voiced.
+double Function(double t) _wobble(int seed, {required double rate}) {
+  final random = math.Random(seed);
+  final points = [
+    for (var i = 0; i < (3 * rate).ceil() + 2; i++) random.nextDouble() * 2 - 1,
+  ];
+  return (t) {
+    final x = (t * rate).clamp(0, points.length - 1.001).toDouble();
+    final i = x.floor();
+    final f = x - i;
+    return points[i] + (points[i + 1] - points[i]) * f * f * (3 - 2 * f);
+  };
+}
+
+/// A voice before the mouth shapes it: a puff of air through the vocal
+/// folds every period at [hz], each opening slowly and snapping shut
+/// (Rosenberg's pulse), heard as the change in the airflow. A throat's
+/// sound, rich in harmonics and falling away above them - not a stack of
+/// sines in step, which is what makes a made voice sound like an organ.
+Tape _glottis(double seconds, double Function(double t) hz) {
+  const opening = 0.42;
+  const closing = 0.18;
+  final tape = Tape(seconds);
+  var phase = 0.0;
+  var last = 0.0;
+  for (var i = 0; i < tape.length; i++) {
+    final p = phase;
+    final flow = p < opening
+        ? 0.5 * (1 - math.cos(math.pi * p / opening))
+        : p < opening + closing
+        ? math.cos(math.pi * (p - opening) / (2 * closing))
+        : 0.0;
+    tape.samples[i] = flow - last;
+    last = flow;
+    phase = (phase + hz(i / sampleRate) / sampleRate) % 1;
+  }
+  return tape;
+}
+
+/// "Mi-a-ow", as a cat says it: a throat's voice, unsteady as a living one
+/// is, shaped by a small mouth.
+///
+/// It starts on a hum through the nose with the mouth closed - the "m" -
+/// then the mouth opens wide on the "a" and rounds as it closes on the
+/// "ow", its resonances moving with it: higher than a person's, as a cat's
+/// mouth and throat are shorter. The pitch rises quickly, arches and falls
+/// away slower, and the voice goes breathy as it gives out. No vibrato -
+/// that is a singer's - but the small irregularity of every period that
+/// makes it an animal's.
 Float32List _meow() {
-  const seconds = 0.62;
-  final tape = voice(
-    seconds,
-    hz: (t) =>
-        through(const [
-          (0, 560),
-          (0.12, 730),
-          (0.26, 800),
-          (0.44, 700),
-          (0.62, 480),
-        ], t) *
-        (1 + 0.012 * math.sin(_tau * 6 * t)),
-    formants: (t) => [
+  const seconds = 0.8;
+  final jitter = _wobble(11, rate: 30);
+  final drift = _wobble(12, rate: 6);
+  final shimmer = _wobble(13, rate: 36);
+  double pitch(double t) =>
       through(const [
-        (0, 420),
-        (0.05, 560),
-        (0.2, 1050),
-        (0.36, 1200),
-        (0.5, 900),
-        (0.62, 650),
-      ], t),
-      through(const [
-        (0, 1500),
-        (0.06, 2600),
-        (0.2, 2100),
-        (0.4, 1700),
-        (0.62, 1100),
-      ], t),
-      3600,
-    ],
-    widths: const [260, 380, 700],
-    tilt: -4,
-  )..shape((t) => swell(t, seconds: seconds, rise: 0.06, fall: 0.2));
-  final breath = bandPass(noise(seconds, seed: 1), (_) => 3200, q: 2)
-    ..shape((t) => swell(t, seconds: seconds, rise: 0.1, fall: 0.25));
-  return (tape..mix(breath, gain: 0.04)).finish();
+        (0, 480),
+        (0.07, 610),
+        (0.18, 760),
+        (0.34, 780),
+        (0.5, 690),
+        (0.66, 550),
+        (0.8, 440),
+      ], t) *
+      (1 + 0.014 * jitter(t) + 0.012 * drift(t));
+
+  final source = _glottis(seconds, pitch)
+    ..shape((t) => 1 + 0.14 * shimmer(t))
+    // Breath through it: most as the mouth parts, and in the tail, as the
+    // voice gives out.
+    ..mix(
+      noise(seconds, seed: 14)..shape(
+        (t) =>
+            0.012 + 0.014 * (1 - ease(t, 0, 0.12)) + 0.02 * ease(t, 0.5, 0.8),
+      ),
+    );
+
+  // The mouth: closed on the "m", wide on the "a", rounding on the "ow".
+  double open(double t) => through(const [
+    (0, 0),
+    (0.08, 0.45),
+    (0.2, 1),
+    (0.42, 0.95),
+    (0.62, 0.7),
+    (0.8, 0.5),
+  ], t);
+  final mouth =
+      bandPass(
+          source,
+          (t) => through(const [
+            (0, 650),
+            (0.1, 900),
+            (0.22, 1350),
+            (0.42, 1250),
+            (0.62, 920),
+            (0.8, 780),
+          ], t),
+          q: 5,
+        )
+        ..mix(
+          bandPass(
+            source,
+            (t) => through(const [
+              (0, 2500),
+              (0.12, 2350),
+              (0.26, 2050),
+              (0.45, 1800),
+              (0.62, 1450),
+              (0.8, 1350),
+            ], t),
+            q: 8,
+          ),
+          gain: 0.8,
+        )
+        ..mix(
+          bandPass(
+            source,
+            (t) => through(const [(0, 3700), (0.3, 3500), (0.8, 3200)], t),
+            q: 10,
+          ),
+          gain: 0.4,
+        )
+        ..mix(bandPass(source, (_) => 4700, q: 10), gain: 0.16)
+        ..shape((t) => 0.3 + 0.7 * open(t));
+  // The "m": a hum through the nose before the mouth opens.
+  final nose = bandPass(source, (_) => 320, q: 3)
+    ..shape((t) => 1 - ease(t, 0.02, 0.14));
+  final tape = mouth
+    ..mix(nose, gain: 0.8)
+    ..shape((t) => swell(t, seconds: seconds, rise: 0.035, fall: 0.22));
+  return tape.finish();
 }
 
 /// "Mrrp": closed-mouthed and rolled, rising at the end like a question.

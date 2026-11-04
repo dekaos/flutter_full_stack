@@ -107,6 +107,14 @@ low rumble that would cover that hiss.
 
 Prefer notes to noise for anything new.
 
+- **The meow is a throat, not an instrument.** A stack of sines in step,
+  with a regular vibrato, sounds like an organ or a singer. The meow is a
+  source and a filter, as speech synthesis does it: `_glottis` makes the
+  puffs of air through the vocal folds, with the small irregularity of a
+  living voice in their pitch and loudness (`_wobble`) and breath through
+  them; resonances of a small mouth, higher than a person's, then move with
+  the "m-i-a-ow" - a hum through the nose, wide open, rounding to close.
+  The pitch arches over 450-780 Hz, a domestic cat's range.
 - **The fanfare is brass, built from harmonics.** Each note is a trumpet's
   stack of ten harmonics through a filter that opens as it is blown - the
   "blat" that makes brass sound like brass - with vibrato on the held chord.
