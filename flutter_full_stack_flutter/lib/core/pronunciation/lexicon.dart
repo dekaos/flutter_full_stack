@@ -130,6 +130,7 @@ class Lexicon {
   const Lexicon({
     required this.lang,
     required this.model,
+    required this.modelSha256,
     required this.vocab,
     required this.blankId,
     required this.calibration,
@@ -139,6 +140,7 @@ class Lexicon {
   factory Lexicon.fromJson(Map<String, dynamic> json) => Lexicon(
     lang: json['lang'] as String,
     model: json['model'] as String,
+    modelSha256: json['modelSha256'] as String,
     vocab: (json['vocab'] as List).cast<String>(),
     blankId: json['blankId'] as int,
     calibration: GopCalibration.fromJson(
@@ -155,7 +157,14 @@ class Lexicon {
   }
 
   final String lang;
+
+  /// The acoustic model's file name: the language pack the app downloads.
   final String model;
+
+  /// The SHA-256 of [model], in hex. A downloaded pack is only used once it
+  /// matches - the lexicon is what says which file, so it is also what says
+  /// which bytes.
+  final String modelSha256;
 
   /// The model's phoneme vocabulary, indexed by token id. It is what lets a
   /// bad score name what the model heard instead.

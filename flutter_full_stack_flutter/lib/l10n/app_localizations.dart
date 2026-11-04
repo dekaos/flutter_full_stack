@@ -248,6 +248,12 @@ abstract class AppLocalizations {
   /// **'Downloading the language pack'**
   String get practiceDownloading;
 
+  /// Shown for the couple of seconds after the model has downloaded, while it is checked against its SHA-256 before first use.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the language pack'**
+  String get practiceChecking;
+
   /// Button that starts recording the learner reading the sentence.
   ///
   /// In en, this message translates to:
@@ -320,11 +326,17 @@ abstract class AppLocalizations {
   /// **'Practice could not open.'**
   String get practiceUnavailable;
 
-  /// Shown when fetching the acoustic model failed.
+  /// Shown when fetching the acoustic model failed. What already arrived is kept, so trying again resumes the download.
   ///
   /// In en, this message translates to:
-  /// **'The language pack did not download. Check your connection and try again.'**
+  /// **'The language pack did not finish downloading. Check your connection and try again: it picks up where it stopped.'**
   String get practiceDownloadFailed;
+
+  /// Shown when the downloaded model did not match its SHA-256. It has been deleted, so trying again downloads it from the start.
+  ///
+  /// In en, this message translates to:
+  /// **'The language pack arrived damaged. Try again to download it afresh.'**
+  String get practiceDownloadDamaged;
 
   /// Shown when recording could not begin.
   ///

@@ -406,7 +406,7 @@ is deliberately disabled in the root lint config.
 
 | Port | Service |
 |---|---|
-| 8080 / 8081 / 8082 | API / Insights / web server (dev) |
+| 8080 / 8081 / 8082 | API / Insights / web server (dev); the web server also serves the language packs, at `/models` |
 | 8181 | Dart VM service, only under `melos run server:debug` |
 | 8090 / 8091 | Postgres / Redis (dev containers) |
 | 9090 / 9091 | Postgres / Redis (test containers) |

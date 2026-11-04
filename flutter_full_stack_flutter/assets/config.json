@@ -1,4 +1,4 @@
 {
     "apiUrl": "http://localhost:8080",
-    "modelBaseUrl": "http://192.168.15.9:8000"
+    "modelBaseUrl": "http://192.168.15.9:8082/models"
 }

@@ -2,7 +2,9 @@
 # docker build -f flutter_full_stack_server/Dockerfile .
 
 # Build stage
-FROM dart:3.8.0 AS build
+# The Dart that CI's Flutter bundles: the server's SDK constraint is ^3.13.0,
+# so an older image cannot even resolve the dependencies.
+FROM dart:3.13.2 AS build
 
 # Create a minimal workspace that preserves locked server dependency versions.
 WORKDIR /app
@@ -17,9 +19,12 @@ RUN printf '%s\n' \
   > pubspec.yaml
 RUN dart pub get
 
-# Compile the server executable.
+# Compile the server. `dart build cli`, not `dart compile exe`: sqlite3, which
+# Serverpod depends on, ships a native library through a build hook, and
+# `compile exe` refuses any package with one. The bundle is the executable in
+# bin/ and that library in lib/, which the executable finds relative to itself.
 WORKDIR /app/flutter_full_stack_server
-RUN dart compile exe bin/main.dart -o bin/server
+RUN dart build cli --target bin/main.dart --output build/cli
 
 # Add a fallback for the copy of possibly missing directories.
 RUN mkdir -p config web migrations
@@ -34,11 +39,17 @@ ENV serverid=default
 ENV logging=normal
 ENV role=monolith
 
+# The pronunciation language packs the app downloads, served at /models. They
+# are not baked in - 355 MB a language - so mount the host's folder of them
+# here: docker run -v /srv/language-packs:/app/models:ro ...
+# See docs/pronunciation-models.md, "Serving and storage".
+ENV MODELS_DIR=/app/models
+
 # Copy runtime dependencies
 COPY --from=build /runtime/ /
 
-# Copy compiled server executable
-COPY --from=build /app/flutter_full_stack_server/bin/server server
+# Copy the compiled server: bin/main, and its native libraries in lib/
+COPY --from=build /app/flutter_full_stack_server/build/cli/bundle/ ./
 
 # Copy configuration files and resources
 COPY --from=build /app/flutter_full_stack_server/config/ config/
@@ -54,4 +65,4 @@ EXPOSE 8081
 EXPOSE 8082
 
 # Define the entrypoint command
-ENTRYPOINT ./server --mode=$runmode --server-id=$serverid --logging=$logging --role=$role
+ENTRYPOINT ./bin/main --mode=$runmode --server-id=$serverid --logging=$logging --role=$role

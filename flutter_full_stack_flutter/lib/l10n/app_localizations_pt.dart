@@ -97,6 +97,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get practiceDownloading => 'Baixando o pacote do idioma';
 
   @override
+  String get practiceChecking => 'Conferindo o pacote do idioma';
+
+  @override
   String get practiceRecord => 'Gravar';
 
   @override
@@ -146,7 +149,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get practiceDownloadFailed =>
-      'O pacote do idioma não foi baixado. Confira a conexão e tente de novo.';
+      'O pacote do idioma não terminou de baixar. Confira a conexão e tente de novo: ele continua de onde parou.';
+
+  @override
+  String get practiceDownloadDamaged =>
+      'O pacote do idioma chegou com defeito. Tente de novo para baixá-lo do zero.';
 
   @override
   String get practiceRecordFailed =>

@@ -7,6 +7,7 @@ device -- e por isso que o app nao precisa de espeak-ng.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -16,6 +17,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from gop import calibration as calib  # noqa: E402
 from gop.acoustic import MODEL_REVISION, MODELS, vocab_file  # noqa: E402
 from gop.g2p import phonemize  # noqa: E402
+
+# Onde tool/export_onnx.py grava os pacotes.
+BUILD = Path(__file__).resolve().parents[1] / "build"
+
+
+def sha256_of(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def load_vocab(lang: str) -> dict[str, int]:
@@ -51,9 +63,18 @@ def build(exercises: list[dict], lang: str) -> dict:
     for sym, i in vocab.items():
         symbols[i] = sym
 
+    model = f"phoneme_{lang}_{MODEL_REVISION}.int8.onnx"
+    exported = BUILD / model
+    if not exported.exists():
+        sys.exit(f"{exported} nao existe: rode `python tool/export_onnx.py {lang}` antes.")
+
     return {
         "lang": lang,
-        "model": f"phoneme_{lang}_{MODEL_REVISION}.int8.onnx",
+        "model": model,
+        # O app confere o pacote baixado contra isto antes de usa-lo: um
+        # download corrompido, ou um arquivo trocado no host, vira um erro
+        # claro na hora -- e nao uma falha do ONNX Runtime muito depois.
+        "modelSha256": sha256_of(exported),
         "vocab": symbols,
         "blankId": vocab.get("<pad>", 0),
         # Medido, nao decidido: vem de calibration/<lang>.json.

@@ -125,6 +125,13 @@ class _Scored extends PracticeController {
   );
 }
 
+/// Vouches for whatever was served as the English pack. These tests serve a
+/// few KB under its name - never its 355 MB - so what they serve can never
+/// match the digest its lexicon carries; the check itself is tested with the
+/// store.
+Future<String> _vouchForEnglish(File? _) async =>
+    (await Lexicon.load('en')).modelSha256;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -161,7 +168,11 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         modelStoreProvider.overrideWithValue(
-          ModelStore(directory: packs, baseUrl: baseUrl),
+          ModelStore(
+            directory: packs,
+            baseUrl: baseUrl,
+            fingerprint: _vouchForEnglish,
+          ),
         ),
         attemptRecorderProvider.overrideWithValue(recorder),
         soundBoardProvider.overrideWithValue(board),
@@ -297,7 +308,12 @@ void main() {
     )..listen(packDownloadedProvider('en'), (_, _) {});
     expect(await c.read(packDownloadedProvider('en').future), isFalse);
 
-    await c.read(modelStoreProvider).ensure('phoneme_en_r2.int8.onnx');
+    await c
+        .read(modelStoreProvider)
+        .ensure(
+          'phoneme_en_r2.int8.onnx',
+          sha256: await _vouchForEnglish(null),
+        );
     await Future<void>.delayed(Duration.zero);
 
     expect(await c.read(packDownloadedProvider('en').future), isTrue);

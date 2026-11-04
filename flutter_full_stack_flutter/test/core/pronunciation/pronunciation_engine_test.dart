@@ -22,6 +22,7 @@ const _exercise = Exercise(
 const _lexicon = Lexicon(
   lang: 'x',
   model: 'model.onnx',
+  modelSha256: '',
   vocab: _vocab,
   blankId: 0,
   calibration: GopCalibration.fallback,

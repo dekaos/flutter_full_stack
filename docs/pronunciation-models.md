@@ -24,6 +24,10 @@ How the scoring itself works (GOP over a forced alignment) is in
 | Size | 354,930,937 bytes | 354,930,937 bytes | 354,930,937 bytes |
 | SHA-256 | `8fb6b418aa5c1b5d9786728be1b35d21e7c1e9a2a14d2dd5e8f2af0387aa43f3` | `cf032b3ffd234e4fcf57fba3af2285a19236eb66896086eea95b0af726712e0f` | `cf032b3ffd234e4fcf57fba3af2285a19236eb66896086eea95b0af726712e0f` |
 
+Each lexicon also carries its pack's SHA-256, as `modelSha256`. The app
+uses a downloaded pack only if its digest matches; see
+[Serving and storage](#serving-and-storage).
+
 The commits are pinned in `UPSTREAM_REVISIONS` in
 [scorer/src/gop/acoustic.py](../scorer/src/gop/acoustic.py), so an export redone
 later starts from the same weights. `r2` in the file name is the revision of
@@ -134,9 +138,15 @@ another quantisation, a fix to the export — is a new model:
 4. `python tool/calibrate.py <lang> ...` — refits `calibration/<lang>.json`.
    The corpora and flags are in the scorer README.
 5. `python tool/build_lexicon.py exercises/<lang>.json > ../flutter_full_stack_flutter/assets/lexicons/<lang>.json`
-   — picks up the new file name, vocabulary and curves.
+   — picks up the new file name, vocabulary and curves. It also hashes the
+   file exported in step 2 into `modelSha256`, so it refuses to run until
+   that file exists in `build/`. Rebuild the lexicon whenever the file
+   changes, even when nothing else did: the app rejects a pack whose digest
+   is not the one its lexicon carries.
 6. `python tool/evaluate.py` — agreement with human raters, English only.
-7. Publish the file on the model host, and update the size and SHA-256 above.
+7. Add the file to the production packs folder, keeping the old revision (see
+   [Serving and storage](#serving-and-storage)). Then update the size and
+   SHA-256 above.
 8. `melos run check`.
 
 The lexicon build is deterministic. With the pinned revisions and the local
@@ -146,14 +156,64 @@ upstream moved.
 
 ## Serving and storage
 
-- **Development:** `scorer/tool/serve_models.sh` serves `scorer/build/` over
-  plain HTTP on the LAN and prints the URL to use. The app takes it from
-  `--dart-define=MODEL_BASE_URL=...` or `modelBaseUrl` in
-  `assets/config.json`.
-- **Production:** not set up yet. `assets/config.json` points at a LAN address,
-  and the app does not verify the SHA-256 above after a download.
-- **On the device:** `getApplicationSupportDirectory()/pronunciation_models`,
-  excluded from backups on both platforms (see AGENTS.md).
+The project's own server hands out the packs. The Serverpod web server (port
+8082) serves them at `/models/<file name>`; the code is `LanguagePacks` in
+[`language_packs.dart`](../flutter_full_stack_server/lib/src/web/routes/language_packs.dart).
+The app downloads `<modelBaseUrl>/<file name>`. It takes `modelBaseUrl` from
+`--dart-define=MODEL_BASE_URL=...`, or else from `modelBaseUrl` in
+`assets/config.json`.
+
+**Which folder.** If `MODELS_DIR` is set, it is that folder. Otherwise:
+
+- in development, it is `../scorer/build`, so a fresh export can be downloaded
+  at once, with nothing to copy;
+- anywhere else, it is `models` beside the server, which is `/app/models` in
+  the Docker image.
+
+At startup the server logs which folder it serves and how many packs are in
+it. If the folder is missing, it logs that it serves none.
+
+**Development.** Run `melos run server:start`. Then point the app at your
+machine's LAN address, `http://$(ipconfig getifaddr en0):8082/models`. The
+address in `assets/config.json` is the last developer's machine, so change it
+to yours. `localhost` only reaches the server through
+`adb reverse tcp:8082 tcp:8082`, and `flutter run` clears that mapping every
+time it starts.
+
+**Production.**
+
+1. Put the packs that the shipped lexicons name in a folder on the host.
+2. Mount it read-only into the server's container:
+   `docker run -v /srv/language-packs:/app/models:ro ...`.
+3. Build the release with
+   `--dart-define=MODEL_BASE_URL=https://<web server's public host>/models`.
+
+The responses carry `Cache-Control: public, immutable, max-age=31536000`, an
+ETag and Range support. A CDN in front of the web server can therefore cache
+each pack, and after its first fetch the 355 MB no longer comes from the
+server.
+
+- **Never take down a pack that a released app names.** A name never changes
+  content, and an installed app asks for the name in its bundled lexicon until
+  it is updated. A new revision adds a file. The old one stays until no
+  supported version of the app names it.
+- **Real files or hard links only.** The static handler will not follow a
+  symbolic link out of the folder, and answers 404 for one.
+- **Resumed, then checked.** `ModelStore` downloads into
+  `<pack>.part`. If the connection drops, that file is kept, and the next try
+  asks for the rest with `Range: bytes=<kept>-`. A server that ignores the
+  range sends the whole pack, and the file is rewritten from the start. Once
+  every byte is in, the store hashes the file on a background isolate. That
+  took 3.9 s for 355 MB on an M-series Mac, and can take longer on a phone;
+  the screen says it is checking the pack meanwhile. Only a matching file
+  becomes the pack. A mismatch deletes the `.part` too, because resuming would
+  only add to the same wrong bytes, and the learner sees "arrived damaged,
+  try again".
+- **Checked once.** A pack already on disk is trusted. It was checked when it
+  arrived, and reading 355 MB every time practice opens is not free.
+
+**On the device:** `getApplicationSupportDirectory()/pronunciation_models`,
+excluded from backups on both platforms (see AGENTS.md).
 
 ## Runtime
 

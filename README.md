@@ -283,7 +283,7 @@ backend, and what happens between a tap and a repainted screen — see
 
 | Port | Service |
 |---|---|
-| 8080 / 8081 / 8082 | API / Insights / web server |
+| 8080 / 8081 / 8082 | API / Insights / web server, which also serves the language packs at `/models` |
 | 8181 | Dart VM service, only under `melos run server:debug` |
 | 8090 / 8091 | Postgres / Redis (dev containers) |
 | 9090 / 9091 | Postgres / Redis (test containers) |

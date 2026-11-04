@@ -47,7 +47,9 @@ uv sync --group export
 # léxico que o app embarca (G2P roda aqui, nunca no device); um "topic" na
 # frase (exercises/en.json) vira a cena desenhada atrás dela no app — os
 # valores válidos são o enum PromptTopic em lib/core/pronunciation/lexicon.dart,
-# e hoje só as frases em inglês têm um (travado em lexicon_test.dart)
+# e hoje só as frases em inglês têm um (travado em lexicon_test.dart).
+# Ele também grava o SHA-256 do pacote exportado acima (modelSha256), que o
+# app confere depois do download -- por isso exige build/phoneme_en_*.onnx.
 .venv/bin/python tool/build_lexicon.py exercises/en.json \
   > ../flutter_full_stack_flutter/assets/lexicons/en.json
 

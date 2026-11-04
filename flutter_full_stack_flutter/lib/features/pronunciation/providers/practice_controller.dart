@@ -426,6 +426,7 @@ class PracticeController extends _$PracticeController {
           .read(modelStoreProvider)
           .ensure(
             lexicon.model,
+            sha256: lexicon.modelSha256,
             onProgress: (progress) {
               // Called by the store for as long as the download runs, which
               // can be long after this controller is gone.
@@ -530,7 +531,9 @@ class PracticeController extends _$PracticeController {
     final existing = _engine;
     if (existing != null) return existing;
     final lexicon = _lexicon!;
-    final file = await ref.read(modelStoreProvider).ensure(lexicon.model);
+    final file = await ref
+        .read(modelStoreProvider)
+        .ensure(lexicon.model, sha256: lexicon.modelSha256);
     final load = ref.read(phonemeModelLoaderProvider);
     final model = await load(file.path);
     // Left while the session opened: [build]'s onDispose has already run and

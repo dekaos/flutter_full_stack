@@ -96,6 +96,11 @@ without a rebuild:
 | `SERVERPOD_WEB_SERVER_FLUTTER_CACHE_CONTROL` | `FlutterRoute` — the Flutter web build under `/app` |
 | `SERVERPOD_WEB_SERVER_SPA_CACHE_CONTROL` | `SpaRoute` |
 
+The language packs under `/models` are the exception: no variable overrides
+them. They are always `public, immutable, max-age=31536000`, because a pack's
+name never changes content. See
+[pronunciation-models.md](pronunciation-models.md#serving-and-storage).
+
 Serverpod 4 defaults the Flutter build to `private, no-cache`, which is the safe
 choice: the app is versioned by its own asset hashes, and a cached `index.html`
 is how a browser ends up requesting assets that no longer exist.

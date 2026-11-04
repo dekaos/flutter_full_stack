@@ -1043,18 +1043,18 @@ class _Downloading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fraction = progress?.fraction;
+    final checking = progress?.checking ?? false;
     return GlassSurface(
       dense: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.practiceDownloading),
+          Text(checking ? l10n.practiceChecking : l10n.practiceDownloading),
           const SizedBox(height: 12),
-          // An indeterminate bar when the server sent no length: a bar that
-          // pretends to know how far along it is, is worse than one that does
-          // not claim to.
-          LinearProgressIndicator(value: fraction),
+          // An indeterminate bar when the server sent no length, or while
+          // the pack is checked: a bar that pretends to know how far along
+          // it is, is worse than one that does not claim to.
+          LinearProgressIndicator(value: checking ? null : progress?.fraction),
         ],
       ),
     );
@@ -1295,6 +1295,11 @@ class _RoundButtonState extends State<_RoundButton>
 /// phone it reads as the app breaking rather than as something to try again.
 String failureMessage(AppLocalizations l10n, Object failure) =>
     switch (failure) {
+      PracticeFailure(
+        step: PracticeStep.download,
+        cause: ModelIntegrityException(),
+      ) =>
+        l10n.practiceDownloadDamaged,
       PracticeFailure(step: PracticeStep.download) =>
         l10n.practiceDownloadFailed,
       PracticeFailure(step: PracticeStep.record) => l10n.practiceRecordFailed,

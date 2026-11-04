@@ -6,6 +6,7 @@ import 'package:flutter_full_stack_flutter/core/audio/sound.dart';
 import 'package:flutter_full_stack_flutter/core/audio/sound_board.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/gop_scorer.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/lexicon.dart';
+import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/pronunciation_engine.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/hiding_cat.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/practice_screen.dart';
@@ -117,6 +118,49 @@ void main() {
     expect(find.byKey(const Key('practice-record')), findsNothing);
   });
 
+  // Once every byte is in, the pack is checked for a couple of seconds: the
+  // bar must not sit full while nothing seems to happen.
+  for (final (progress, says, bar) in [
+    (const DownloadProgress(received: 50, total: 100), 'Downloading', 0.5),
+    (
+      const DownloadProgress(received: 100, total: 100, checking: true),
+      'Checking',
+      null,
+    ),
+  ]) {
+    testWidgets('a download says "$says", with a bar at $bar', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      await tester.pumpWidget(
+        _app(
+          PracticeState(
+            stage: PracticeStage.downloading,
+            kind: ExerciseKind.phrase,
+            items: const [_exercise],
+            index: 0,
+            download: progress,
+          ),
+        ),
+      );
+      // Not pumpAndSettle: an indeterminate bar never settles.
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(
+        find.text(
+          progress.checking ? l10n.practiceChecking : l10n.practiceDownloading,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<LinearProgressIndicator>(
+              find.byType(LinearProgressIndicator),
+            )
+            .value,
+        bar,
+      );
+    });
+  }
+
   testWidgets('a bad phoneme says what it sounded like instead', (
     tester,
   ) async {
@@ -212,6 +256,32 @@ void main() {
     expect(find.byKey(ValueKey(_exercise.id)), findsOneWidget);
     expect(find.bySemanticsLabel(_exercise.text), findsOneWidget);
     expect(find.byKey(const Key('practice-record')), findsOneWidget);
+  });
+
+  test('a damaged pack says it will download afresh; a dropped one, that it '
+      'picks up where it stopped', () {
+    final l10n = lookupAppLocalizations(const Locale('en'));
+
+    expect(
+      failureMessage(
+        l10n,
+        const PracticeFailure(
+          PracticeStep.download,
+          ModelIntegrityException('pack', expected: 'a', actual: 'b'),
+        ),
+      ),
+      l10n.practiceDownloadDamaged,
+    );
+    expect(
+      failureMessage(
+        l10n,
+        PracticeFailure(
+          PracticeStep.download,
+          ModelDownloadException(Uri.parse('http://host/pack'), 'closed'),
+        ),
+      ),
+      l10n.practiceDownloadFailed,
+    );
   });
 
   test('an attempt turned away says why, not that scoring broke', () {

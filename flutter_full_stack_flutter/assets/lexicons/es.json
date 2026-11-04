@@ -1,6 +1,7 @@
 {
   "lang": "es",
   "model": "phoneme_es_r2.int8.onnx",
+  "modelSha256": "cf032b3ffd234e4fcf57fba3af2285a19236eb66896086eea95b0af726712e0f",
   "vocab": [
     "<pad>",
     "<s>",

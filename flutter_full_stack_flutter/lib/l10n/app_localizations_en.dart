@@ -97,6 +97,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get practiceDownloading => 'Downloading the language pack';
 
   @override
+  String get practiceChecking => 'Checking the language pack';
+
+  @override
   String get practiceRecord => 'Record';
 
   @override
@@ -146,7 +149,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get practiceDownloadFailed =>
-      'The language pack did not download. Check your connection and try again.';
+      'The language pack did not finish downloading. Check your connection and try again: it picks up where it stopped.';
+
+  @override
+  String get practiceDownloadDamaged =>
+      'The language pack arrived damaged. Try again to download it afresh.';
 
   @override
   String get practiceRecordFailed =>

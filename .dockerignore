@@ -1,0 +1,11 @@
+# The server image is built from the repository root
+# (docker build -f flutter_full_stack_server/Dockerfile .), so without this the
+# whole repository goes to the Docker daemon as build context - the scorer's
+# exports alone are gigabytes. Only what the Dockerfile copies goes in.
+*
+!pubspec.lock
+!flutter_full_stack_server/
+flutter_full_stack_server/.dart_tool/
+flutter_full_stack_server/build/
+# Language packs are mounted at run time, never baked into the image.
+flutter_full_stack_server/models/

@@ -12,6 +12,7 @@ const _json = '''
 {
   "lang": "en",
   "model": "phoneme_en_r2.int8.onnx",
+  "modelSha256": "8fb6b418aa5c1b5d9786728be1b35d21e7c1e9a2a14d2dd5e8f2af0387aa43f3",
   "vocab": ["<pad>", "|", "a", "b"],
   "blankId": 0,
   "calibration": {
@@ -104,6 +105,25 @@ void main() {
         lexicon.exercises.where((e) => e.topic != null),
         isEmpty,
         reason: '$lang has no scenes',
+      );
+    }
+  });
+
+  testWidgets('every bundled lexicon says which bytes its pack is', (
+    tester,
+  ) async {
+    // What a download is checked against. A lexicon without it - or with
+    // something that is not a SHA-256 - would turn away every download of
+    // its language as damaged.
+    //
+    // Cleared after, for the reason the test above gives.
+    addTearDown(rootBundle.clear);
+    for (final lang in practiceLanguages) {
+      final lexicon = await Lexicon.load(lang);
+      expect(
+        lexicon.modelSha256,
+        matches(RegExp(r'^[0-9a-f]{64}$')),
+        reason: lang,
       );
     }
   });
