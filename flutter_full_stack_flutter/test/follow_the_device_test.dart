@@ -1,33 +1,48 @@
-import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_full_stack_client/flutter_full_stack_client.dart';
 import 'package:flutter_full_stack_flutter/app/app.dart';
-import 'package:flutter_full_stack_flutter/features/greetings/presentation/greetings_screen.dart';
-import 'package:flutter_full_stack_flutter/features/greetings/providers/greeting_controller.dart';
+import 'package:flutter_full_stack_flutter/app/locale_controller.dart';
+import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/providers/language_pack.dart';
+import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
 import 'package:flutter_full_stack_flutter/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class _NoGreeting extends GreetingController {
-  @override
-  FutureOr<Greeting?> build() => null;
-}
+import 'support/practice.dart';
 
 /// The real [App], because the defect being pinned here lives in the wiring
 /// between the device, the controllers and `MaterialApp` — not in either
-/// controller alone. Only the server call is stubbed out.
+/// controller alone. Only practice and the pack store are stubbed out.
 Widget _app() => ProviderScope(
-  overrides: [greetingControllerProvider.overrideWith(_NoGreeting.new)],
+  overrides: [
+    practiceControllerProvider.overrideWith2((_) => StubPracticeController()),
+    modelStoreProvider.overrideWithValue(
+      ModelStore(directory: Directory.systemTemp),
+    ),
+  ],
   child: const App(),
 );
 
 Brightness _showing(WidgetTester tester) =>
-    Theme.of(tester.element(find.byType(GreetingsScreen))).brightness;
+    Theme.of(tester.element(find.byType(LanguageScreen))).brightness;
 
 Future<void> _tap(WidgetTester tester, String key) async {
   await tester.tap(find.byKey(Key(key)));
+  await tester.pumpAndSettle();
+}
+
+/// What the language button does, done directly: the button is not offered
+/// for now (`AppBarActions.language`), and what is pinned here is the wiring
+/// between the device, the controller and `MaterialApp`, not the button.
+Future<void> _nextLanguage(WidgetTester tester) async {
+  final screen = tester.element(find.byType(LanguageScreen));
+  ProviderScope.containerOf(
+    screen,
+  ).read(localeControllerProvider.notifier).cycle(deviceLocaleOf(screen));
   await tester.pumpAndSettle();
 }
 
@@ -55,7 +70,7 @@ void main() {
         // Following the device: what is on screen is what the device asked for.
         expect(_showing(tester), device);
 
-        await _tap(tester, 'greeting-theme');
+        await _tap(tester, 'app-theme');
 
         // The regression: cycling to a fixed ThemeMode.light moved the state
         // and left the pixels alone on a light device, so the tap looked lost
@@ -64,32 +79,65 @@ void main() {
       });
     }
 
-    testWidgets('three taps show both brightnesses and return to following', (
-      tester,
-    ) async {
+    testWidgets('every tap flips it, and flipping back follows the device '
+        'again', (tester) async {
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
       await tester.pumpWidget(_app());
       await tester.pumpAndSettle();
 
-      await _tap(tester, 'greeting-theme');
-      expect(_showing(tester), Brightness.dark);
-      await _tap(tester, 'greeting-theme');
-      expect(_showing(tester), Brightness.light);
-      await _tap(tester, 'greeting-theme');
+      // The regression: the cycle had a third step - back to following a
+      // light device from pinned light - that changed nothing on screen,
+      // so it took two taps to see the dark again.
+      for (var tap = 1; tap <= 4; tap++) {
+        final before = _showing(tester);
+        await _tap(tester, 'app-theme');
+        expect(_showing(tester), isNot(before), reason: 'tap $tap');
+      }
 
-      // Back to following, which is the one step that looks the same as the
-      // one before it. The icon is what reports it.
-      expect(find.byIcon(Icons.brightness_auto_outlined), findsOneWidget);
+      // Back on the device's own brightness is following it, not pinning it.
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
       await tester.pumpAndSettle();
       expect(_showing(tester), Brightness.dark);
     });
+
+    testWidgets('pinned, it still flips in one tap once the device has turned '
+        'the same way', (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+      await _tap(tester, 'app-theme');
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+      await tester.pumpAndSettle();
+      expect(_showing(tester), Brightness.dark);
+
+      await _tap(tester, 'app-theme');
+      expect(_showing(tester), Brightness.light);
+    });
+
+    testWidgets('the button says what a tap will do', (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Switch to the dark theme'), findsOneWidget);
+      expect(find.byIcon(Icons.dark_mode_outlined), findsOneWidget);
+
+      await _tap(tester, 'app-theme');
+      expect(find.byTooltip('Switch to the light theme'), findsOneWidget);
+      expect(find.byIcon(Icons.light_mode_outlined), findsOneWidget);
+    });
   });
 
   group('the language button always changes what is on screen', () {
-    const cases = {'en': 'Say hello.', 'pt': 'Diga olá.'};
+    const cases = {
+      'en': 'What are you practising?',
+      'pt': 'O que você vai praticar?',
+    };
 
     cases.forEach((code, deviceCopy) {
       testWidgets('first tap, device $code', (tester) async {
@@ -100,7 +148,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(deviceCopy), findsOneWidget);
 
-        await _tap(tester, 'greeting-language');
+        await _nextLanguage(tester);
 
         // The same regression: stepping to supportedLocales.first re-rendered
         // identical copy whenever the device was already English.
@@ -118,16 +166,21 @@ void main() {
       await tester.pumpAndSettle();
 
       // Two languages, so: device → the other one → the device's own → device.
-      await _tap(tester, 'greeting-language');
-      expect(find.text('Say hello.'), findsOneWidget);
-      await _tap(tester, 'greeting-language');
-      expect(find.text('Diga olá.'), findsOneWidget);
-      await _tap(tester, 'greeting-language');
+      await _nextLanguage(tester);
+      expect(find.text('What are you practising?'), findsOneWidget);
+      await _nextLanguage(tester);
+      expect(find.text('O que você vai praticar?'), findsOneWidget);
+      await _nextLanguage(tester);
 
-      expect(find.byIcon(Icons.language_outlined), findsOneWidget);
+      final screen = tester.element(find.byType(LanguageScreen));
+      expect(
+        ProviderScope.containerOf(screen).read(localeControllerProvider),
+        isNull,
+        reason: 'not following the device',
+      );
       tester.platformDispatcher.localesTestValue = const <Locale>[Locale('en')];
       await tester.pumpAndSettle();
-      expect(find.text('Say hello.'), findsOneWidget);
+      expect(find.text('What are you practising?'), findsOneWidget);
     });
   });
 }

@@ -1,0 +1,28 @@
+{
+  "lang": "es",
+  "exercises": [
+    { "id": "es-w01", "kind": "word", "text": "perro" },
+    { "id": "es-w02", "kind": "word", "text": "pero" },
+    { "id": "es-w03", "kind": "word", "text": "carro" },
+    { "id": "es-w04", "kind": "word", "text": "caro" },
+    { "id": "es-w05", "kind": "word", "text": "jamón" },
+    { "id": "es-w06", "kind": "word", "text": "llave" },
+    { "id": "es-w07", "kind": "word", "text": "año" },
+    { "id": "es-w08", "kind": "word", "text": "vaca" },
+    { "id": "es-w09", "kind": "word", "text": "gente" },
+    { "id": "es-w10", "kind": "word", "text": "rojo" },
+    { "id": "es-w11", "kind": "word", "text": "trabajo" },
+    { "id": "es-w12", "kind": "word", "text": "cerveza" },
+
+    { "id": "es-p01", "kind": "phrase", "text": "El desayuno está en la mesa" },
+    { "id": "es-p02", "kind": "phrase", "text": "Quiero un vaso de agua fría" },
+    { "id": "es-p03", "kind": "phrase", "text": "El perro corre rápido por el parque" },
+    { "id": "es-p04", "kind": "phrase", "text": "Mi hermano trabaja en la ciudad" },
+    { "id": "es-p05", "kind": "phrase", "text": "La llave está en el cajón" },
+    { "id": "es-p06", "kind": "phrase", "text": "Ayer llovió durante toda la tarde" },
+    { "id": "es-p07", "kind": "phrase", "text": "Necesito reservar una habitación" },
+    { "id": "es-p08", "kind": "phrase", "text": "El carro rojo es muy caro" },
+    { "id": "es-p09", "kind": "phrase", "text": "Vamos a comer algo en el mercado" },
+    { "id": "es-p10", "kind": "phrase", "text": "¿Puedes ayudarme con esto por favor?" }
+  ]
+}

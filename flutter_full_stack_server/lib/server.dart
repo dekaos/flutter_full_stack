@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_full_stack_server/src/generated/endpoints.dart';
 import 'package:flutter_full_stack_server/src/generated/protocol.dart';
 import 'package:flutter_full_stack_server/src/web/routes/app_config_route.dart';
+import 'package:flutter_full_stack_server/src/web/routes/language_packs.dart';
 import 'package:flutter_full_stack_server/src/web/routes/root.dart';
 import 'package:serverpod/serverpod.dart';
 import 'package:serverpod_auth_idp_server/core.dart';
@@ -44,6 +45,12 @@ Future<void> run(List<String> args) async {
       AppConfigRoute(apiConfig: pod.config.apiServer),
       '/app/assets/assets/config.json',
     );
+
+  // The pronunciation language packs the app downloads, under /models.
+  LanguagePacks.mount(
+    pod.webServer,
+    LanguagePacks.directory(runMode: pod.runMode),
+  );
 
   // Checks if the flutter web app has been built and serves it if it has.
   final appDir = Directory(Uri(path: 'web/app').toFilePath());

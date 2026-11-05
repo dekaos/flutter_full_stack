@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and earlier. The same exclusion as data_extraction_rules.xml,
+  which is what Android 12 and later read; keep the two in step.
+-->
+<full-backup-content>
+    <exclude domain="file" path="pronunciation_models" />
+</full-backup-content>

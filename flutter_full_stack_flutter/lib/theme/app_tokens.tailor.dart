@@ -23,6 +23,17 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
   Color get auroraThree;
   Color get wellFill;
   Color get wellBorder;
+  double get sceneLow;
+  double get sceneHigh;
+  double get sceneGamma;
+  double get sceneOpacity;
+  double get worldLow;
+  double get worldHigh;
+  Color get glassDense;
+  Color get sceneHush;
+  Color get scoreStrong;
+  Color get scoreFair;
+  Color get scoreWeak;
 
   @override
   AppTokens copyWith({
@@ -39,6 +50,17 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
     Color? auroraThree,
     Color? wellFill,
     Color? wellBorder,
+    double? sceneLow,
+    double? sceneHigh,
+    double? sceneGamma,
+    double? sceneOpacity,
+    double? worldLow,
+    double? worldHigh,
+    Color? glassDense,
+    Color? sceneHush,
+    Color? scoreStrong,
+    Color? scoreFair,
+    Color? scoreWeak,
   }) {
     return AppTokens(
       backdropTop: backdropTop ?? this.backdropTop,
@@ -54,6 +76,17 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       auroraThree: auroraThree ?? this.auroraThree,
       wellFill: wellFill ?? this.wellFill,
       wellBorder: wellBorder ?? this.wellBorder,
+      sceneLow: sceneLow ?? this.sceneLow,
+      sceneHigh: sceneHigh ?? this.sceneHigh,
+      sceneGamma: sceneGamma ?? this.sceneGamma,
+      sceneOpacity: sceneOpacity ?? this.sceneOpacity,
+      worldLow: worldLow ?? this.worldLow,
+      worldHigh: worldHigh ?? this.worldHigh,
+      glassDense: glassDense ?? this.glassDense,
+      sceneHush: sceneHush ?? this.sceneHush,
+      scoreStrong: scoreStrong ?? this.scoreStrong,
+      scoreFair: scoreFair ?? this.scoreFair,
+      scoreWeak: scoreWeak ?? this.scoreWeak,
     );
   }
 
@@ -74,6 +107,17 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       auroraThree: Color.lerp(auroraThree, other.auroraThree, t)!,
       wellFill: Color.lerp(wellFill, other.wellFill, t)!,
       wellBorder: Color.lerp(wellBorder, other.wellBorder, t)!,
+      sceneLow: t < 0.5 ? sceneLow : other.sceneLow,
+      sceneHigh: t < 0.5 ? sceneHigh : other.sceneHigh,
+      sceneGamma: t < 0.5 ? sceneGamma : other.sceneGamma,
+      sceneOpacity: t < 0.5 ? sceneOpacity : other.sceneOpacity,
+      worldLow: t < 0.5 ? worldLow : other.worldLow,
+      worldHigh: t < 0.5 ? worldHigh : other.worldHigh,
+      glassDense: Color.lerp(glassDense, other.glassDense, t)!,
+      sceneHush: Color.lerp(sceneHush, other.sceneHush, t)!,
+      scoreStrong: Color.lerp(scoreStrong, other.scoreStrong, t)!,
+      scoreFair: Color.lerp(scoreFair, other.scoreFair, t)!,
+      scoreWeak: Color.lerp(scoreWeak, other.scoreWeak, t)!,
     );
   }
 
@@ -118,12 +162,35 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
             const DeepCollectionEquality().equals(
               wellBorder,
               other.wellBorder,
-            ));
+            ) &&
+            const DeepCollectionEquality().equals(sceneLow, other.sceneLow) &&
+            const DeepCollectionEquality().equals(sceneHigh, other.sceneHigh) &&
+            const DeepCollectionEquality().equals(
+              sceneGamma,
+              other.sceneGamma,
+            ) &&
+            const DeepCollectionEquality().equals(
+              sceneOpacity,
+              other.sceneOpacity,
+            ) &&
+            const DeepCollectionEquality().equals(worldLow, other.worldLow) &&
+            const DeepCollectionEquality().equals(worldHigh, other.worldHigh) &&
+            const DeepCollectionEquality().equals(
+              glassDense,
+              other.glassDense,
+            ) &&
+            const DeepCollectionEquality().equals(sceneHush, other.sceneHush) &&
+            const DeepCollectionEquality().equals(
+              scoreStrong,
+              other.scoreStrong,
+            ) &&
+            const DeepCollectionEquality().equals(scoreFair, other.scoreFair) &&
+            const DeepCollectionEquality().equals(scoreWeak, other.scoreWeak));
   }
 
   @override
   int get hashCode {
-    return Object.hash(
+    return Object.hashAll([
       runtimeType.hashCode,
       const DeepCollectionEquality().hash(backdropTop),
       const DeepCollectionEquality().hash(backdropBottom),
@@ -138,7 +205,18 @@ mixin _$AppTokensTailorMixin on ThemeExtension<AppTokens> {
       const DeepCollectionEquality().hash(auroraThree),
       const DeepCollectionEquality().hash(wellFill),
       const DeepCollectionEquality().hash(wellBorder),
-    );
+      const DeepCollectionEquality().hash(sceneLow),
+      const DeepCollectionEquality().hash(sceneHigh),
+      const DeepCollectionEquality().hash(sceneGamma),
+      const DeepCollectionEquality().hash(sceneOpacity),
+      const DeepCollectionEquality().hash(worldLow),
+      const DeepCollectionEquality().hash(worldHigh),
+      const DeepCollectionEquality().hash(glassDense),
+      const DeepCollectionEquality().hash(sceneHush),
+      const DeepCollectionEquality().hash(scoreStrong),
+      const DeepCollectionEquality().hash(scoreFair),
+      const DeepCollectionEquality().hash(scoreWeak),
+    ]);
   }
 }
 

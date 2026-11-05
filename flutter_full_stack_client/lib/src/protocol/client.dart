@@ -12,8 +12,6 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
 
-import 'package:flutter_full_stack_client/src/protocol/greetings/greeting.dart'
-    as _iypjfti3;
 import 'package:http/http.dart' as _i85jenna;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
@@ -249,24 +247,6 @@ class EndpointJwtRefresh extends _iacc.EndpointRefreshJwtTokens {
       );
 }
 
-/// This is an example endpoint that returns a greeting message through
-/// its [hello] method.
-/// {@category Endpoint}
-class EndpointGreeting extends _isc.EndpointRef {
-  EndpointGreeting(_isc.EndpointCaller caller) : super(caller);
-
-  @override
-  String get name => 'greeting';
-
-  /// Returns a personalized greeting message: "Hello {name}".
-  _ida.Future<_iypjfti3.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_iypjfti3.Greeting>(
-        'greeting',
-        'hello',
-        {'name': name},
-      );
-}
-
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _iaic.Caller(client);
@@ -307,7 +287,6 @@ class Client extends _isc.ServerpodClientShared {
        ) {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
-    greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
 
@@ -315,15 +294,12 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointJwtRefresh jwtRefresh;
 
-  late final EndpointGreeting greeting;
-
   late final Modules modules;
 
   @override
   Map<String, _isc.EndpointRef> get endpointRefLookup => {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
-    'greeting': greeting,
   };
 
   @override

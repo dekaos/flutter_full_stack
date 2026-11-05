@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12 and later draw the launch screen themselves, from these:
+         CNA's red, and its logo - which the system shows inside a circle,
+         so its image has room around it (tool/render_branding.dart). Light
+         and dark alike: the splash is the brand's, not the theme's. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/splash_ground</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_mark_android12</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+    </style>
+</resources>

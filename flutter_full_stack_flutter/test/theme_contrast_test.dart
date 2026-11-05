@@ -50,7 +50,97 @@ void main() {
       printOnFailure('measured ${ratio.toStringAsFixed(2)}:1');
       expect(ratio, greaterThanOrEqualTo(4.5));
     });
+
+    // The scene behind a prompt is full-bleed and opaque: it is what the
+    // headline is read on and what the glass shows through. It is confined to
+    // a band of lightness rather than to a palette, so this sweeps the band -
+    // every hue, from grey to as saturated as a scene may get, from its
+    // darkest to its lightest - instead of checking colours one by one.
+    test('any colour a scene can paint keeps text legible — '
+        '${variant.name}', () {
+      final theme = variant.build();
+      final tokens = theme.extension<AppTokens>()!;
+      final scheme = theme.colorScheme;
+      final tone = tokens.sceneTone;
+
+      for (var hue = 0; hue < 360; hue += 15) {
+        for (final saturation in [0.0, 0.35, 0.7, 1.0]) {
+          for (var step = 0; step <= 20; step++) {
+            final scene = tone.color(hue.toDouble(), saturation, step / 20);
+            final pane = _over(tokens.glassTint, scene);
+            final where =
+                'hue $hue, saturation $saturation, level ${step / 20}';
+            void legible(Color text, Color on, double ratio) => expect(
+              _ratio(text, on),
+              greaterThanOrEqualTo(ratio),
+              reason: '$text on $where',
+            );
+
+            // Straight on the scene: the headline, the tagline, the
+            // position under the deck.
+            legible(scheme.onSurface, scene, 4.5);
+            legible(scheme.onSurfaceVariant, scene, 4.5);
+            // Through the glass: the sentence, the explanations, and errors
+            // and the weak phoneme, which are small text.
+            legible(scheme.onSurface, pane, 4.5);
+            legible(scheme.onSurfaceVariant, pane, 4.5);
+            legible(scheme.error, pane, 4.5);
+            // The score colours only ever colour the prompt and the overall
+            // number, 24 px and up: large text, whose AA is 3:1.
+            legible(tokens.scoreStrong, pane, 3);
+            legible(tokens.scoreFair, pane, 3);
+          }
+        }
+      }
+    });
+
+    // The world on the island is painted in a much wider band, because
+    // nothing is read straight off it: the sentence and every pane over it
+    // are dense glass. So the promise moves to the glass - over anything
+    // the world band can paint, what is on it stays legible.
+    test('dense glass keeps text legible over the whole world — '
+        '${variant.name}', () {
+      final theme = variant.build();
+      final tokens = theme.extension<AppTokens>()!;
+      final scheme = theme.colorScheme;
+      final world = tokens.worldTone;
+
+      for (var hue = 0; hue < 360; hue += 15) {
+        for (final saturation in [0.0, 0.35, 0.7, 1.0]) {
+          for (var step = 0; step <= 20; step++) {
+            final under = world.color(hue.toDouble(), saturation, step / 20);
+            final pane = _over(tokens.glassDense, under);
+            final where =
+                'hue $hue, saturation $saturation, level ${step / 20}';
+            void legible(Color text, double ratio) => expect(
+              _ratio(text, pane),
+              greaterThanOrEqualTo(ratio),
+              reason: '$text on $where',
+            );
+
+            legible(scheme.onSurface, 4.5);
+            legible(scheme.onSurfaceVariant, 4.5);
+            legible(scheme.error, 4.5);
+            // 24 px and up: large text.
+            legible(tokens.scoreStrong, 3);
+            legible(tokens.scoreFair, 3);
+          }
+        }
+      }
+    });
   }
+
+  test('the scene steps aside when contrast is requested', () {
+    for (final build in [
+      AppTheme.highContrastLight,
+      AppTheme.highContrastDark,
+    ]) {
+      expect(build().extension<AppTokens>()!.sceneOpacity, 0);
+    }
+    for (final build in [AppTheme.light, AppTheme.dark]) {
+      expect(build().extension<AppTokens>()!.sceneOpacity, 1);
+    }
+  });
 }
 
 /// Composites [top] over [bottom] using [top]'s own alpha.

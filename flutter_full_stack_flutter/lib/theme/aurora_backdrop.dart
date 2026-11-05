@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/theme/app_tokens.dart';
+import 'package:flutter_full_stack_flutter/theme/motion.dart';
 
 /// The surface a screen sits on: a base wash with three pools of colour
 /// drifting across it.
@@ -38,11 +39,7 @@ class _AuroraBackdropState extends State<AuroraBackdrop>
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Reduced motion gets the settled composition with no travel.
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _controller.value = 1;
-    } else if (!_controller.isAnimating && _controller.value == 0) {
-      _controller.forward();
-    }
+    context.playOnce(_controller);
   }
 
   @override

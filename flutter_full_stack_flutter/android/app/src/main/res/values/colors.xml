@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- CNA's red: behind the launch screen's logo, and the very colour the
+         animated splash (lib/app/splash.dart, Splash.ground) starts on, so
+         the hand-over from one to the other cannot be seen. -->
+    <color name="splash_ground">#ED1941</color>
+</resources>

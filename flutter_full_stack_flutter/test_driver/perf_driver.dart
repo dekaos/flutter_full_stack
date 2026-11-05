@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:integration_test/integration_test_driver.dart';
 
-/// Writes what `integration_test/perf_test.dart` measured to a file.
+/// Writes what `perf/frame_timings_test.dart` measured to a file.
 ///
 /// `flutter test integration_test` cannot do this: the timeline summary lives
 /// in the binding's `reportData` on the device, and only the driver protocol

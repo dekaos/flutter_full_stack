@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/app/locale_controller.dart';
 import 'package:flutter_full_stack_flutter/app/router.dart';
+import 'package:flutter_full_stack_flutter/app/splash.dart';
 import 'package:flutter_full_stack_flutter/l10n/app_localizations.dart';
 import 'package:flutter_full_stack_flutter/theme/app_theme.dart';
 import 'package:flutter_full_stack_flutter/theme/theme_mode_controller.dart';
@@ -9,12 +10,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class App extends ConsumerWidget {
   const App({super.key});
 
+  /// What the app is called wherever its name is shown: under its icon, in
+  /// the task switcher, on a browser tab. The platforms' own files say it
+  /// too - the Android manifest, the iOS Info.plist, the web manifest and
+  /// page - and a test keeps them saying the same.
+  static const name = 'CNA';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Flutter Full Stack',
+      title: name,
       // Four slots, not two. The device can ask for a brightness *and* for
       // increased contrast, and Flutter picks the matching pair on its own.
       theme: AppTheme.light(),
@@ -31,6 +38,9 @@ class App extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: router,
+      // Over everything, once, as the app starts: the native splash's mark
+      // come to life, and then the app underneath.
+      builder: (context, child) => Splash(child: child!),
     );
   }
 }

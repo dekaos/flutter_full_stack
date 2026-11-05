@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_full_stack_flutter/theme/motion.dart';
+import 'package:flutter_full_stack_flutter/theme/reveal.dart';
 
 /// Fades and lifts [child] into place once, after [delay].
 ///
@@ -8,6 +10,9 @@ import 'package:flutter/material.dart';
 ///
 /// It runs on arrival and never again, so nothing is repainting at rest. Under
 /// reduced motion the child is simply there.
+///
+/// The fade is a [Reveal], so glass rising in frosts as it comes rather than
+/// arriving clear and frosting all at once at the end.
 class RiseIn extends StatefulWidget {
   const RiseIn({
     required this.child,
@@ -40,7 +45,7 @@ class _RiseInState extends State<RiseIn> with SingleTickerProviderStateMixin {
     if (_started) return;
     _started = true;
 
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (context.still) {
       _controller.value = 1;
     } else {
       Future<void>.delayed(widget.delay, () {
@@ -57,16 +62,16 @@ class _RiseInState extends State<RiseIn> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _curve,
-      builder: (context, child) => Opacity(
-        opacity: _curve.value,
-        child: Transform.translate(
+    return Reveal(
+      opacity: _curve,
+      child: AnimatedBuilder(
+        animation: _curve,
+        builder: (context, child) => Transform.translate(
           offset: Offset(0, 18 * (1 - _curve.value)),
           child: child,
         ),
+        child: widget.child,
       ),
-      child: widget.child,
     );
   }
 }

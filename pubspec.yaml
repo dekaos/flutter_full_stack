@@ -157,21 +157,36 @@ melos:
 
     test:e2e:
       description: >-
-        End-to-end tests - the real app driven against a running server. Not
-        part of `test` or `check`: it needs the stack up
-        (`melos run server:start`) and a booted Android emulator or iOS
-        simulator. Web is a build target but not a test one: integration_test
-        does not run there, and the desktop targets are gone. E2E_DEVICE picks
-        the device id when more than one is attached; left unset, Flutter uses
-        the only one it finds. E2E_SERVER_URL picks the backend.
-      exec: flutter test integration_test ${E2E_DEVICE:+-d $E2E_DEVICE} --dart-define=SERVER_URL=${E2E_SERVER_URL:-http://localhost:8080/}
+        End-to-end tests - the real app downloads a language pack from a
+        running server and practises with it. Not part of `test` or `check`:
+        it needs the stack up, serving packs (`melos run e2e:packs`, then
+        `MODELS_DIR=$PWD/build/e2e_packs melos run server:start`), and a
+        booted Android emulator or iOS simulator. Web is a build target but
+        not a test one: integration_test does not run there, and the desktop
+        targets are gone. E2E_DEVICE picks the device id when more than one is
+        attached; left unset, Flutter uses the only one it finds.
+        E2E_MODEL_BASE_URL picks where the packs are downloaded from.
+      exec: flutter test integration_test ${E2E_DEVICE:+-d $E2E_DEVICE} --dart-define=MODEL_BASE_URL=${E2E_MODEL_BASE_URL:-http://localhost:8082/models}
       packageFilters:
         scope: flutter_full_stack_flutter
 
+    e2e:packs:
+      description: >-
+        Write a stand-in for every language pack to build/e2e_packs, for the
+        server the end-to-end suite downloads from - a real pack is 355 MB
+        and CI has none. Serve them with
+        `MODELS_DIR=$PWD/build/e2e_packs melos run server:start`.
+      run: dart run tool/e2e_packs.dart
+
     # ----------------------------------------------------------------- size --
     size:measure:
-      description: Build the release APK whose size the budget gates.
-      exec: flutter build apk --release --target-platform android-arm64
+      description: >-
+        Build the release APK whose size the budget gates: the arm64 one of a
+        per-ABI split, which is what an arm64 phone installs. Without
+        --split-per-abi, --target-platform only narrows Flutter's own
+        libraries, and the APK still carries every plugin's native code for
+        x86_64 and 32-bit ARM - 37 MB of ONNX Runtime no arm64 phone runs.
+      exec: flutter build apk --release --split-per-abi --target-platform android-arm64
       packageFilters:
         scope: flutter_full_stack_flutter
 
@@ -189,6 +204,16 @@ melos:
       run: |
         dart run melos:melos run size:measure --no-select &&
         dart run tool/size_budget.dart --update
+
+    # ------------------------------------------------------------- branding --
+    branding:
+      description: >-
+        Redraw every launcher icon and native splash image, for every platform
+        and size, from the mark in lib/app/app_mark.dart. Run it after changing
+        the mark; the images it writes are never edited by hand.
+      exec: flutter test tool/render_branding.dart
+      packageFilters:
+        scope: flutter_full_stack_flutter
 
     # ------------------------------------------------------------- coverage --
     coverage:measure:

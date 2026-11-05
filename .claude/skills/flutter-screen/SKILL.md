@@ -33,7 +33,13 @@ imported from there.
 
 ## 1. Controller
 
-`lib/features/<feature>/providers/<name>_controller.dart`:
+`lib/features/<feature>/providers/<name>_controller.dart`. The examples here
+use `Order` — an order endpoint's `place` method on the server, as in the
+README — which is an illustration, not code in the repo: no screen calls an
+endpoint yet.
+`LanguagePackController` and `PracticeController` are the real controllers to
+read for the same shape, with the model store and the on-device scorer where
+this has the client.
 
 ```dart
 import 'dart:async';
@@ -42,18 +48,18 @@ import 'package:flutter_full_stack_client/flutter_full_stack_client.dart';
 import 'package:flutter_full_stack_flutter/core/providers/serverpod_client.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'greeting_controller.g.dart';
+part 'order_controller.g.dart';
 
 @riverpod
-class GreetingController extends _$GreetingController {
+class OrderController extends _$OrderController {
   @override
-  FutureOr<Greeting?> build() => null;
+  FutureOr<Order?> build() => null;
 
-  Future<void> sayHello(String name) async {
+  Future<void> place(String item) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final client = await ref.read(serverpodClientProvider.future);
-      return client.greeting.hello(name);
+      return client.order.place(item);
     });
   }
 }
@@ -72,11 +78,11 @@ Four things that are not optional:
 - **Never write a `Provider` by hand.** Everything is `@riverpod`.
 
 The generated provider name is the class name lower-camel-cased plus `Provider`:
-`GreetingController` → `greetingControllerProvider`.
+`LanguagePackController` → `languagePackControllerProvider`.
 
 ### Writing a class that extends a type that does not exist yet
 
-`_$GreetingController` lives in the `.g.dart`, so a new controller does not
+`_$OrderController` lives in the `.g.dart`, so a new controller does not
 compile until it has been generated once. Write it anyway — the name is
 mechanical, `_$` plus the class name, and there is nothing to read out of the
 generated file first.
@@ -90,9 +96,9 @@ the type of `state`:
 
 | `build()` returns | generated base | `state` |
 |---|---|---|
-| `Greeting?` | `$Notifier<Greeting?>` | `Greeting?` |
-| `FutureOr<Greeting?>` or `Future<…>` | `$AsyncNotifier<Greeting?>` | `AsyncValue<Greeting?>` |
-| `Stream<Greeting>` | `$StreamNotifier<Greeting>` | `AsyncValue<Greeting>` |
+| `Order?` | `$Notifier<Order?>` | `Order?` |
+| `FutureOr<Order?>` or `Future<…>` | `$AsyncNotifier<Order?>` | `AsyncValue<Order?>` |
+| `Stream<Order>` | `$StreamNotifier<Order>` | `AsyncValue<Order>` |
 
 So `state` and `ref` are inherited, not magic, and returning a `FutureOr` is
 what buys the loading and error states. Renaming the class also renames the
@@ -119,9 +125,9 @@ typecheck anyway, since `build()` returns `FutureOr<T>` while `guard` returns
 
 ```dart
 @override
-FutureOr<Greeting?> build() async {
+FutureOr<Order?> build() async {
   final client = await ref.read(serverpodClientProvider.future);
-  return client.greeting.hello('world');   // throws → AsyncError, on its own
+  return client.order.latest();   // throws → AsyncError, on its own
 }
 ```
 
@@ -131,7 +137,7 @@ second argument decides what still throws:
 
 ```dart
 state = await AsyncValue.guard(
-  () => client.greeting.hello(name),
+  () => client.order.place(item),
   (err) => err is! StateError,   // network errors become state, bugs still crash
 );
 ```
@@ -158,12 +164,12 @@ or `ConsumerStatefulWidget` when the screen owns a `TextEditingController` or
 similar disposable:
 
 ```dart
-class GreetingsScreen extends ConsumerWidget {
-  const GreetingsScreen({super.key});
+class OrdersScreen extends ConsumerWidget {
+  const OrdersScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(greetingControllerProvider);
+    final state = ref.watch(orderControllerProvider);
     // ...
   }
 }
@@ -173,32 +179,38 @@ class GreetingsScreen extends ConsumerWidget {
 - `ref.read` in callbacks — `ref.watch` in an `onPressed` leaks a subscription.
 
 **The provider gives you the state; `.notifier` gives you the controller.**
-Reading it without `.notifier` yields an `AsyncValue`, which has no `sayHello`,
+Reading it without `.notifier` yields an `AsyncValue`, which has no `place`,
 so the mistake shows up as a confusing member-not-found on a type you did not
 expect. Calling the method also returns a `Future` nobody awaits, and
 `unawaited_futures` is on, so:
 
 ```dart
-final state = ref.watch(greetingControllerProvider);           // AsyncValue<Greeting?>
+final state = ref.watch(orderControllerProvider);           // AsyncValue<Order?>
 unawaited(
-  ref.read(greetingControllerProvider.notifier).sayHello(name), // the controller
+  ref.read(orderControllerProvider.notifier).place(item),   // the controller
 );
 ```
 
 ### Rendering the three states
 
 Match on the `AsyncValue` rather than testing booleans. The `_` case is the
-initial `AsyncData(null)`:
+initial `AsyncData(null)`. `orderPlacing` and `orderNone` stand for keys you
+add yourself — see *Its copy* below:
 
 ```dart
 final l10n = AppLocalizations.of(context)!;
 final (text, background) = switch (state) {
   AsyncError(:final error) => ('$error', colors.errorContainer),
-  AsyncData(:final value) when value != null => (value.toString(), colors.primaryContainer),
-  AsyncLoading() => (l10n.callingServer, colors.surfaceContainerHighest),
-  _ => (l10n.noResponseYet, colors.surfaceContainerHighest),
+  AsyncData(:final value) when value != null => (value.item, colors.primaryContainer),
+  AsyncLoading() => (l10n.orderPlacing, colors.surfaceContainerHighest),
+  _ => (l10n.orderNone, colors.surfaceContainerHighest),
 };
 ```
+
+When an action can fail on top of a value that should stay on screen — a deck
+of prompts, a list — read `state.value` and `state.error` side by side
+instead, as `PracticeScreen` does: Riverpod keeps the last value beside the
+error.
 
 Order matters: `AsyncLoading` after `AsyncData` reads better, but a bare
 `AsyncData()` before the `when` clause would swallow the null case.
@@ -241,17 +253,25 @@ GoRouter router(Ref ref) {
     routes: [
       GoRoute(
         path: '/',
-        name: 'home',
-        builder: (context, state) => const GreetingsScreen(),
+        name: 'languages',
+        builder: (context, state) => const LanguageScreen(),
+        routes: [/* practice/:lang, a child so Back works */],
+      ),
+      GoRoute(
+        path: '/orders',
+        name: 'orders',
+        builder: (context, state) => const OrdersScreen(),
       ),
     ],
   );
 }
 ```
 
-Give every route a `name` and navigate with `context.goNamed('home')`, so a path
-change does not mean hunting for string literals. `go` replaces the stack,
-`push` stacks on top.
+Give every route a `name` and navigate with `context.goNamed('orders')`, so a
+path change does not mean hunting for string literals. `go` replaces the stack,
+`push` stacks on top. A screen that is reached *from* another and must have a
+way back is a child route of it, as practice is of the chooser — the comment
+on that route in `lib/app/router.dart` says why.
 
 ## 4. Generate
 

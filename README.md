@@ -18,26 +18,31 @@ deletes that middle layer. You write two kinds of file:
 **A model** — a `.spy.yaml` describing data:
 
 ```yaml
-class: Greeting
-# table: greeting          # add this and it becomes a Postgres table too
+class: Order
+# table: order             # add this and it becomes a Postgres table too
 fields:
-  message: String
-  author: String
-  timestamp: DateTime
+  item: String
+  quantity: int
+  placedAt: DateTime
 ```
 
 **An endpoint** — a plain Dart class whose public methods are callable from the
 app. The first parameter is always a `Session`:
 
 ```dart
-class GreetingEndpoint extends Endpoint {
-  Future<Greeting> hello(Session session, String name) async {
-    return Greeting(message: 'Hello $name', author: 'Serverpod', /* … */);
+class OrderEndpoint extends Endpoint {
+  Future<Order> place(Session session, String item) async {
+    return Order(item: item, quantity: 1, placedAt: DateTime.now());
   }
 }
 ```
 
 That is the whole backend. No route table, no controller, no JSON mapping.
+
+`Order` is an illustration, not code in this repo: the endpoints it has today
+are the sign-in ones in [`lib/src/auth/`](flutter_full_stack_server/lib/src/auth/),
+and pronunciation practice runs on the device — the server's part in it is
+serving the language packs (see [Ports](#ports)).
 
 `Session` is the request context: `session.db` for the database,
 `session.passwords` for secrets, `session.log(...)` for logging, and the
@@ -58,17 +63,17 @@ Because both sides come from the same source, they cannot disagree. That is also
 why **generated code is never edited by hand** — the next generate run discards
 your changes. Change the model or the endpoint instead.
 
-### How your endpoint becomes `client.greeting.hello('Bob')`
+### How your endpoint becomes `client.order.place('coffee')`
 
 Two mechanical renames, and one thing removed:
 
 | Server | App |
 |---|---|
-| `class GreetingEndpoint` | `client.greeting` — the `Endpoint` suffix is dropped, first letter lowercased |
-| `Future<Greeting> hello(Session session, String name)` | `Future<Greeting> hello(String name)` — `Session` is server-side only |
-| `class Greeting` (from the `.spy.yaml`) | the same `Greeting` class, generated into the client package |
+| `class OrderEndpoint` | `client.order` — the `Endpoint` suffix is dropped, first letter lowercased |
+| `Future<Order> place(Session session, String item)` | `Future<Order> place(String item)` — `Session` is server-side only |
+| `class Order` (from the `.spy.yaml`) | the same `Order` class, generated into the client package |
 
-So the app gets `Future<Greeting>` — the real type, not a `Map`. Rename a field
+So the app gets `Future<Order>` — the real type, not a `Map`. Rename a field
 in the YAML and the app stops compiling, which is the point.
 
 ### On the wire
@@ -77,11 +82,11 @@ There is no magic underneath. The endpoint name is the path, the method name is
 a field in the body:
 
 ```console
-$ curl -X POST http://localhost:8080/greeting \
+$ curl -X POST http://localhost:8080/order \
     -H 'Content-Type: application/json' \
-    -d '{"method":"hello","name":"Bob"}'
+    -d '{"method":"place","item":"coffee"}'
 
-{"__className__":"Greeting","message":"Hello Bob","author":"Serverpod","timestamp":"2026-09-05T12:03:45.316794Z"}
+{"__className__":"Order","item":"coffee","quantity":1,"placedAt":"2026-09-05T12:03:45.316794Z"}
 ```
 
 Useful when debugging: you can reach any endpoint with `curl` and see exactly
@@ -120,21 +125,21 @@ states in `AsyncValue` rather than in hand-rolled booleans:
 
 ```dart
 @riverpod
-class GreetingController extends _$GreetingController {
+class OrderController extends _$OrderController {
   @override
-  FutureOr<Greeting?> build() => null;
+  FutureOr<Order?> build() => null;
 
-  Future<void> sayHello(String name) async {
+  Future<void> place(String item) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final client = await ref.read(serverpodClientProvider.future);
-      return client.greeting.hello(name);
+      return client.order.place(item);
     });
   }
 }
 ```
 
-The widget does `ref.watch(greetingControllerProvider)` and switches on the
+The widget does `ref.watch(orderControllerProvider)` and switches on the
 `AsyncValue`. That is the full round trip.
 
 ### Authentication
@@ -157,6 +162,11 @@ the access token once and retries that same call before surfacing an error.
 
 It is a native Dart workspace: a single `pubspec.lock` at the root, and one
 `dart pub get` there resolves all three packages together.
+
+Beside them, outside the workspace, [`scorer/`](scorer) is a Python toolchain
+for pronunciation practice, which is what the app opens on. It never runs in
+production: it exports the acoustic models the app downloads, and builds the
+lexicons and calibration curves the app bundles.
 
 ## Requirements
 
@@ -194,7 +204,7 @@ melos run check          # format + analyze + test — run before every commit
 melos run generate       # regenerate client, protocol and *.g.dart files
 melos run generate:watch # rebuild the app's *.g.dart on save, while coding
 melos run test           # tests only (needs `melos run docker:up`)
-melos run test:e2e       # end-to-end: real app → real server → real Postgres
+melos run test:e2e       # end-to-end: the app on a device → a real server
 melos run server:debug   # like server:start, with the VM service open
 melos run docker:up      # Postgres + Redis, without starting the server
 melos run server:stop    # stop the containers
@@ -205,31 +215,34 @@ melos run server:stop    # stop the containers
 ## Running and testing locally
 
 <p align="center">
-  <img src="docs/local-development.svg" alt="Three ways to run the stack locally and the database each one reaches. Development runs the server on port 8080 against the development Postgres on 8090, with the VM service on 8181 for a debugger. Endpoint tests boot Serverpod in-process with every port bound to zero and use the throwaway test Postgres on 9090. The end-to-end suite drives the real app over HTTP against that same development server, so it reaches the development database on 8090 too." width="100%">
+  <img src="docs/local-development.svg" alt="Three ways to run the stack locally and the database each one reaches. Development runs the server on port 8080 against the development Postgres on 8090, with the VM service on 8181 for a debugger. Endpoint tests boot Serverpod in-process with every port bound to zero and use the throwaway test Postgres on 9090. The end-to-end suite runs the real app on a device, downloading a language pack over HTTP from that same development server." width="100%">
 </p>
 
 | Layer | Where | What it proves |
 |---|---|---|
 | Endpoint tests | `flutter_full_stack_server/test/integration/` | an endpoint returns the right thing, calling it as a Dart function via `withServerpod` |
 | Widget tests | `flutter_full_stack_flutter/test/` | a screen renders and reacts, with no backend involved |
-| End-to-end | `flutter_full_stack_flutter/integration_test/` | the real app, the generated client, HTTP and Postgres actually work together |
+| End-to-end | `flutter_full_stack_flutter/integration_test/` | on a device, the app downloads a language pack from a real server, opens practice on it, and scores an attempt |
 
-Only the last layer catches a stale generated client, a missing migration or a
-changed serialization — so keep it small and about the critical path. It needs a
-server running, and lives outside `melos run check` for that reason:
+Only the last layer runs the app on a device against a running server — the
+pack's download over HTTP, its landing on the device's disk, the router letting
+practice open, the lexicon and scorer as shipped — so keep it small and about
+the critical path. It needs a server serving packs, and lives outside
+`melos run check` for that reason:
 
 ```bash
-melos run server:start        # one terminal
-melos run test:e2e            # another
+melos run e2e:packs                                        # stand-in packs, once
+MODELS_DIR=$PWD/build/e2e_packs melos run server:start     # one terminal
+melos run test:e2e                                         # another
 ```
 
 The target is an Android emulator or an iOS simulator: `integration_test` does
 not run on web devices, and the app no longer has desktop targets. `E2E_DEVICE`
-picks one by device id when several are attached, and `E2E_SERVER_URL` picks the
-backend. On an Android emulator `localhost` means the emulator, so open a
-tunnel to the host first — `adb reverse tcp:8080 tcp:8080` — and the default
-URL works unchanged. See [AGENTS.md](AGENTS.md) for that and the other
-constraints.
+picks one by device id when several are attached, and `E2E_MODEL_BASE_URL`
+picks where the packs come from. On an Android emulator `localhost` means the
+emulator, so open a tunnel to the host first — `adb reverse tcp:8082 tcp:8082`
+— and the default URL works unchanged. See [AGENTS.md](AGENTS.md) for that and
+the other constraints.
 
 ## Debugging
 
@@ -278,7 +291,7 @@ backend, and what happens between a tap and a repainted screen — see
 
 | Port | Service |
 |---|---|
-| 8080 / 8081 / 8082 | API / Insights / web server |
+| 8080 / 8081 / 8082 | API / Insights / web server, which also serves the language packs at `/models` |
 | 8181 | Dart VM service, only under `melos run server:debug` |
 | 8090 / 8091 | Postgres / Redis (dev containers) |
 | 9090 / 9091 | Postgres / Redis (test containers) |
@@ -305,5 +318,11 @@ it produces — a dirty `git status` afterwards means the pipeline will fail.
   **[docs/theming.md](docs/theming.md)**
 - How translation works, and how to add a string or a language:
   **[docs/i18n.md](docs/i18n.md)**
+- What practice plays, why nothing plays while the microphone is open, and how
+  to tune or add a sound: **[docs/sound.md](docs/sound.md)**
+- The app's mark (CNA's logo), its icons and its animated splash, and how to
+  redraw them: **[docs/branding.md](docs/branding.md)**
+- Which pronunciation models the app runs, their licences, and what has to
+  change together when one does: **[docs/pronunciation-models.md](docs/pronunciation-models.md)**
 - [Serverpod documentation](https://docs.serverpod.dev)
 - [Riverpod documentation](https://riverpod.dev)

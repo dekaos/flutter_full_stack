@@ -43,7 +43,7 @@
 
   <rect x="70" y="144" width="300" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
   <rect x="70" y="144" width="3" height="34" rx="1.5" fill="#34D399"/>
-  <text x="86" y="166" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">greetings_screen.dart</text>
+  <text x="86" y="166" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">order_screen.dart</text>
 
   <text x="392" y="159" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#9FB2CE">A ConsumerWidget. Owns no state of its own:</text>
   <text x="392" y="176" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#9FB2CE">it watches, then draws one of four states.</text>
@@ -53,7 +53,7 @@
 
   <!-- arrows View <-> ViewModel -->
   <line x1="150" y1="248" x2="150" y2="292" stroke="#56C8F5" stroke-width="1.6" marker-end="url(#aCyan)"/>
-  <text x="166" y="265" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#56C8F5">ref.read(...notifier).sayHello()</text>
+  <text x="166" y="265" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#56C8F5">ref.read(...notifier).place()</text>
   <text x="166" y="281" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">a command going down</text>
 
   <line x1="722" y1="292" x2="722" y2="248" stroke="#34D399" stroke-width="1.6" marker-end="url(#aEmerald)"/>
@@ -68,21 +68,21 @@
 
   <rect x="70" y="336" width="300" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
   <rect x="70" y="336" width="3" height="34" rx="1.5" fill="#34D399"/>
-  <text x="86" y="358" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">greeting_controller.dart</text>
+  <text x="86" y="358" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">order_controller.dart</text>
 
   <rect x="70" y="376" width="300" height="30" rx="8" fill="#141D33" stroke="#252F4D" stroke-dasharray="3 3"/>
   <rect x="70" y="376" width="3" height="30" rx="1.5" fill="#A78BFA"/>
-  <text x="86" y="395" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#8B7FB8">greeting_controller.g.dart</text>
+  <text x="86" y="395" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#8B7FB8">order_controller.g.dart</text>
 
   <text x="392" y="351" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#9FB2CE">The `@riverpod` class. Holds the state as one</text>
-  <text x="392" y="368" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#9FB2CE">`AsyncValue&lt;Greeting?&gt;` and exposes commands.</text>
+  <text x="392" y="368" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#9FB2CE">`AsyncValue&lt;Order?&gt;` and exposes commands.</text>
   <text x="392" y="393" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">The `.g.dart` twin is generated — never edit it.</text>
 
   <text x="70" y="428" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" fill="#61708C">This is the seam a widget test overrides, which is why the widget stays dumb.</text>
 
   <!-- arrow ViewModel -> Model -->
   <line x1="404" y1="450" x2="404" y2="494" stroke="#A78BFA" stroke-width="1.6" marker-end="url(#aViolet)"/>
-  <text x="418" y="476" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#A78BFA">await client.greeting.hello(name)</text>
+  <text x="418" y="476" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#A78BFA">await client.order.place(item)</text>
 
   <!-- ══ MODEL ═════════════════════════════════════════════════════ -->
   <rect x="44" y="498" width="720" height="140" rx="14" fill="#111A2E" stroke="#1E2A45"/>
@@ -92,7 +92,7 @@
 
   <rect x="70" y="538" width="300" height="34" rx="8" fill="#141D33" stroke="#252F4D" stroke-dasharray="3 3"/>
   <rect x="70" y="538" width="3" height="34" rx="1.5" fill="#A78BFA"/>
-  <text x="86" y="560" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#8B7FB8">Greeting, Client, endpoints</text>
+  <text x="86" y="560" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#8B7FB8">Order, Client, endpoints</text>
 
   <text x="392" y="553" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#9FB2CE">Generated from the server's `.spy.yaml` and</text>
   <text x="392" y="570" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" fill="#9FB2CE">endpoint classes by `melos run generate`.</text>

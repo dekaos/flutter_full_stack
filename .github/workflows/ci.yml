@@ -137,16 +137,21 @@ jobs:
       # containers, which is the database the server runs against here.
       SERVERPOD_PASSWORD_database: 'zwJn_TdUW1zT7guIGhV9IysOK1jvN7WA'
       SERVERPOD_PASSWORD_redis: 'SbeYXujuQnkIwuWLJXNgN0Wi0E_PoaVS'
-      # `adb reverse` (see the emulator step) forwards the device's own
-      # localhost:8080 to the host's, so the app uses the same URL here as it
-      # does on a developer machine.
+      # Where the app downloads the language packs from: the server's web
+      # server, at /models. `adb reverse` (see the emulator step) forwards the
+      # device's own localhost:8082 to the host's, so the app uses the same
+      # URL here as it does on a developer machine.
       #
       # Not 10.0.2.2, which is the documented alias for the host loopback: on
       # current emulator images traffic goes over the emulated Wi-Fi stack
       # ("Netsim Wifi" in the emulator log) and that alias belongs to the radio
       # NIC, so it is frequently unroutable. `adb reverse` does not care which
       # interface is up.
-      E2E_SERVER_URL: 'http://localhost:8080/'
+      E2E_MODEL_BASE_URL: 'http://localhost:8082/models'
+      # A real pack is 355 MB, exported from weights CI does not have. The
+      # suite downloads stand-ins under the real names instead - the path a
+      # pack takes is the same for 8 MB as for 355 (tool/e2e_packs.dart).
+      MODELS_DIR: ${{ github.workspace }}/build/e2e_packs
     steps:
       - uses: actions/checkout@v4
 
@@ -200,24 +205,32 @@ jobs:
               >> "$GITHUB_ENV"
           done
 
+      - name: Write the stand-in language packs
+        run: dart run tool/e2e_packs.dart "$MODELS_DIR"
+
       - name: Start Postgres and Redis
         working-directory: flutter_full_stack_server
         run: docker compose up --quiet-pull --detach
 
+      # MODELS_DIR, from the job's env, is the folder it serves at /models.
       - name: Start the Serverpod server
         working-directory: flutter_full_stack_server
         run: nohup dart bin/main.dart --apply-migrations > /tmp/serverpod.log 2>&1 &
 
-      - name: Wait for the API to answer
+      # Asks for the pack itself, not for the API: what the suite needs is a
+      # web server that serves it, and a server whose MODELS_DIR is wrong
+      # answers on :8080 all the same.
+      - name: Wait for the server to serve the packs
         run: |
+          pack="$E2E_MODEL_BASE_URL/$(ls "$MODELS_DIR" | head -n 1)"
           for i in $(seq 1 60); do
-            if curl -sf -o /dev/null http://localhost:8080/; then
-              echo "API answered after ${i}s"
+            if curl -sfI -o /dev/null "$pack"; then
+              echo "$pack answered after ${i}s"
               exit 0
             fi
             sleep 1
           done
-          echo "::error::The server did not answer on :8080 within 60s"
+          echo "::error::$pack did not answer within 60s"
           exit 1
 
       # The action boots the emulator, waits for it to come up, runs `script`
@@ -227,14 +240,45 @@ jobs:
       # `adb reverse` has to happen after the emulator is up, which is why it
       # lives in the script rather than in a step of its own. The --list is
       # there so a future failure says whether the tunnel was actually open.
+      #
+      # The emulator is pinned, and so is its renderer. Both are workarounds
+      # for crashes in the emulator itself, not in the app - each one kills
+      # the emulator's own process, so all a run shows is the device going
+      # offline and `flutter test` reporting "No tests were found".
+      #
+      # - `emulator-build: 14214601` is emulator 36.2.12. Every later build
+      #   checked, 36.6.11 through 37.3.6, aborts in its OpenGL ES translator
+      #   when the guest calls `glInvalidateFramebuffer` with zero
+      #   attachments: gfxstream's gles_v30_imp.cpp takes `&attachments[0]`
+      #   of an empty vector, and its hardened libc++ turns that into a ud2
+      #   (SIGILL in qemu's RenderThread, in the core dump). Zero is a valid
+      #   count, and Impeller's GLES backend sends it at the end of every
+      #   render pass with nothing to discard - every frame, on a renderer
+      #   whose name says ANGLE, which is why even a blank app died there.
+      #   36.2.12 has no such check, and passes the call through.
+      # - `-gpu swangle_indirect` translates through ANGLE on SwiftShader.
+      #   The action's default, `swiftshader_indirect`, picks the legacy
+      #   SwiftShader translator, which segfaults on these screens' frames
+      #   even on 36.2.12 (SIGSEGV in generated code - no module in the
+      #   stack, as JIT-compiled shaders have none).
+      #
+      # Revisit the pin when a newer emulator drops the abort; the frame
+      # timings' baseline has to be recorded again when the emulator moves.
+      #
+      # logcat is kept to a file for as long as the device is up, so that if
+      # it goes down again the last thing the app and the system said is in
+      # the artifact below, instead of nowhere.
       - name: Run the end-to-end tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           arch: x86_64
           target: google_apis
+          emulator-build: 14214601
+          emulator-options: -no-window -gpu swangle_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            adb reverse tcp:8080 tcp:8080
+            nohup adb logcat -v time > /tmp/logcat.txt 2>&1 &
+            adb reverse tcp:8082 tcp:8082
             adb reverse --list
             dart run melos:melos run test:e2e --no-select
 
@@ -244,6 +288,25 @@ jobs:
       - name: Server log
         if: failure()
         run: cat /tmp/serverpod.log || echo 'The server never started.'
+
+      # Whether the emulator crashed, and where. systemd-coredump takes the
+      # signal before the emulator's own crash reporter or the kernel log
+      # see it, so the core dump's stack is the only record - it is what
+      # named the glInvalidateFramebuffer abort above.
+      - name: Keep the device's side of a failure
+        if: failure()
+        run: sudo coredumpctl info --no-pager 2>&1 | head -n 120 > /tmp/coredump.txt || true
+
+      - name: Upload the device's side of a failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-device-logs
+          path: |
+            /tmp/logcat.txt
+            /tmp/coredump.txt
+            /tmp/serverpod.log
+          if-no-files-found: ignore
 
       - name: Stop containers
         if: always()
@@ -291,10 +354,22 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
-          # One line, and the `&&` stays on it: this action runs each line
-          # of `script` in a separate `sh -c`, so a trailing `&&` is an
+          # Pinned as in the e2e job, for the same crashes. It matters twice
+          # here: the numbers are only comparable between runs on the same
+          # emulator and renderer.
+          emulator-build: 14214601
+          emulator-options: -no-window -gpu swangle_indirect -no-snapshot -noaudio -no-boot-anim
+          # The `&&` stays on one line: this action runs each line of
+          # `script` in a separate `sh -c`, so a trailing `&&` is an
           # unterminated command rather than a chain.
-          script: dart run melos:melos run perf:measure --no-select && dart run tool/perf_budget.dart --tag ci-android-emulator
+          #
+          # `--require-baseline`: without an entry for ci-android-emulator in
+          # tool/perf_baseline.json nothing would be gated, and the job would
+          # pass however slow the app got. It fails instead, and says how to
+          # record one from this job's `perf-report` artifact.
+          script: |
+            nohup adb logcat -v time > /tmp/logcat.txt 2>&1 &
+            dart run melos:melos run perf:measure --no-select && dart run tool/perf_budget.dart --tag ci-android-emulator --require-baseline
 
       # The numbers are worth keeping even when the gate passes: drift is only
       # visible across runs, and until a baseline exists this artifact is the
@@ -306,6 +381,21 @@ jobs:
           name: perf-report
           path: flutter_full_stack_flutter/build/perf_report.json
           if-no-files-found: warn
+
+      # As in the e2e job: whether the emulator crashed, and where.
+      - name: Keep the device's side of a failure
+        if: failure()
+        run: sudo coredumpctl info --no-pager 2>&1 | head -n 120 > /tmp/coredump.txt || true
+
+      - name: Upload the device's side of a failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-device-logs
+          path: |
+            /tmp/logcat.txt
+            /tmp/coredump.txt
+          if-no-files-found: ignore
 
   size:
     name: Binary size

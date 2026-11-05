@@ -1,0 +1,28 @@
+{
+  "lang": "ko",
+  "exercises": [
+    { "id": "ko-w01", "kind": "word", "text": "물" },
+    { "id": "ko-w02", "kind": "word", "text": "밥" },
+    { "id": "ko-w03", "kind": "word", "text": "사과" },
+    { "id": "ko-w04", "kind": "word", "text": "빵" },
+    { "id": "ko-w05", "kind": "word", "text": "오빠" },
+    { "id": "ko-w06", "kind": "word", "text": "책" },
+    { "id": "ko-w07", "kind": "word", "text": "꽃" },
+    { "id": "ko-w08", "kind": "word", "text": "라디오" },
+    { "id": "ko-w09", "kind": "word", "text": "우리" },
+    { "id": "ko-w10", "kind": "word", "text": "너" },
+    { "id": "ko-w11", "kind": "word", "text": "개" },
+    { "id": "ko-w12", "kind": "word", "text": "의사" },
+
+    { "id": "ko-p01", "kind": "phrase", "text": "안녕하세요" },
+    { "id": "ko-p02", "kind": "phrase", "text": "감사합니다" },
+    { "id": "ko-p03", "kind": "phrase", "text": "저는 학생입니다" },
+    { "id": "ko-p04", "kind": "phrase", "text": "한국어를 공부해요" },
+    { "id": "ko-p05", "kind": "phrase", "text": "이름이 뭐예요" },
+    { "id": "ko-p06", "kind": "phrase", "text": "커피 한 잔 주세요" },
+    { "id": "ko-p07", "kind": "phrase", "text": "지금 몇 시예요" },
+    { "id": "ko-p08", "kind": "phrase", "text": "어디에 가요" },
+    { "id": "ko-p09", "kind": "phrase", "text": "맛있어요" },
+    { "id": "ko-p10", "kind": "phrase", "text": "내일 만나요" }
+  ]
+}

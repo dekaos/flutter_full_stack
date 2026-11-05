@@ -17,6 +17,14 @@ A Melos monorepo backed by a native Dart workspace. Three packages, one
 Data flows one way: you write server models and endpoints, run the generator,
 and the client package plus the app's typed API appear from that.
 
+`scorer/` sits outside the workspace: a Python (`uv`) toolchain for
+pronunciation practice that never runs in production. It exports the acoustic
+models the app downloads and builds `assets/lexicons/*.json`, which are
+generated too — edit `scorer/exercises/<lang>.json` and rebuild, never the
+lexicon. Which models those are, their pinned revisions, licences and the
+checklist for changing one are in
+[docs/pronunciation-models.md](docs/pronunciation-models.md).
+
 The app's own shape — MVVM, which folder holds which role, and how a controller
 reaches the backend — is drawn out in
 [docs/flutter-architecture.md](docs/flutter-architecture.md).
@@ -107,9 +115,16 @@ back to per-process in every run mode. See [docs/caching.md](docs/caching.md).
 - `flutter_full_stack_server/test/integration/test_tools/serverpod_test_tools.dart`
 - `flutter_full_stack_client/lib/src/protocol/**`
 - every `*.g.dart` in `flutter_full_stack_flutter`
+- `flutter_full_stack_flutter/assets/lexicons/*.json`, built by
+  `scorer/tool/build_lexicon.py` — not by `melos run generate`
+- the launcher icons and native splash images (`AppIcon.appiconset`,
+  `LaunchImage.imageset`, `mipmap-*`, `drawable-*/splash_mark*.png`,
+  `web/favicon.png`, `web/icons/*`), drawn from `lib/app/app_mark.dart` by
+  `melos run branding` — see [docs/branding.md](docs/branding.md)
 
-Change the *source* instead: a `.spy.yaml` model, an endpoint class, or a
-`@riverpod` annotation.
+Change the *source* instead: a `.spy.yaml` model, an endpoint class, a
+`@riverpod` annotation, a prompt in `scorer/exercises/<lang>.json`, or the
+mark in `app_mark.dart`.
 
 **Always use `melos run generate`, never `serverpod generate` on its own.**
 Both generators emit code that `dart format` rejects on this language version,
@@ -140,13 +155,45 @@ follows `JAVA_HOME` instead, so an older one there makes only the IDE's Gradle
 sync fail, with "Gradle requires JVM 17 or later" in the Problems panel while
 every command line build succeeds.
 
-**iOS has no CocoaPods.** Every plugin the app pulls in ships a Swift Package,
-so `ios/` has no `Podfile` and the `Flutter/*.xcconfig` files no longer include
-the `Pods-Runner` configs. Xcode resolves the native dependencies itself and
-the versions are pinned in the two `swiftpm/Package.resolved` files. If you add
-a plugin that has no Swift Package, the iOS build will fail asking for
-CocoaPods: restore it with `pod init` in `ios/` plus the two `#include?` lines,
-or pick a plugin that supports SwiftPM.
+**iOS is back on CocoaPods, and that was a trade.** The repo used to have no
+`Podfile` at all: every plugin shipped a Swift Package, Xcode resolved the
+native dependencies itself, and the versions were pinned in the two
+`swiftpm/Package.resolved` files. Pronunciation practice needs microphone
+capture, `record` has no Swift Package, and the iOS build fails asking for
+CocoaPods — so `ios/` has a `Podfile` again and the `Flutter/*.xcconfig` files
+carry the two `#include?` lines back.
+
+What that costs: `pod install` is part of an iOS build again, and plugin
+versions are pinned in `Podfile.lock` as well as in `Package.resolved`. Prefer
+a SwiftPM-capable plugin where one exists — `flutter_onnxruntime`, which runs
+the acoustic model, was chosen partly for that — and revisit this if `record`
+ever ships a Swift Package.
+
+**Nothing plays while the microphone is open.** A sound in the recording is a
+sound in its score. Everything practice plays goes through `SoundBoard`:
+the scenes' and the cat's sounds, the score's chime, and the sentence read
+aloud. `PracticeController` silences the board and waits for silence before it
+starts the recorder, and gives the speakers back on every way the microphone
+closes. A new sound goes through the board too, never straight to a player.
+iOS has one audio session that the sounds, the reading and `record` each
+reconfigure, so each sets its category again before every use. Why, and how to
+add or tune a sound (they are synthesised, not recorded files), is in
+[docs/sound.md](docs/sound.md).
+
+**iOS deploys to 16.0 or later.** `flutter_onnxruntime` links ONNX Runtime
+statically and requires it. Below that the build fails in Xcode rather than at
+runtime.
+
+**Downloaded language packs stay out of backups, on both platforms.** They sit
+in `getApplicationSupportDirectory()/pronunciation_models`, which is backed up
+by default. On iOS that is 355 MB per language in the learner's iCloud and a
+review rejection under Apple's data storage guidelines, so `ModelStore` marks
+the folder and each pack through `BackupExclusion`. On Android, Auto Backup's
+quota is 25 MB per app, and going over it stops *all* of the app's data from
+being backed up, so the folder is excluded in
+`android/app/src/main/res/xml/data_extraction_rules.xml` (Android 12+) and
+`backup_rules.xml` (11 and below). Anything else large and re-downloadable goes
+in that folder or gets its own entry in both files.
 
 **A Serverpod server that cannot bind its ports does not exit.** It logs
 `Failed to start the Serverpod servers`, then stays alive serving nothing, and
@@ -177,13 +224,29 @@ runmode binds every server port to `0`, so tests never collide with a running
 dev server.
 
 **End-to-end tests are a separate command with prerequisites.** `melos run
-test:e2e` drives the real app, through the real generated client, against a
-running server — so it needs one:
+test:e2e` drives the real app on a device: it downloads a language pack from a
+running server's `/models`, which opens practice, then records and scores an
+attempt. The download is the one thing the app asks of the server, so that is
+the path it protects — the HTTP request, the bytes streamed to a `.part`, the
+rename once every byte is in, the router's guard on practice. It needs a
+server serving packs:
 
 ```bash
-melos run server:start        # one terminal
-melos run test:e2e            # another
+melos run e2e:packs                                        # once
+MODELS_DIR=$PWD/build/e2e_packs melos run server:start     # one terminal
+melos run test:e2e                                         # another
 ```
+
+`e2e:packs` writes 8 MB stand-ins under the real packs' names
+(`tool/e2e_packs.dart`), because a real pack is 355 MB and CI has none; the
+suite's store accepts their digest through `ModelStore.fingerprint`. Two
+things on the device are stood in for as well, in
+`integration_test/support/on_device.dart`: the voice reading into the
+microphone (`ScriptedRecorder`) and the acoustic model (`ParrotModel`, which
+hears the prompt perfectly). Everything between them — lexicon, aligner,
+scorer, calibration, screens — is the app as shipped. A server with no
+`MODELS_DIR` serves `../scorer/build`, so on a machine that has exported the
+real packs the suite downloads a real one; that works too, only slower.
 
 It is deliberately outside `test` and `check`, because it needs a live backend
 and a real device. Four constraints worth knowing before extending it:
@@ -196,8 +259,8 @@ and a real device. Four constraints worth knowing before extending it:
   None of this affects the `--wasm` web build, which is still supported and
   still what `flutter_build` produces for the server.
 - **On an Android emulator, open a tunnel to the host first.**
-  `adb reverse tcp:8080 tcp:8080` forwards the device's own `localhost:8080` to
-  the host's, so `E2E_SERVER_URL` needs nothing special. The documented
+  `adb reverse tcp:8082 tcp:8082` forwards the device's own `localhost:8082` to
+  the host's, so `E2E_MODEL_BASE_URL` needs nothing special. The documented
   alternative, the `10.0.2.2` host-loopback alias, is unreliable on current
   emulator images: traffic goes over the emulated Wi-Fi stack and that alias
   belongs to the radio NIC. CI learned this the hard way — the app built,
@@ -205,14 +268,17 @@ and a real device. Four constraints worth knowing before extending it:
   Android also blocks plain HTTP from targetSdk 28 on, which the debug and
   profile manifests lift with `usesCleartextTraffic` — debug and profile only,
   never release.
-- **It runs against the *development* database on 8090, not the test one.**
+- **It runs against the *development* server, not the test one.**
   Serverpod restricts `--mode` to `development`, `test`, `staging` and
   `production`, so a dedicated `e2e` runmode is impossible, and the `test`
   runmode binds its ports to `0` — unusable when the app needs a fixed URL.
-  Reset the data with `melos run docker:down` when a test dirties it.
-- **`E2E_SERVER_URL` overrides the backend** (default
-  `http://localhost:8080/`). It is passed to the app as
-  `--dart-define=SERVER_URL=`, which wins over `assets/config.json`.
+  The suite writes nothing to the database; the packs land in a temporary
+  folder on the device, deleted when it ends, so every run starts with the
+  pack missing.
+- **`E2E_MODEL_BASE_URL` picks where the packs come from** (default
+  `http://localhost:8082/models`). It is passed to the app as
+  `--dart-define=MODEL_BASE_URL=`, which wins over `assets/config.json` —
+  whose `modelBaseUrl` is a LAN address for a phone, not for a test.
 
 **`config/passwords.yaml` is git-ignored and required.** After cloning:
 
@@ -258,7 +324,7 @@ choose the folder when you create the model, not afterwards.
    is persisted.
 2. **Endpoint** — add `<feature>_endpoint.dart` in the same folder with a class
    extending `Endpoint`. The class name minus the `Endpoint` suffix becomes the
-   client-side accessor (`GreetingEndpoint` → `client.greeting`).
+   client-side accessor (`OrderEndpoint` → `client.order`).
 3. **Generate** — `melos run generate`.
 4. **Migration** (only if you touched a `table:`) —
    `cd flutter_full_stack_server && serverpod create-migration`, then restart with
@@ -283,9 +349,11 @@ F5 and pick **flutter_full_stack_server**. Its `preLaunchTask` starts the
 containers first. The **flutter_full_stack (server + app)** compound runs the server
 and the app together, both under the debugger, so a breakpoint on each side of
 the same call hits in turn; stopping either stops both. The two start in
-parallel, which is safe because nothing in the app reaches the server until you
-press send — `serverpodClientProvider` is read in exactly one place, inside
-`GreetingController.sayHello`.
+parallel, which is safe because nothing in the app reaches the server until a
+learner downloads a language pack — and that goes to the web server's
+`/models`, not to an endpoint. No screen calls an endpoint today:
+`serverpodClientProvider` is the wiring for the first one that does, and the
+`serverpod-endpoint` skill shows how to read it from a controller.
 
 **Stepping through the client.** Which code the debugger will step into is not
 obvious, and it comes down to one rule in the Dart extension: a library is
@@ -359,7 +427,7 @@ is deliberately disabled in the root lint config.
 
 | Port | Service |
 |---|---|
-| 8080 / 8081 / 8082 | API / Insights / web server (dev) |
+| 8080 / 8081 / 8082 | API / Insights / web server (dev); the web server also serves the language packs, at `/models` |
 | 8181 | Dart VM service, only under `melos run server:debug` |
 | 8090 / 8091 | Postgres / Redis (dev containers) |
 | 9090 / 9091 | Postgres / Redis (test containers) |
@@ -373,18 +441,54 @@ endpoint tests get the separate one on 9090.
 
 ## CI
 
-`.github/workflows/ci.yml` runs three jobs on every push and PR to `main`:
+`.github/workflows/ci.yml` runs these jobs on every push and PR to `main`:
 
-- **static** — `melos run format:check` and `melos run analyze`
+- **static** — `melos run format:check`, `melos run analyze` and
+  `melos run eval:claims`
 - **codegen** — regenerates everything and fails if the working tree changed,
   catching a commit made without running `melos run generate`
-- **test** — starts the containers and runs `melos run test`
-- **e2e** — starts the server, boots an Android emulator via
+- **test** — starts the containers, runs `melos run test` and the coverage
+  ratchet
+- **e2e** — writes the stand-in packs, starts the server serving them
+  (`MODELS_DIR`), boots an Android emulator via
   `reactivecircus/android-emulator-runner` and runs `melos run test:e2e`
   against it. It mints throwaway auth secrets per run,
   because `config/passwords.yaml` is git-ignored and the server aborts at
   start-up without the JWT peppers. The `test` job needs no such secrets:
   `withServerpod` never executes `lib/server.dart`'s `run()`.
+- **perf** — the frame-timing suite in profile mode on an emulator, gated by
+  `tool/perf_budget.dart` against `tool/perf_baseline.json`; no server. It
+  fails without a baseline (`--require-baseline`), so recording a new one —
+  how, in [docs/performance.md](docs/performance.md) — is part of moving the
+  emulator pin
+- **size** — the arm64 APK of a per-ABI release split against its byte
+  budget (why that APK, in [docs/performance.md](docs/performance.md))
+
+**Both emulator jobs pin the emulator, to 36.2.12 (`emulator-build:
+14214601`), and its renderer, to `-gpu swangle_indirect`.** Each works around
+a crash in the emulator, not in the app, and both look the same from outside:
+the emulator's process dies, the device goes offline and `flutter test`
+reports "No tests were found". Neither shows up in the kernel log or in the
+emulator's crash database — systemd-coredump takes the signal first — so when
+an emulator job fails, `coredumpctl info` is saved with logcat and uploaded as
+an artifact.
+
+- **Emulators 36.6.11 to 37.3.6 abort on `glInvalidateFramebuffer` with zero
+  attachments.** Their OpenGL ES translator (gfxstream, `gles_v30_imp.cpp`)
+  takes `&attachments[0]` of an empty vector, which their hardened libc++
+  turns into a `ud2`: SIGILL on qemu's RenderThread. A count of zero is valid
+  GL, and Impeller's GLES backend sends it at the end of every render pass
+  with nothing to discard — on every frame when the renderer's name says
+  ANGLE, so even a blank Flutter app took the emulator down. 36.2.12 has no
+  such check.
+- **The action's default renderer, `swiftshader_indirect`, segfaults** on
+  these screens' frames even on 36.2.12, in the legacy SwiftShader
+  translator's generated code. `swangle_indirect` (ANGLE on SwiftShader) runs
+  both suites through.
+
+Revisit the pin when a newer emulator drops the abort. Moving the emulator or
+the renderer changes what the frame timings measure, so record their baseline
+again when either moves.
 
 SDK versions are pinned in the workflow `env` block and must stay in sync with
 the `environment:` constraints in the pubspecs.

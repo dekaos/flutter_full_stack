@@ -50,12 +50,12 @@
   <!-- sources you write -->
   <rect x="68" y="140" width="240" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
   <rect x="68" y="140" width="3" height="34" rx="1.5" fill="#34D399"/>
-  <text x="84" y="162" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">greeting.spy.yaml</text>
+  <text x="84" y="162" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">order.spy.yaml</text>
   <text x="296" y="162" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">model</text>
 
   <rect x="68" y="180" width="240" height="34" rx="8" fill="#17223A" stroke="#2A3A5E"/>
   <rect x="68" y="180" width="3" height="34" rx="1.5" fill="#34D399"/>
-  <text x="84" y="202" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">greeting_endpoint.dart</text>
+  <text x="84" y="202" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#E6EDF3">order_endpoint.dart</text>
   <text x="296" y="202" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" fill="#61708C">endpoint</text>
 
   <!-- merge into the generator -->
@@ -98,18 +98,18 @@
 
   <!-- the three actors -->
   <rect x="60" y="344" width="308" height="88" rx="10" fill="#17223A" stroke="#2A3A5E"/>
-  <text x="76" y="372" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">GreetingController</text>
-  <text x="76" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">sayHello('Bob')</text>
+  <text x="76" y="372" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">OrderController</text>
+  <text x="76" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">place('coffee')</text>
   <text x="76" y="416" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">@riverpod · AsyncValue.guard</text>
 
   <rect x="440" y="344" width="308" height="88" rx="10" fill="#17223A" stroke="#2A3A5E"/>
-  <text x="456" y="372" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">EndpointGreeting</text>
-  <text x="456" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">client.greeting.hello('Bob')</text>
+  <text x="456" y="372" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">EndpointOrder</text>
+  <text x="456" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">client.order.place('coffee')</text>
   <text x="456" y="416" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">generated · never edit by hand</text>
 
   <rect x="820" y="344" width="360" height="88" rx="10" fill="#17223A" stroke="#2A3A5E"/>
-  <text x="836" y="372" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">GreetingEndpoint</text>
-  <text x="836" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">hello(Session session, String name)</text>
+  <text x="836" y="372" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13.5" font-weight="600" fill="#E6EDF3">OrderEndpoint</text>
+  <text x="836" y="394" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11.5" fill="#9FB2CE">place(Session session, String item)</text>
   <text x="836" y="416" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#61708C">your code · plain Dart, runs on :8080</text>
 
   <!-- request hops -->
@@ -124,7 +124,7 @@
 
   <!-- the way back -->
   <path d="M812,500 H376" stroke="#34D399" stroke-width="1.6" fill="none" marker-end="url(#aEmerald)"/>
-  <text x="594" y="490" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#6FB89A">Greeting object, deserialized → AsyncValue&lt;Greeting&gt; rebuilds the widget</text>
+  <text x="594" y="490" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#6FB89A">Order object, deserialized → AsyncValue&lt;Order&gt; rebuilds the widget</text>
 
   <!-- ── the actual wire ──────────────────────────────────────────── -->
   <rect x="44" y="546" width="1152" height="180" rx="12" fill="#080D1A" stroke="#1E2A45"/>
@@ -134,9 +134,9 @@
   <text x="122" y="566" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" letter-spacing="0.6" fill="#61708C">WHAT ACTUALLY GOES OVER THE WIRE</text>
   <path d="M44,578 H1196" stroke="#1E2A45" stroke-width="1"/>
 
-  <text x="68" y="608" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#56C8F5">→ POST http://localhost:8080/greeting</text>
-  <text x="68" y="630" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#9FB2CE">  {"method":"hello","name":"Bob"}</text>
+  <text x="68" y="608" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#56C8F5">→ POST http://localhost:8080/order</text>
+  <text x="68" y="630" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#9FB2CE">  {"method":"place","item":"coffee"}</text>
   <text x="68" y="664" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#34D399">← 200 OK</text>
-  <text x="68" y="686" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#9FB2CE">  {"__className__":"Greeting","message":"Hello Bob","author":"Serverpod","timestamp":"…"}</text>
+  <text x="68" y="686" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#9FB2CE">  {"__className__":"Order","item":"coffee","quantity":1,"placedAt":"…"}</text>
   <text x="68" y="710" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5" fill="#4A5B7E">The endpoint name is the path; the method name is a field in the body. No REST routes to design, no DTOs to hand-write.</text>
 </svg>

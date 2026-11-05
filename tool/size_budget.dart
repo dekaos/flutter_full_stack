@@ -5,6 +5,12 @@
 // and never a flake - which makes it the one performance-adjacent number that
 // can be trusted on any runner.
 //
+// What it measures is the arm64 APK of a per-ABI split (`melos run
+// size:measure`): what an arm64 phone installs. A plain release APK carries
+// every plugin's native libraries for every ABI, and the ONNX Runtime that
+// pronunciation practice runs on is 18 MB per ABI - measuring that APK
+// reported 78 MB for an app whose arm64 phones get 41.
+//
 // It exists because this app already carries weight a reader would not guess:
 // the Inter typeface is bundled as assets rather than fetched, which is the
 // right call for a first run on a bad connection and is also a permanent
@@ -28,7 +34,8 @@ Future<void> main(List<String> args) async {
   final budgetPath = _flag(args, '--budget') ?? 'tool/size_budget.json';
   final artifact =
       _flag(args, '--artifact') ??
-      'flutter_full_stack_flutter/build/app/outputs/flutter-apk/app-release.apk';
+      'flutter_full_stack_flutter/build/app/outputs/flutter-apk/'
+          'app-arm64-v8a-release.apk';
   final tag = _flag(args, '--tag') ?? 'android-arm64-release';
 
   final file = File(artifact);
