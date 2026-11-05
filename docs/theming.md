@@ -383,10 +383,10 @@ nothing to show, it is absent rather than a card saying so.
 bare `MaterialApp` throws rather than falling back:
 
 ```dart
-MaterialApp(theme: AppTheme.light(), home: const GreetingsScreen())
+MaterialApp(theme: AppTheme.light(), home: const LanguageScreen())
 ```
 
-`test/widget_test.dart` shows it. This is the failure you get if you forget:
+`test/features/pronunciation/language_screen_test.dart` shows it. This is the failure you get if you forget:
 `_TypeError` while building `AppBackdrop`.
 
 **A font weight that is not bundled throws.** Inter ships in

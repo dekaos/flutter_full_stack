@@ -10,28 +10,6 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get headline => 'Say hello.';
-
-  @override
-  String get tagline =>
-      'Your name travels to the Serverpod endpoint and comes back as a typed model.';
-
-  @override
-  String get nameFieldLabel => 'Your name';
-
-  @override
-  String get sendTooltip => 'Send';
-
-  @override
-  String get responseLabel => 'From the server';
-
-  @override
-  String get errorLabel => 'The call failed';
-
-  @override
-  String get callingServer => 'Calling the server';
-
-  @override
   String get themeToDark => 'Switch to the dark theme';
 
   @override

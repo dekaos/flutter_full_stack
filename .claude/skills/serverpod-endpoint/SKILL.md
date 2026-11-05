@@ -21,15 +21,18 @@ melos run docker:up
 Models live beside their endpoint, in
 `flutter_full_stack_server/lib/src/<feature>/<name>.spy.yaml`.
 
+The examples follow one illustrative feature, `Order`, which is not in the
+repo — the endpoints it has today are the sign-in ones in `lib/src/auth/`.
+
 ```yaml
-### A greeting message which can be sent to or from the server.
-class: Greeting
-# table: greeting        # ONLY if this is persisted — see step 4
+### An order placed from the app.
+class: Order
+# table: order           # ONLY if this is persisted — see step 4
 fields:
-  ### The greeting message.
-  message: String
+  ### What was ordered.
+  item: String
   ### Optional field.
-  author: String?
+  note: String?
 ```
 
 - `### ` comments become dartdoc on the generated class.
@@ -83,9 +86,9 @@ lib/src/orders/
 import 'package:flutter_full_stack_server/src/generated/protocol.dart';
 import 'package:serverpod/serverpod.dart';
 
-class GreetingEndpoint extends Endpoint {
-  Future<Greeting> hello(Session session, String name) async {
-    return Greeting(message: 'Hello $name', /* ... */);
+class OrderEndpoint extends Endpoint {
+  Future<Order> place(Session session, String item) async {
+    return Order(item: item);
   }
 }
 ```
@@ -93,7 +96,8 @@ class GreetingEndpoint extends Endpoint {
 Rules:
 
 - Class name **must** end in `Endpoint`. The rest, lower-camel-cased, becomes
-  the client accessor: `GreetingEndpoint` → `client.greeting.hello(...)`.
+  the client accessor: `EmailIdpEndpoint` → `client.emailIdp`, and the
+  example above → `client.order.place(...)`.
 - First parameter is always `Session`. Parameters and return types must be
   serializable — a generated model, a primitive, or a `List`/`Map` of those.
 - Use `session.log(...)` for logging, never `print`.
@@ -132,19 +136,22 @@ Controller — `flutter_full_stack_flutter/lib/features/<feature>/providers/`:
 
 ```dart
 @riverpod
-class GreetingController extends _$GreetingController {
+class OrderController extends _$OrderController {
   @override
-  FutureOr<Greeting?> build() => null;
+  FutureOr<Order?> build() => null;
 
-  Future<void> sayHello(String name) async {
+  Future<void> place(String item) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final client = await ref.read(serverpodClientProvider.future);
-      return client.greeting.hello(name);
+      return client.order.place(item);
     });
   }
 }
 ```
+
+It is the first controller in the app to read `serverpodClientProvider`: the
+provider is there and wired, and nothing reads it yet.
 
 - Providers are always `@riverpod`-generated; never declare a `Provider` by
   hand.
@@ -157,27 +164,33 @@ If you added a provider or route, run `melos run generate` again for the
 
 ## 6. Test and verify
 
-An integration test in `flutter_full_stack_server/test/integration/`:
+An integration test in `flutter_full_stack_server/test/integration/`, beside
+the generated `test_tools/`. It imports `package:test` and
+`test_tools/serverpod_test_tools.dart`, which declares `withServerpod`:
 
 ```dart
-withServerpod('Given Greeting endpoint', (sessionBuilder, endpoints) {
-  test('when calling hello then the greeting includes the name', () async {
-    final greeting = await endpoints.greeting.hello(sessionBuilder, 'Bob');
-    expect(greeting.message, 'Hello Bob');
+void main() {
+  withServerpod('Given Order endpoint', (sessionBuilder, endpoints) {
+    test('when placing an order then it carries the item', () async {
+      final order = await endpoints.order.place(sessionBuilder, 'coffee');
+      expect(order.item, 'coffee');
+    });
   });
-});
+}
 ```
 
 And a widget test in `flutter_full_stack_flutter/test/` for the screen.
 
 For a flow that must never break, add an end-to-end test in
-`flutter_full_stack_flutter/integration_test/`, which drives the real app against
-a running server and so catches a stale generated client or a missing
-migration. Keep that suite small — it needs a live backend and a real device:
+`flutter_full_stack_flutter/integration_test/`, which drives the real app on a
+device against a running server — the one layer that catches a stale
+generated client or a missing migration. Keep that suite small — it needs a
+live backend and a real device; the `flutter-testing` skill has how it runs:
 
 ```bash
-melos run server:start        # one terminal
-melos run test:e2e            # another
+melos run e2e:packs                                        # once
+MODELS_DIR=$PWD/build/e2e_packs melos run server:start     # one terminal
+melos run test:e2e                                         # another
 ```
 
 Then the gate:

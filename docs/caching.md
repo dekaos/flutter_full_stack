@@ -29,12 +29,12 @@ entry is dropped once that is reached. There is no size accounting, only a count
 so 10,000 large objects and 10,000 small ones are treated alike.
 
 ```dart
-await session.caches.local.put('greeting-42', greeting,
-    lifetime: const Duration(minutes: 5), group: 'greetings');
+await session.caches.local.put('order-42', order,
+    lifetime: const Duration(minutes: 5), group: 'orders');
 
-final hit = await session.caches.local.get<Greeting>('greeting-42');
+final hit = await session.caches.local.get<Order>('order-42');
 
-await session.caches.local.invalidateGroup('greetings');
+await session.caches.local.invalidateGroup('orders');
 ```
 
 `get` also takes a miss handler, which writes and returns a value when the key
@@ -42,7 +42,7 @@ is absent, so read-through caching does not need a branch of its own.
 
 **Values are serialized on the way in**, with `SerializationManager.encode`.
 That means a cache entry has to be a type the protocol knows — a generated
-model such as `Greeting`. It is a copy, too, so mutating the object you passed
+model such as the `Order` in the [README](../README.md). It is a copy, too, so mutating the object you passed
 in does not change what a later `get` returns.
 
 ## The trap: `global` without Redis

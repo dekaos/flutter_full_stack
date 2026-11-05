@@ -43,9 +43,10 @@ Two rules keep this honest:
    `Future`, no business rules. A widget that needs to decide something is a
    controller that has not been written yet.
 
-The `<feature>` folder name is yours to choose, but it should match the server's
-domain folder — `lib/src/greetings/` on the server, `lib/features/greetings/`
-here. That symmetry is what makes a change easy to follow across packages.
+The `<feature>` folder name is yours to choose, but when the feature calls an
+endpoint it should match the server's domain folder — `lib/src/orders/` on the
+server, `lib/features/orders/` here. That symmetry is what makes a change easy
+to follow across packages.
 
 ## Code generation, and the `_$` classes
 
@@ -53,10 +54,10 @@ Every provider in this app is generated, and the first time you write one the
 code does not compile. That is the workflow, not a mistake you made:
 
 ```dart
-part 'greeting_controller.g.dart';   // does not exist yet
+part 'language_pack.g.dart';   // does not exist yet
 
 @riverpod
-class GreetingController extends _$GreetingController {   // neither does this
+class LanguagePackController extends _$LanguagePackController {   // nor this
 ```
 
 Write it anyway, run `melos run generate`, and both appear.
@@ -65,7 +66,7 @@ Write it anyway, run `melos run generate`, and both appear.
 to look up, and nothing to copy out of the generated file.
 
 **It is `part`, not `import`, and it has to be.** The leading `_` makes
-`_$GreetingController` private to its library. `part` / `part of` make the two
+`_$LanguagePackController` private to its library. `part` / `part of` make the two
 files *the same* library, so the private name is visible. An `import` could
 never see it.
 
@@ -75,17 +76,21 @@ returns:
 
 | `build()` returns | generated base | so `state` is |
 |---|---|---|
-| `Greeting?` | `$Notifier<Greeting?>` | `Greeting?` |
-| `FutureOr<Greeting?>` or `Future<…>` | `$AsyncNotifier<Greeting?>` | `AsyncValue<Greeting?>` |
-| `Stream<Greeting>` | `$StreamNotifier<Greeting>` | `AsyncValue<Greeting>` |
+| `LanguagePack` | `$Notifier<LanguagePack>` | `LanguagePack` |
+| `FutureOr<LanguagePack>` or `Future<…>` | `$AsyncNotifier<LanguagePack>` | `AsyncValue<LanguagePack>` |
+| `Stream<LanguagePack>` | `$StreamNotifier<LanguagePack>` | `AsyncValue<LanguagePack>` |
+
+`LanguagePackController.build` is a `Future`, since finding out whether a pack
+is on the device means reading the disk.
 
 That table is also the answer to a question that comes up later: `state` and
 `ref` are not magic, they are inherited from that base class. And choosing
 `FutureOr` over a plain value is what gives you the four states further down —
 it is a decision, not boilerplate.
 
-The generated file also declares `greetingControllerProvider`, which is why
-renaming the class means regenerating before anything compiles again.
+The generated file also declares `languagePackControllerProvider` — a family,
+because `build` takes the language — which is why renaming the class means
+regenerating before anything compiles again.
 
 **The source is the only truth.** Deleting a `.g.dart` and running
 `melos run generate` reproduces it byte for byte, which is why editing one by
@@ -163,35 +168,48 @@ Three properties of that provider explain most of the code around it:
 `getServerUrl()` resolves the address in order: a `--dart-define=SERVER_URL`,
 then `assets/config.json`, then `http://localhost:8080/`.
 
+**No screen calls an endpoint today.** Pronunciation practice runs on the
+device; the one thing it asks of the server is a language pack, which
+`ModelStore` downloads from the web server's `/models` once per language — a
+static file, not an endpoint. The provider is the wiring for the first feature
+that does call one, and the section below is the shape that feature takes.
+
 ## From tap to pixel
 
 ![From tap to pixel](flutter-data-flow.svg)
 
-The controller is the whole of it —
-[`greeting_controller.dart`](../flutter_full_stack_flutter/lib/features/greetings/providers/greeting_controller.dart):
+The controller is the whole of it. `Order` is an illustration, the same one as
+in the [README](../README.md) — an `OrderEndpoint.place` on the server, called
+as `client.order.place`:
 
 ```dart
 @riverpod
-class GreetingController extends _$GreetingController {
+class OrderController extends _$OrderController {
   @override
-  FutureOr<Greeting?> build() => null;          // the empty state
+  FutureOr<Order?> build() => null;             // the empty state
 
-  Future<void> sayHello(String name) async {
+  Future<void> place(String item) async {
     state = const AsyncLoading();               // rebuild #1
     state = await AsyncValue.guard(() async {   // rebuild #2
       final client = await ref.read(serverpodClientProvider.future);
-      return client.greeting.hello(name);
+      return client.order.place(item);
     });
   }
 }
 ```
+
+The controllers the app has follow the same shape, with something other than
+the client behind them: `LanguagePackController.download` sets
+`PackDownloading` and lands on `PackReady` or `PackMissing(failure:)`, and
+`PracticeController` puts each attempt through `AsyncValue.guard` the same way
+(`_attempt`).
 
 `AsyncValue.guard` is what makes the error path boring. It runs the callback and
 returns `AsyncData` if it succeeded or `AsyncError` — carrying the original
 stack trace, not the one from the catch site — if it threw. It never throws
 itself, which is why the line reads as a plain assignment.
 
-That last property is the point rather than a detail. `sayHello` is
+That last property is the point rather than a detail. `place` is
 fire-and-forget: the widget calls it inside `unawaited(...)`, so nobody is
 waiting to catch anything. Without `guard`, a dropped connection would escape as
 an unhandled async error, the console would get a red line the user never sees,
@@ -207,9 +225,9 @@ a throw into `AsyncError`, and it should not swallow errors that are bugs. The
 The widget then reacts, and only reacts:
 
 ```dart
-final state = ref.watch(greetingControllerProvider);            // the state
+final state = ref.watch(orderControllerProvider);            // the state
 unawaited(
-  ref.read(greetingControllerProvider.notifier).sayHello(name), // the command
+  ref.read(orderControllerProvider.notifier).place(item),    // the command
 );
 ```
 
@@ -218,9 +236,11 @@ the **state**, `.notifier` gives you the **controller**. Reading the provider an
 calling a method on it fails with a member-not-found on `AsyncValue`, which says
 nothing about what you actually got wrong.
 
-Rendering switches over the four states — see
-[`greetings_screen.dart`](../flutter_full_stack_flutter/lib/features/greetings/presentation/greetings_screen.dart).
-The `AsyncData(:final value) when value != null` guard matters: without it, the
+Rendering switches over the states — see `PracticeScreen.build` in
+[`practice_screen.dart`](../flutter_full_stack_flutter/lib/features/pronunciation/presentation/practice_screen.dart),
+which keeps the deck on screen when an action fails, because Riverpod keeps the
+last value beside the error. For a nullable state like `Order?`, an
+`AsyncData(:final value) when value != null` guard matters: without it, the
 branch also swallows the initial `AsyncData(null)` and the empty state never
 shows.
 
@@ -230,9 +250,9 @@ The usual layered advice puts a repository between the ViewModel and the
 network, to hide the transport and to map wire types onto domain types. Here
 both jobs are already done:
 
-- The transport is hidden — `client.greeting.hello('Bob')` is a generated Dart
+- The transport is hidden — `client.order.place('coffee')` is a generated Dart
   method. There is no HTTP, no JSON and no URL to abstract away.
-- There is nothing to map — `Greeting` is generated from the same `.spy.yaml`
+- There is nothing to map — `Order` is generated from the same `.spy.yaml`
   the server uses. A DTO-to-entity mapping would copy a class onto an identical
   class.
 

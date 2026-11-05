@@ -1,4 +1,3 @@
-import 'package:flutter_full_stack_flutter/features/greetings/presentation/greetings_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/practice_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/language_pack.dart';
@@ -55,14 +54,6 @@ GoRouter router(Ref ref) {
             ),
           ),
         ],
-      ),
-      // The Serverpod demo, no longer the landing screen but kept reachable:
-      // it is what the end-to-end suite drives, and the only flow that
-      // exercises the generated client against a live server.
-      GoRoute(
-        path: '/greetings',
-        name: 'greetings',
-        builder: (context, state) => const GreetingsScreen(),
       ),
     ],
   );

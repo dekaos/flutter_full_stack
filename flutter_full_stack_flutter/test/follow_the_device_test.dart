@@ -1,12 +1,9 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_full_stack_client/flutter_full_stack_client.dart';
 import 'package:flutter_full_stack_flutter/app/app.dart';
 import 'package:flutter_full_stack_flutter/app/locale_controller.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
-import 'package:flutter_full_stack_flutter/features/greetings/providers/greeting_controller.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/language_pack.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
@@ -17,17 +14,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'support/practice.dart';
 
-class _NoGreeting extends GreetingController {
-  @override
-  FutureOr<Greeting?> build() => null;
-}
-
 /// The real [App], because the defect being pinned here lives in the wiring
 /// between the device, the controllers and `MaterialApp` — not in either
-/// controller alone. Only the server call is stubbed out.
+/// controller alone. Only practice and the pack store are stubbed out.
 Widget _app() => ProviderScope(
   overrides: [
-    greetingControllerProvider.overrideWith(_NoGreeting.new),
     practiceControllerProvider.overrideWith2((_) => StubPracticeController()),
     modelStoreProvider.overrideWithValue(
       ModelStore(directory: Directory.systemTemp),

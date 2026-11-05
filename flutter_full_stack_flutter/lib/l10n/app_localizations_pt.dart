@@ -10,28 +10,6 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
-  String get headline => 'Diga olá.';
-
-  @override
-  String get tagline =>
-      'Seu nome viaja até o endpoint do Serverpod e volta como um modelo tipado.';
-
-  @override
-  String get nameFieldLabel => 'Seu nome';
-
-  @override
-  String get sendTooltip => 'Enviar';
-
-  @override
-  String get responseLabel => 'Do servidor';
-
-  @override
-  String get errorLabel => 'A chamada falhou';
-
-  @override
-  String get callingServer => 'Chamando o servidor';
-
-  @override
   String get themeToDark => 'Mudar para o tema escuro';
 
   @override

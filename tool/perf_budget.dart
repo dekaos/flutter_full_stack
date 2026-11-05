@@ -7,6 +7,10 @@
 // deliberately, in a reviewable diff, is what makes twenty milliseconds of
 // drift visible as twenty separate refusals to update it.
 //
+// The report holds one summary per screen the suite measured (its
+// `reportKey`), and each is gated on its own, so a regression names the screen
+// it is in.
+//
 // Baselines are keyed by `<tag>/<build mode>`, and the build mode is read from
 // the report rather than passed in. A debug frame time is roughly ten times a
 // profile one, so a single shared baseline would either pass everything or
@@ -69,31 +73,42 @@ Future<void> main(List<String> args) async {
   final report =
       jsonDecode(reportFile.readAsStringSync()) as Map<String, dynamic>;
   final mode = report['build_mode'] as String? ?? 'unknown';
-  final summary = report['greeting_screen'];
-  if (summary is! Map<String, dynamic>) {
-    stderr.writeln(
-      'perf_budget: the report carries no greeting_screen summary',
-    );
+
+  // One timeline summary per screen the suite measured, under the
+  // `reportKey` it was measured with.
+  final screens = <String, Map<String, dynamic>>{
+    for (final entry in report.entries)
+      if (entry.value case final Map<String, dynamic> summary
+          when summary.containsKey('frame_count'))
+        entry.key: summary,
+  };
+  if (screens.isEmpty) {
+    stderr.writeln('perf_budget: the report carries no frame summaries');
     exit(2);
   }
 
   final key = '$tag/$mode';
-  final measured = <String, num>{
-    for (final metric in _gated.keys)
-      if (summary[metric] is num) metric: summary[metric] as num,
-  };
-  final missing = _gated.keys.where((m) => !measured.containsKey(m)).toList();
-
-  stdout.writeln('perf_budget: $key, ${summary['frame_count'] ?? '?'} frames');
+  final measured = <String, Map<String, num>>{};
+  stdout.writeln('perf_budget: $key');
   if (mode == 'debug') {
     stdout.writeln(
       '  note: debug build. These numbers say nothing about how the app '
       'performs on a device - they are only comparable to other debug runs.',
     );
   }
-  if (missing.isNotEmpty) {
-    stderr.writeln('perf_budget: the report is missing ${missing.join(', ')}');
-    exit(2);
+  for (final MapEntry(key: screen, value: summary) in screens.entries) {
+    final metrics = <String, num>{
+      for (final metric in _gated.keys)
+        if (summary[metric] is num) metric: summary[metric] as num,
+    };
+    final missing = _gated.keys.where((m) => !metrics.containsKey(m));
+    if (missing.isNotEmpty) {
+      stderr.writeln(
+        'perf_budget: $screen is missing ${missing.join(', ')}',
+      );
+      exit(2);
+    }
+    measured[screen] = metrics;
   }
 
   final baselineFile = File(baselinePath);
@@ -104,13 +119,17 @@ Future<void> main(List<String> args) async {
   if (update) {
     baselines[key] = {
       'recorded': DateTime.now().toUtc().toIso8601String(),
-      for (final e in measured.entries) e.key: e.value,
+      for (final MapEntry(key: screen, value: metrics) in measured.entries)
+        screen: metrics,
     };
     baselineFile.writeAsStringSync(
       '${const JsonEncoder.withIndent('  ').convert(baselines)}\n',
     );
-    for (final e in measured.entries) {
-      stdout.writeln('  recorded ${e.key} = ${_round(e.value)}');
+    for (final MapEntry(key: screen, value: metrics) in measured.entries) {
+      stdout.writeln('  $screen, ${screens[screen]!['frame_count']} frames');
+      for (final e in metrics.entries) {
+        stdout.writeln('    recorded ${e.key} = ${_round(e.value)}');
+      }
     }
     stdout.writeln(
       'perf_budget: baseline for $key written to $baselinePath. Commit it, '
@@ -122,8 +141,11 @@ Future<void> main(List<String> args) async {
   final baseline = baselines[key];
   if (baseline is! Map<String, dynamic>) {
     stdout.writeln('  no baseline for $key yet. Measured:');
-    for (final e in measured.entries) {
-      stdout.writeln('    ${e.key} = ${_round(e.value)}');
+    for (final MapEntry(key: screen, value: metrics) in measured.entries) {
+      stdout.writeln('  $screen, ${screens[screen]!['frame_count']} frames');
+      for (final e in metrics.entries) {
+        stdout.writeln('    ${e.key} = ${_round(e.value)}');
+      }
     }
     stdout.writeln(
       '  Record it with `melos run perf:baseline` once you believe the '
@@ -133,24 +155,42 @@ Future<void> main(List<String> args) async {
   }
 
   final regressions = <String>[];
-  for (final entry in measured.entries) {
-    final was = baseline[entry.key];
-    if (was is! num) continue;
-    final now = entry.value;
-    final kind = _gated[entry.key]!;
-    final over = switch (kind) {
-      _Metric.relative => now > was * (1 + _tolerance) && now - was > 0.2,
-      _Metric.absolute => now > was + _missedFrameSlack,
-    };
-    final change = was == 0 ? null : (now - was) / was * 100;
-    final delta = change == null
-        ? ''
-        : ' (${change >= 0 ? '+' : ''}${change.toStringAsFixed(0)}%)';
-    stdout.writeln(
-      '  ${over ? 'OVER ' : 'ok   '}${entry.key}: '
-      '${_round(now)} vs ${_round(was)}$delta',
-    );
-    if (over) regressions.add(entry.key);
+  // A screen the baseline has and the report does not is a suite that
+  // stopped measuring it - which would otherwise pass in silence.
+  for (final screen in baseline.keys.where((k) => k != 'recorded')) {
+    if (!measured.containsKey(screen)) {
+      stdout.writeln('  GONE $screen: in the baseline, not in the report');
+      regressions.add(screen);
+    }
+  }
+  for (final MapEntry(key: screen, value: metrics) in measured.entries) {
+    stdout.writeln('  $screen, ${screens[screen]!['frame_count']} frames');
+    final was = baseline[screen];
+    if (was is! Map<String, dynamic>) {
+      stdout.writeln(
+        '    no baseline for it yet - `melos run perf:baseline` records one',
+      );
+      continue;
+    }
+    for (final entry in metrics.entries) {
+      final before = was[entry.key];
+      if (before is! num) continue;
+      final now = entry.value;
+      final over = switch (_gated[entry.key]!) {
+        _Metric.relative =>
+          now > before * (1 + _tolerance) && now - before > 0.2,
+        _Metric.absolute => now > before + _missedFrameSlack,
+      };
+      final change = before == 0 ? null : (now - before) / before * 100;
+      final delta = change == null
+          ? ''
+          : ' (${change >= 0 ? '+' : ''}${change.toStringAsFixed(0)}%)';
+      stdout.writeln(
+        '    ${over ? 'OVER ' : 'ok   '}${entry.key}: '
+        '${_round(now)} vs ${_round(before)}$delta',
+      );
+      if (over) regressions.add('$screen ${entry.key}');
+    }
   }
 
   if (regressions.isEmpty) {

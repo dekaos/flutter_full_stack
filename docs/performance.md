@@ -33,7 +33,8 @@ melos run coverage        # measure, then gate
 melos run coverage:floor  # raise the ratchet
 ```
 
-Currently **88.6%** over 342 hand-written lines. Generated code is excluded:
+The floor is **88.6%**; the suite measures 98.1% over 10,770 hand-written
+lines, so the floor has room to be raised. Generated code is excluded:
 counting `.g.dart` measures the generators, not this repo.
 
 It only moves up, and only in a commit someone writes. A fixed target of 80%
@@ -55,12 +56,27 @@ melos run perf:baseline   # record what it found
 ```
 
 `perf/frame_timings_test.dart` drives the app through the frames that cost
-the most — launch with the aurora drifting in and the staggered rise-in, two
-theme flips (four `ThemeData` rebuilt from one seed, every glass surface
-repainted), two language flips, then typing into the translucent well — and
-`watchPerformance` records the timeline. `test_driver/perf_driver.dart` writes
-it to `build/perf_report.json`, and `tool/perf_budget.dart` compares it against
-`tool/perf_baseline.json`.
+the most, on its two screens, and `watchPerformance` records one timeline
+summary for each:
+
+- **`language_screen`** — launch (the splash's mark, the aurora drifting in,
+  the headline and panel rising), each place arriving as its page comes into
+  view, the parallax of a swipe, a tab tap animating across two pages, and two
+  theme flips (four `ThemeData` rebuilt from one seed, every glass surface
+  repainted over a full-screen scene).
+- **`practice_screen`** — practice opening with its scene arriving behind the
+  glass deck, the deck swiped twice and the scene changing with it, an attempt
+  held (the hush over the scene, the halo rippling, the countdown) and its
+  score revealed — the medal, the voice message, the hint, the cat answering.
+
+The English pack is planted on the disk rather than downloaded, and the
+microphone and the acoustic model are stood in for by the same
+`ScriptedRecorder` and `ParrotModel` the end-to-end suite uses
+(`integration_test/support/on_device.dart`): what they replace is not what is
+measured. `test_driver/perf_driver.dart` writes the report to
+`build/perf_report.json`, and `tool/perf_budget.dart` gates every screen in it
+against `tool/perf_baseline.json` — a screen the baseline has and the report
+lacks fails too, so the suite cannot quietly stop measuring one.
 
 It sits in `perf/` and not in `integration_test/` for a mechanical reason:
 the e2e script runs `flutter test integration_test`, which collects every
@@ -68,11 +84,12 @@ the e2e script runs `flutter test integration_test`, which collects every
 driver, fails, and reports itself as an end-to-end failure - which is exactly
 what happened once.
 
-**No server is involved.** The behavioural e2e needs Postgres, a migration and
-a running backend; this suite touches no network, which is what makes it cheap
-enough to run often. The expensive parts of this app were never the HTTP call —
-they are seven `BackdropFilter`s, a `CustomPaint` drawing three radial
-gradients, and those four themes.
+**No server is involved.** The behavioural e2e needs Postgres and a running
+backend serving packs; this suite touches no network, which is what makes it
+cheap enough to run often. The expensive parts of this app were never the
+network — they are full-screen animated scenes painted under frosted glass
+(`BackdropFilter`), a `CustomPaint` drawing three radial gradients, and those
+four themes.
 
 ### What is gated
 
@@ -89,21 +106,31 @@ Relative metrics fail at **+35%**; missed-frame counts fail at **+2 frames**.
 **Profile mode or nothing.** A debug build keeps assertions on and skips AOT
 compilation, which inflates frame build time by roughly an order of magnitude.
 The build mode is written into the report *by the test itself* and baselines
-are keyed `<tag>/<mode>`, so a debug run can never be compared against a
-profile baseline. It cannot be configured wrong.
+are keyed `<tag>/<mode>`, one entry per screen under it, so a debug run can
+never be compared against a profile baseline. It cannot be configured wrong.
 
 The iOS simulator does not support profile mode at all, so measuring there
 needs `PERF_MODE=debug` and produces numbers comparable only to other debug
-simulator runs. A measured example, taken exactly that way on an iPhone 17
-simulator: 54 frames, average build 13.91 ms, worst 469 ms (the first frame,
-loading fonts and building themes), 5 missed build budgets, raster 0.98 ms
-average — and that raster figure is the Mac's GPU, not a phone's. **Do not read
-those as the app's performance.** They demonstrate that the pipeline runs.
+simulator runs. A measured example, taken exactly that way on an iPhone 16
+simulator: the language screen in 220 frames, average build 7.68 ms, 99th
+percentile 43.2 ms, 9 missed build budgets, raster 3.55 ms average; practice in
+235 frames, average build 4.81 ms, 99th percentile 28.8 ms, 8 missed build
+budgets, raster 3.25 ms average — and those raster figures are the Mac's GPU,
+not a phone's. **Do not read those as the app's performance.** They
+demonstrate that the pipeline runs.
 
 **The tolerance is loose on purpose.** This runs on emulators, where frame
 times are noisy. A tight gate fails on noise, and a gate that fails on noise
 gets rerun until green — which is worse than no gate, because it also teaches
 everyone to ignore the next real failure.
+
+**CI's emulator draws in software, through ANGLE on SwiftShader.** It is
+pinned to emulator 36.2.12 with `-gpu swangle_indirect` (see the CI section of
+[AGENTS.md](../AGENTS.md) for why). Its numbers say nothing about a phone's
+GPU — the first green run averaged 90–110 ms of raster per frame — and are
+comparable only with other runs of the same job on the same emulator and
+renderer, which is what `PERF_TAG=ci-android-emulator` keys them by. Moving
+either means recording the baseline again.
 
 ### Recording a baseline
 

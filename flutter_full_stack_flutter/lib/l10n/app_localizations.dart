@@ -98,48 +98,6 @@ abstract class AppLocalizations {
     Locale('pt'),
   ];
 
-  /// Main heading on the greetings screen.
-  ///
-  /// In en, this message translates to:
-  /// **'Say hello.'**
-  String get headline;
-
-  /// Sentence under the heading explaining what the screen does.
-  ///
-  /// In en, this message translates to:
-  /// **'Your name travels to the Serverpod endpoint and comes back as a typed model.'**
-  String get tagline;
-
-  /// Label of the text field the user types a name into.
-  ///
-  /// In en, this message translates to:
-  /// **'Your name'**
-  String get nameFieldLabel;
-
-  /// Tooltip on the button that sends the name to the server.
-  ///
-  /// In en, this message translates to:
-  /// **'Send'**
-  String get sendTooltip;
-
-  /// Caption above a successful response. Shown upper-cased.
-  ///
-  /// In en, this message translates to:
-  /// **'From the server'**
-  String get responseLabel;
-
-  /// Caption above an error response. Shown upper-cased.
-  ///
-  /// In en, this message translates to:
-  /// **'The call failed'**
-  String get errorLabel;
-
-  /// Shown while the request is in flight.
-  ///
-  /// In en, this message translates to:
-  /// **'Calling the server'**
-  String get callingServer;
-
   /// Tooltip on the theme button while the app is light.
   ///
   /// In en, this message translates to:

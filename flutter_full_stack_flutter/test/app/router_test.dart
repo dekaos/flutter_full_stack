@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/app/app.dart';
 import 'package:flutter_full_stack_flutter/app/router.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
-import 'package:flutter_full_stack_flutter/features/greetings/presentation/greetings_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/practice_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/language_pack.dart';
@@ -80,9 +79,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(LanguageScreen), findsOneWidget);
-    // The Serverpod demo is still reachable at /greetings, but it is not what
-    // the app is for any more.
-    expect(find.byType(GreetingsScreen), findsNothing);
   });
 
   testWidgets('practice can be left, to pick another language', (tester) async {

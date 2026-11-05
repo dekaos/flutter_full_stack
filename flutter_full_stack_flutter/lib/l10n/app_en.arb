@@ -1,41 +1,6 @@
 {
   "@@locale": "en",
 
-  "headline": "Say hello.",
-  "@headline": {
-    "description": "Main heading on the greetings screen."
-  },
-
-  "tagline": "Your name travels to the Serverpod endpoint and comes back as a typed model.",
-  "@tagline": {
-    "description": "Sentence under the heading explaining what the screen does."
-  },
-
-  "nameFieldLabel": "Your name",
-  "@nameFieldLabel": {
-    "description": "Label of the text field the user types a name into."
-  },
-
-  "sendTooltip": "Send",
-  "@sendTooltip": {
-    "description": "Tooltip on the button that sends the name to the server."
-  },
-
-  "responseLabel": "From the server",
-  "@responseLabel": {
-    "description": "Caption above a successful response. Shown upper-cased."
-  },
-
-  "errorLabel": "The call failed",
-  "@errorLabel": {
-    "description": "Caption above an error response. Shown upper-cased."
-  },
-
-  "callingServer": "Calling the server",
-  "@callingServer": {
-    "description": "Shown while the request is in flight."
-  },
-
   "themeToDark": "Switch to the dark theme",
   "@themeToDark": {
     "description": "Tooltip on the theme button while the app is light."
