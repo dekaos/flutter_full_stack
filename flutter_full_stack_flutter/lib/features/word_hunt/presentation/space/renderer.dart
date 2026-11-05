@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show immutable;
+import 'package:flutter/foundation.dart' show immutable, visibleForTesting;
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/geometry.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/mesh.dart';
 
@@ -110,6 +110,15 @@ class Renderer {
   Float32List _outXy = Float32List(6 * 4096);
   Int32List _outRgb = Int32List(3 * 4096);
 
+  /// Told of every solid drawn: its mesh, where its middle lands on the
+  /// screen, about how big it is there in pixels, and how far it is - for
+  /// tests that hold what is drawn where. A solid drawn at the camera (a
+  /// ship before it had been placed) once filled the screen for a frame as
+  /// each wave flew in; `space_world_test.dart` holds that it never does.
+  @visibleForTesting
+  static void Function(Mesh mesh, ui.Offset at, double radius, double depth)?
+  debugDraw;
+
   /// Faces drawn by the last [flush].
   int get drawn => _lastDrawn;
   int _lastDrawn = 0;
@@ -169,6 +178,12 @@ class Renderer {
       }
     }
 
+    debugDraw?.call(
+      mesh,
+      cam.lensAt(at).origin,
+      reach * cam.focal / math.max(centre, 0.05),
+      centre,
+    );
     final n = mesh.vertexCount;
     if (_lit.length < n) {
       final room = n * 2;

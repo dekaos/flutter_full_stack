@@ -215,6 +215,14 @@ language chooser, opened over the lobby, settles as it always did. That is why
 `router_test.dart`, `follow_the_device_test.dart`, the end-to-end suite and
 the frame-timing suite now start by going to the chooser.
 
+`Renderer.debugDraw` is told of every solid drawn — its mesh, where on the
+screen, how big, how far. It is how the pale flash as a wave flew in was
+found: on the frame its wait ran out, each ship after the first was drawn
+before it had been given a place, at the origin — the camera itself — so for
+one frame it filled the screen. A ship is now drawn only once placed, and
+`space_world_test.dart` holds, frame by frame, that nothing is ever drawn at
+the camera.
+
 The mission screen tests open the real app with a seeded mission
 (`missionRandomProvider`), fake speakers and voice, and records in memory, and
 tap ships where they are drawn: `SpaceView.world` exposes the ships' label

@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/deck_look.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/geometry.dart';
+import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/renderer.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/space_view.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/space_world.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/providers/word_bank.dart';
@@ -234,6 +236,39 @@ void main() {
       expect(world.ships, hasLength(5));
       expect(world.round, 4);
     });
+  });
+
+  test('nothing is ever drawn at the camera, frame by frame', () {
+    // The pale flash as a wave flew in: each ship after the first, on the
+    // frame its wait ran out, was drawn before it had been given a place -
+    // at the origin, which is the camera, so it filled the screen.
+    final nearest = <double>[];
+    Renderer.debugDraw = (_, _, _, depth) => nearest.add(depth);
+    addTearDown(() => Renderer.debugDraw = null);
+
+    final mission = _world(
+      const Size(390, 844),
+      const EdgeInsets.only(top: 250, bottom: 160),
+    );
+    final lobby = SpaceWorld(ambient: true)
+      ..layout(const Size(390, 844), EdgeInsets.zero);
+    addTearDown(lobby.dispose);
+    // Drawn before time has passed at all, as a screen's first frame is.
+    _draw(lobby);
+    for (var wave = 1; wave <= 3; wave++) {
+      mission.launch(wave, _longest.take(wave + 3).toList());
+      _draw(mission);
+      for (var frame = 0; frame < 90; frame++) {
+        mission.tick(1 / 60);
+        lobby.tick(1 / 60);
+        _draw(mission);
+        _draw(lobby);
+      }
+    }
+    expect(nearest, isNotEmpty);
+    // The fighter is the nearest thing there is, a little over three units
+    // out.
+    expect(nearest.reduce(math.min), greaterThan(2.5));
   });
 
   test('the planet and its moon keep out of the play', () {

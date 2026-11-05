@@ -105,8 +105,18 @@ class WordShip {
   final double spin;
   double _retarget = 0;
 
-  /// Where the world has it, for lasers to fly to.
+  /// Where the world has it, for lasers to fly to - once [placed].
   V3 world = V3.zero;
+
+  /// Whether [world] has been worked out yet. Until it has, the ship is
+  /// not drawn: its [world] is the origin, which is the camera itself, and
+  /// a ship drawn there fills the screen for a frame. (That was the pale
+  /// flash as a wave flew in: each ship after the first, on the frame its
+  /// wait ran out, before it had been given a place.)
+  bool placed = false;
+
+  /// Whether it is drawn: placed, in flight, and not blown up.
+  bool get shown => placed && delay <= 0 && !exploded;
 
   /// Where the last frame drew its label and hull, for picking.
   Rect? labelRect;
@@ -763,7 +773,8 @@ class SpaceWorld extends ChangeNotifier {
   void _fly(WordShip ship, double dt) {
     if (ship.delay > 0) {
       ship.delay -= dt;
-      return;
+      // Its wait over, it flies from this frame on - placed in it.
+      if (ship.delay > 0) return;
     }
     ship
       ..arrival = math.min(1, ship.arrival + dt / 0.75)
@@ -816,7 +827,9 @@ class SpaceWorld extends ChangeNotifier {
       screen = screen.translate(0, -away * 70);
     }
     final bob = still ? 0.0 : math.sin(time * 1.7 + ship.phase) * 0.07;
-    ship.world = _base!.unproject(screen, depth) + V3(0, bob, 0);
+    ship
+      ..world = _base!.unproject(screen, depth) + V3(0, bob, 0)
+      ..placed = true;
   }
 
   /// Turns [ship] towards the way it is flying: facing the viewer, a little
@@ -1089,7 +1102,8 @@ class SpaceWorld extends ChangeNotifier {
       ..heading = math.pi + math.atan(-math.sin(t) * 2.5)
       ..world =
           _base!.unproject(at, ship.depth) +
-          V3(0, math.sin(time * 1.2 + ship.phase) * 0.12, 0);
+          V3(0, math.sin(time * 1.2 + ship.phase) * 0.12, 0)
+      ..placed = true;
   }
 
   // ------------------------------------------------------------- paint --
@@ -1138,6 +1152,7 @@ class SpaceWorld extends ChangeNotifier {
 
     _renderer.begin(swayed, palette.lighting);
     for (final ship in _traffic) {
+      if (!ship.placed) continue;
       _renderer.draw(
         Models.ship(ship.style),
         at: ship.world,
@@ -1149,7 +1164,7 @@ class SpaceWorld extends ChangeNotifier {
       );
     }
     for (final ship in ships) {
-      if (ship.delay > 0 || ship.exploded) continue;
+      if (!ship.shown) continue;
       _paintShip(ship, swayed);
     }
     for (final shard in _shards) {
@@ -1182,7 +1197,7 @@ class SpaceWorld extends ChangeNotifier {
     facesDrawn += _renderer.drawn;
 
     for (final ship in ships) {
-      if (ship.delay > 0 || ship.exploded) continue;
+      if (!ship.shown) continue;
       _paintShipLight(canvas, swayed, ship);
     }
     if (!ambient) _paintEngine(canvas, swayed);
@@ -1192,7 +1207,7 @@ class SpaceWorld extends ChangeNotifier {
 
     final drawn = [
       for (final ship in ships)
-        if (ship.delay <= 0 && !ship.exploded) ship,
+        if (ship.shown) ship,
     ]..sort((a, b) => b.depth.compareTo(a.depth));
     for (final ship in drawn) {
       _paintLabel(canvas, swayed, ship);
