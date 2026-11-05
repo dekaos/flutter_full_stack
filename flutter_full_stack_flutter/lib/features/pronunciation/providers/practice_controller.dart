@@ -382,8 +382,17 @@ class PracticeController extends _$PracticeController {
     _opening = true;
     try {
       await _attempt(PracticeStep.record, PracticeStage.ready, () async {
-        if (!await recorder.hasPermission()) {
-          return _now.copyWith(stage: PracticeStage.noMicrophone);
+        if (!await recorder.hasPermission(request: false)) {
+          // Not settled yet, so the system asks - and its dialog takes the
+          // screen, and the press with it: the finger comes up, or is
+          // cancelled, over the dialog. Recording on regardless opened the
+          // microphone only to close it again at once and score nothing,
+          // behind a busy button. So this press only asks; allowed, the
+          // button is back as it was, for the press that records.
+          final allowed = await recorder.hasPermission();
+          return allowed
+              ? _now
+              : _now.copyWith(stage: PracticeStage.noMicrophone);
         }
         await _silenceSpeakers();
         try {

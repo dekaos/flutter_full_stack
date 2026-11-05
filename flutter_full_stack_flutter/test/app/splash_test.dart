@@ -49,20 +49,27 @@ void main() {
     expect(find.text('the app'), findsNothing);
   });
 
-  testWidgets('a bubble springs out of the logo and speaks, then the '
-      'stars of a score pop out', (tester) async {
+  testWidgets('a bubble springs out of the logo and speaks, then what it '
+      'said turns into a tick, and it pops', (tester) async {
     await tester.pumpWidget(_host());
 
     // 0.5 s: the bubble is out, and speaking.
     await _at(tester, 500);
     expect(_pose(tester)!.bubble, greaterThan(0.9));
     expect(_pose(tester)!.levels, isNot(MarkPose.rest), reason: 'silent');
-    expect(_pose(tester)!.stars, 0);
+    expect(_pose(tester)!.tick, 0);
+    expect(_pose(tester)!.burst, 0);
 
-    // 1.4 s: three stars, and the voice back at rest.
-    await _at(tester, 900);
-    expect(_pose(tester)!.stars, 3);
+    // 1.15 s: done speaking, the voice gathering into the tick.
+    await _at(tester, 650);
     expect(_pose(tester)!.levels, MarkPose.rest, reason: 'still talking');
+    expect(_pose(tester)!.tick, inExclusiveRange(0, 1));
+
+    // 1.55 s: the tick drawn, the bubble back from its hop, its "pop!"
+    // flying out.
+    await _at(tester, 400);
+    expect(_pose(tester)!.tick, 1);
+    expect(_pose(tester)!.burst, inExclusiveRange(0, 1));
     expect(_pose(tester)!.bubble, closeTo(1, 0.01));
   });
 

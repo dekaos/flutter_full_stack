@@ -27,12 +27,25 @@ class _FakeRecorder implements AttemptRecorder {
   /// Every time the permission dialog would have been shown.
   int requests = 0;
 
+  /// Whether the learner has answered the system's dialog already. Until
+  /// they have, looking says no, and asking shows the dialog.
+  bool settled = true;
+
+  /// Called as the dialog is shown - which is when the finger that pressed
+  /// the record button comes up, over it.
+  void Function()? onAsk;
+
   /// Called as the microphone opens - or, set to throw, as it fails to.
   void Function()? onStart;
 
   @override
   Future<bool> hasPermission({bool request = true}) async {
     if (request) requests++;
+    if (!settled) {
+      if (!request) return false;
+      onAsk?.call();
+      settled = true;
+    }
     return permitted;
   }
 
@@ -467,6 +480,54 @@ void main() {
   });
 
   group('holding the record button', () {
+    test('the press that asks for the microphone records nothing: allowed, '
+        'the button is simply back, for the press that records', () async {
+      final c = container(model: _SilentModel());
+      final practice = c.read(practiceControllerProvider('en').notifier);
+      await c.read(practiceControllerProvider('en').future);
+      recorder
+        ..settled = false
+        // The dialog takes the finger: let go of, as far as the button
+        // knows, after a hold long enough to be scored.
+        ..onAsk = () => unawaited(practice.stopAndScore());
+      var opened = 0;
+      recorder.onStart = () => opened++;
+      final stages = <PracticeStage?>[];
+      c.listen(
+        practiceControllerProvider('en'),
+        (_, next) => stages.add(next.value?.stage),
+      );
+
+      await practice.startRecording();
+
+      expect(opened, 0, reason: 'opened to record nothing');
+      expect(stages, isNot(contains(PracticeStage.scoring)));
+      final now = c.read(practiceControllerProvider('en'));
+      expect(now.hasError, isFalse, reason: 'scored as too short');
+      expect(now.value?.stage, PracticeStage.ready);
+      expect(board.hushed, isFalse);
+
+      await practice.startRecording();
+      expect(recorder.recording, isTrue, reason: 'the next press records');
+    });
+
+    test('the press that asks, refused, shows the way to settings', () async {
+      final c = container();
+      final practice = c.read(practiceControllerProvider('en').notifier);
+      await c.read(practiceControllerProvider('en').future);
+      recorder
+        ..settled = false
+        ..permitted = false;
+
+      await practice.startRecording();
+
+      expect(
+        c.read(practiceControllerProvider('en')).value?.stage,
+        PracticeStage.noMicrophone,
+      );
+      expect(recorder.requests, 1);
+    });
+
     test('let go while the microphone was opening, what was said is scored '
         'as soon as it has', () async {
       final c = container(model: _SilentModel());

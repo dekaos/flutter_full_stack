@@ -31,7 +31,11 @@ be seen. Then, in a little under two seconds:
 
 1. **A speech bubble springs out of the logo's A.**
 2. **It speaks.** Its five bars move like the voice message after an attempt.
-3. **Three stars pop out over the logo**, one after another: the score.
+3. **What it said turns into a tick.** The bars draw in to dots, the dots
+   line up, and a tick is drawn through them in the voice's own red. The
+   bubble hops as it lands, with a burst of short white strokes, a comic
+   "pop!": said, and said right. It used to be three gold stars, which read
+   as a hotel's rating rather than as anything to do with speaking.
 4. **The logo swells and the red clears.** The app is underneath, rising in as
    it always does.
 

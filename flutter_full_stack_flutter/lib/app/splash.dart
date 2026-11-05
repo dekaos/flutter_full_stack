@@ -15,7 +15,9 @@ import 'package:flutter_full_stack_flutter/theme/motion.dart';
 ///
 /// 1. a speech bubble pops out of the logo's A;
 /// 2. it speaks - its voice moving, as a voice message's does;
-/// 3. three stars pop out over the logo, one after another - the score;
+/// 3. what it said turns into a tick - the bars drawing in to dots, the
+///    dots lining up, the tick drawn through them - and the bubble hops
+///    with a "pop!": said, and said right;
 /// 4. the logo swells and the red clears, and the app is there underneath,
 ///    rising in as it always does.
 ///
@@ -152,11 +154,17 @@ abstract final class _Beats {
 
   /// It speaks: the voice moves, and comes back to rest.
   static const speakFrom = 0.35;
-  static const speakTo = 1.15;
+  static const speakTo = 1.0;
 
-  /// The three stars, one after another.
-  static const starsFrom = 0.85;
-  static const starsTo = 1.3;
+  /// What it said turns into a tick.
+  static const tickFrom = 0.95;
+  static const tickTo = 1.4;
+
+  /// The tick lands: the bubble hops, and its "pop!" flies out.
+  static const hopFrom = 1.28;
+  static const hopTo = 1.5;
+  static const burstFrom = 1.3;
+  static const burstTo = 1.75;
 
   /// The app starts to show through.
   static const reveal = 1.45;
@@ -174,7 +182,9 @@ abstract final class _Beats {
     // How much it is speaking: up from rest and back to it.
     final speaking = math.sin(math.pi * _span(s, speakFrom, speakTo));
     return MarkPose(
-      bubble: Curves.elasticOut.transform(_span(s, bubbleFrom, bubbleTo)),
+      bubble:
+          Curves.elasticOut.transform(_span(s, bubbleFrom, bubbleTo)) +
+          0.1 * math.sin(math.pi * _span(s, hopFrom, hopTo)),
       // Exactly at rest when it is not speaking - sin(pi) is not quite
       // nought - so the voice it ends on is the one it started with.
       levels: speaking < 1e-9
@@ -191,7 +201,8 @@ abstract final class _Beats {
                                     )
                                     .abs()),
             ],
-      stars: 3 * _span(s, starsFrom, starsTo),
+      tick: _span(s, tickFrom, tickTo),
+      burst: _span(s, burstFrom, burstTo),
     );
   }
 }
