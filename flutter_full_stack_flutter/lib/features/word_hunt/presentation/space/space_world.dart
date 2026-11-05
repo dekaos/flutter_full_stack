@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/geometry.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/models.dart';
+import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/nebula.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/palette.dart';
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/renderer.dart';
 
@@ -44,6 +45,10 @@ class WordShip {
   /// each is big enough for its ship's word, so no word is ever over
   /// another.
   Rect cell = Rect.zero;
+
+  /// Which of the wave's cells [cell] is, counted along the rows: kept when
+  /// the field changes, so the ship keeps its place in it.
+  int slot = -1;
 
   /// Where its hull is, in pixels, as the still camera sees it.
   Offset position;
@@ -114,8 +119,10 @@ class WordShip {
 const _shown = 0.8;
 
 class _Laser {
-  _Laser(this.from, this.ship, this.round);
-  final V3 from;
+  _Laser(this.cannon, this.ship, this.round);
+
+  /// Which of the rocket's cannons fired it.
+  final int cannon;
   final WordShip ship;
   final int round;
   double progress = 0;
@@ -147,7 +154,16 @@ class _Spark {
     required this.size,
     required this.life,
     this.drag = 2.2,
+    this.about,
+    this.exhaust = false,
   });
+
+  /// The middle of the solid it flew from, whose lens it is seen through -
+  /// so a ship's sparks burst from the ship as it is drawn.
+  final V3? about;
+
+  /// From the rocket's engine, and seen through the rocket's lens.
+  final bool exhaust;
   V3 at;
   V3 velocity;
   final Color color;
@@ -253,6 +269,9 @@ class SpaceWorld extends ChangeNotifier {
   double _alarm = 0;
   double _glee = 0;
   double _muzzle = 0;
+
+  /// Which cannon fires next, and which fired last.
+  int _cannon = 0;
   double _aimYaw = 0;
   double _aimPitch = 0.08;
   double _sinceShot = 10;
@@ -269,6 +288,14 @@ class SpaceWorld extends ChangeNotifier {
   /// Faces drawn in the last frame, across both batches: for tests and for
   /// keeping an eye on the budget.
   int facesDrawn = 0;
+
+  /// Where the last frame drew the planet and its moon - the middle and
+  /// the radius, in pixels - for tests; the moon's is `null` when there was
+  /// none.
+  @visibleForTesting
+  (Offset, double)? planetOnScreen;
+  @visibleForTesting
+  (Offset, double)? moonOnScreen;
 
   // ------------------------------------------------------------- layout --
 
@@ -298,18 +325,29 @@ class SpaceWorld extends ChangeNotifier {
       math.max(clear.left + 9 + swayX, size.width - clear.right - 8 - swayX),
       math.max(clear.top + 7 + swayY, size.height - clear.bottom - 6 - swayY),
     );
-    // A turned phone: everyone keeps their place, relative to the field,
-    // in a new arrangement that fits it.
+    // The panels above changed, or the phone turned: every ship keeps its
+    // cell, and its place in it, wherever the cell now is. Dealing the cells
+    // out again would send each ship somewhere else at once.
     if (!before.isEmpty && ships.isNotEmpty) {
-      Offset map(Offset p) => Offset(
-        _field.left + (p.dx - before.left) / before.width * _field.width,
-        _field.top + (p.dy - before.top) / before.height * _field.height,
-      );
-      _arrange(_crew);
+      final was = {for (final ship in ships) ship: ship.cell};
+      _arrange(_crew, deal: false);
       for (final ship in ships) {
+        final from = was[ship]!;
+        final to = ship.cell;
+        Offset move(Offset p) => from.isEmpty || to.isEmpty
+            ? Offset(
+                _field.left +
+                    (p.dx - before.left) / before.width * _field.width,
+                _field.top +
+                    (p.dy - before.top) / before.height * _field.height,
+              )
+            : Offset(
+                to.left + (p.dx - from.left) / from.width * to.width,
+                to.top + (p.dy - from.top) / from.height * to.height,
+              );
         ship
-          ..position = _inside(ship, map(ship.position))
-          ..destination = _inside(ship, map(ship.destination));
+          ..position = _inside(ship, move(ship.position))
+          ..destination = _inside(ship, move(ship.destination));
       }
     }
   }
@@ -333,12 +371,20 @@ class SpaceWorld extends ChangeNotifier {
 
   static const _gap = 10.0;
 
+  /// The wave's grid: cells across and down.
+  int _across = 1;
+  int _down = 1;
+
   /// Shares the field out among [crew]: a grid of cells, as many across as
   /// gives each the most room for the widest word among them, handed out
   /// in a random order so a wave does not line up the same way twice.
   /// When even the best grid is too small - six long phrases on a narrow
   /// phone, in large text - everything is made just small enough to fit.
-  void _arrange(List<WordShip> crew) {
+  ///
+  /// With [deal] off, as when the field changes under a wave, the grid and
+  /// who has which cell stay as they were; only the cells' size, and how
+  /// small things must be to fit them, follow the field.
+  void _arrange(List<WordShip> crew, {bool deal = true}) {
     if (crew.isEmpty || _field.isEmpty) return;
     _fit = 1;
     var width = 0.0;
@@ -348,35 +394,41 @@ class SpaceWorld extends ChangeNotifier {
       width = math.max(width, box.width);
       height = math.max(height, box.height);
     }
-    var best = 0.0;
-    var across = 1;
-    for (var cols = 1; cols <= crew.length; cols++) {
-      final rows = (crew.length / cols).ceil();
-      final room = math.min(
-        _field.width / cols / (width + _gap),
-        _field.height / rows / (height + _gap),
-      );
-      if (room > best) {
-        best = room;
-        across = cols;
+    double room(int across, int down) => math.min(
+      _field.width / across / (width + _gap),
+      _field.height / down / (height + _gap),
+    );
+    final slots = _across * _down;
+    final keep =
+        !deal &&
+        slots >= crew.length &&
+        crew.every((ship) => ship.slot >= 0 && ship.slot < slots);
+    if (!keep) {
+      var best = 0.0;
+      for (var cols = 1; cols <= crew.length; cols++) {
+        final rows = (crew.length / cols).ceil();
+        if (room(cols, rows) > best) {
+          best = room(cols, rows);
+          _across = cols;
+          _down = rows;
+        }
+      }
+      final order = [for (var i = 0; i < _across * _down; i++) i]
+        ..shuffle(_random);
+      for (final (i, ship) in crew.indexed) {
+        ship.slot = order[i];
       }
     }
-    _fit = math.min(1, best * 0.97);
-    final down = (crew.length / across).ceil();
-    final cellWidth = _field.width / across;
-    final cellHeight = _field.height / down;
-    final cells = [
-      for (var row = 0; row < down; row++)
-        for (var col = 0; col < across; col++)
-          Rect.fromLTWH(
-            _field.left + col * cellWidth,
-            _field.top + row * cellHeight,
-            cellWidth,
-            cellHeight,
-          ).deflate(_gap / 2),
-    ]..shuffle(_random);
-    for (final (i, ship) in crew.indexed) {
-      ship.cell = cells[i];
+    _fit = math.min(1, room(_across, _down) * 0.97);
+    final cellWidth = _field.width / _across;
+    final cellHeight = _field.height / _down;
+    for (final ship in crew) {
+      ship.cell = Rect.fromLTWH(
+        _field.left + ship.slot % _across * cellWidth,
+        _field.top + ship.slot ~/ _across * cellHeight,
+        cellWidth,
+        cellHeight,
+      ).deflate(_gap / 2);
     }
   }
 
@@ -528,7 +580,8 @@ class SpaceWorld extends ChangeNotifier {
     final ship = _ship(index);
     if (ship == null || !ship.shootable || ambient) return false;
     ship.targeted = true;
-    _lasers.add(_Laser(_nose, ship, round));
+    _cannon = (_cannon + 1) % Models.muzzles.length;
+    _lasers.add(_Laser(_cannon, ship, round));
     _aimAt = ship.world;
     _sinceShot = 0;
     _muzzle = 1;
@@ -563,6 +616,7 @@ class SpaceWorld extends ChangeNotifier {
       _sparks.add(
         _Spark(
           at: at,
+          about: at,
           velocity: _scatter(1.5 + _random.nextDouble() * 6.5),
           color: colours[i % colours.length],
           size: 1.6 + _random.nextDouble() * 2.6,
@@ -598,6 +652,7 @@ class SpaceWorld extends ChangeNotifier {
       _sparks.add(
         _Spark(
           at: ship.world,
+          about: ship.world,
           velocity: _scatter(1 + _random.nextDouble() * 2.5),
           color: const Color(0xFFFF6B81),
           size: 1.4 + _random.nextDouble() * 1.6,
@@ -794,7 +849,9 @@ class SpaceWorld extends ChangeNotifier {
     );
   }
 
-  static const _rocketScale = 0.62;
+  // Seen through its own lens it keeps its true shape, which is shorter
+  // than the wide lens used to stretch it to: a little bigger makes up.
+  static const _rocketScale = 0.7;
 
   Rot get _rocketTurn {
     final roll =
@@ -805,10 +862,16 @@ class SpaceWorld extends ChangeNotifier {
 
   double _aimYawGoal = 0;
 
-  V3 get _nose => _rocketAt + _rocketTurn.forward * (1.05 * _rocketScale);
+  /// Where the rocket is drawn: where it flies, bobbing as it hovers.
+  V3 get _rocketShown =>
+      _rocketAt + V3(0, still ? 0 : math.sin(time * 1.3) * 0.035, 0);
+
+  /// Where cannon [i] fires from, in the world.
+  V3 _muzzleOf(int i) =>
+      _rocketShown + _rocketTurn.apply(Models.muzzles[i] * _rocketScale);
 
   V3 get _engine =>
-      _rocketAt + _rocketTurn.apply(const V3(0, 0, 0.64 * _rocketScale));
+      _rocketShown + _rocketTurn.apply(const V3(0, 0, 0.7 * _rocketScale));
 
   void _aim(double dt) {
     if (_base == null || ambient) return;
@@ -829,6 +892,7 @@ class SpaceWorld extends ChangeNotifier {
       _sparks.add(
         _Spark(
           at: _engine,
+          exhaust: true,
           velocity: back * (1.2 + _random.nextDouble() * 1.2) + _scatter(0.25),
           color: _random.nextBool()
               ? const Color(0xFFFFB347)
@@ -852,6 +916,7 @@ class SpaceWorld extends ChangeNotifier {
         _sparks.add(
           _Spark(
             at: ship.world,
+            about: ship.world,
             velocity: _scatter(1 + _random.nextDouble() * 2),
             color: const Color(0xFFFFFFFF),
             size: 1.4,
@@ -1075,10 +1140,9 @@ class SpaceWorld extends ChangeNotifier {
       );
     }
     if (!ambient) {
-      final bob = still ? 0.0 : math.sin(time * 1.3) * 0.035;
       _renderer.draw(
         Models.rocket,
-        at: _rocketAt + V3(0, bob, 0),
+        at: _rocketShown,
         turn: _rocketTurn,
         scale: _rocketScale,
         fog: 0,
@@ -1108,6 +1172,11 @@ class SpaceWorld extends ChangeNotifier {
   }
 
   void _paintSky(Canvas canvas, Camera camera) {
+    final nebula = Nebula.of(palette);
+    if (nebula != null) {
+      _paintNebula(canvas, camera, nebula);
+      return;
+    }
     final rect = Offset.zero & size;
     canvas.drawRect(
       rect,
@@ -1154,6 +1223,26 @@ class SpaceWorld extends ChangeNotifier {
           ),
       );
     }
+  }
+
+  /// The painted nebula, covering the canvas, drifting very slowly and
+  /// moving against the camera as what is furthest away does.
+  void _paintNebula(Canvas canvas, Camera camera, ui.Image image) {
+    final cover = size.longestSide * 1.12;
+    final drift = still
+        ? Offset.zero
+        : Offset(math.sin(time * 0.017), math.cos(time * 0.013)) *
+              (size.shortestSide * 0.02);
+    final centre =
+        size.center(Offset.zero) +
+        drift +
+        Offset(-camera.eye.x * 22, camera.eye.y * 22);
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromCenter(center: centre, width: cover, height: cover),
+      Paint()..filterQuality = FilterQuality.medium,
+    );
   }
 
   final Float32List _points = Float32List(_starCount * 2);
@@ -1287,7 +1376,9 @@ class SpaceWorld extends ChangeNotifier {
         at: at,
         turn: tilt * Rot.euler(yaw: time * 0.035),
         scale: radius,
-        fog: 0.45,
+        fog: 0.35,
+        limb: palette.air,
+        whole: false,
       )
       ..draw(
         Models.rings(palette),
@@ -1295,24 +1386,43 @@ class SpaceWorld extends ChangeNotifier {
         turn: tilt,
         scale: radius,
         fog: 0.5,
+        whole: false,
       );
-    final orbit = time * 0.09 + 1.2;
-    _renderer.draw(
-      Models.moon(palette),
-      at:
+    // The moon keeps close to its planet: just outside the rings, on an
+    // orbit tipped most of the way towards the viewer, so it goes behind the
+    // planet at the top and round in front below without ever coming much
+    // nearer than it. It used to swing a wide loop that brought it far
+    // nearer than its planet and down through the words; in a mission it is
+    // left out, the planet being half off the screen in a corner.
+    moonOnScreen = null;
+    if (ambient) {
+      final orbit = time * 0.11 + 1.2;
+      final moon =
           at +
-          V3(
-            math.cos(orbit) * radius * 2.6,
-            math.sin(orbit) * radius * 0.5,
-            math.sin(orbit) * radius * 2.6,
-          ),
-      turn: Rot.euler(yaw: time * 0.05),
-      scale: radius * 0.16,
-      fog: 0.45,
-    );
+          Rot.euler(pitch: 1.25, roll: -0.36).apply(
+            V3(math.cos(orbit), 0, math.sin(orbit)) * (radius * 2.4),
+          );
+      _renderer.draw(
+        Models.moon(palette),
+        at: moon,
+        turn: Rot.euler(yaw: time * 0.05),
+        scale: radius * 0.18,
+        fog: 0.4,
+      );
+      final shown = camera.project(moon);
+      if (shown != null) {
+        moonOnScreen = (
+          shown,
+          radius * 0.18 * camera.scaleAt(camera.depthOf(moon)),
+        );
+      }
+    }
     final centre = camera.project(at);
     if (centre == null) return null;
-    return (centre, radius * camera.scaleAt(camera.depthOf(at)));
+    return planetOnScreen = (
+      centre,
+      radius * camera.scaleAt(camera.depthOf(at)),
+    );
   }
 
   void _atmosphere(Canvas canvas, Offset centre, double radius) {
@@ -1440,30 +1550,43 @@ class SpaceWorld extends ChangeNotifier {
   }
 
   void _paintEngine(Canvas canvas, Camera camera) {
-    final at = camera.project(_engine);
+    final rocket = camera.lensAt(_rocketShown);
+    final at = rocket.project(_engine);
     if (at == null) return;
     final scale = camera.scaleAt(camera.depthOf(_engine));
-    final flicker = still ? 1.0 : 0.85 + 0.15 * math.sin(time * 41);
+    final flicker = still
+        ? 1.0
+        : 0.86 + 0.08 * math.sin(time * 41) + 0.06 * math.sin(time * 67 + 1);
+    // Light thrown round the nozzle, then the flame, then its white-hot
+    // heart.
     _glow(
       canvas,
       at,
-      0.55 * scale * flicker,
-      const Color(0xFFFF7A3D).withValues(alpha: 0.75),
+      1.1 * scale * flicker,
+      const Color(0xFFFF5A1F).withValues(alpha: 0.32),
     );
     _glow(
       canvas,
       at,
-      0.22 * scale * flicker,
-      const Color(0xFFFFF1C1),
+      0.5 * scale * flicker,
+      const Color(0xFFFF9A45).withValues(alpha: 0.8),
     );
+    _glow(canvas, at, 0.2 * scale * flicker, const Color(0xFFFFF6DC));
     if (_muzzle > 0) {
-      final nose = camera.project(_nose);
-      if (nose != null) {
+      final muzzle = rocket.project(_muzzleOf(_cannon));
+      if (muzzle != null) {
         _glow(
           canvas,
-          nose,
-          0.5 * scale * _muzzle,
+          muzzle,
+          0.45 * scale * _muzzle,
           palette.glow,
+          strength: _muzzle,
+        );
+        _glow(
+          canvas,
+          muzzle,
+          0.16 * scale * _muzzle,
+          const Color(0xFFFFFFFF),
           strength: _muzzle,
         );
       }
@@ -1474,8 +1597,16 @@ class SpaceWorld extends ChangeNotifier {
     final paint = Paint()
       ..blendMode = BlendMode.plus
       ..strokeCap = StrokeCap.round;
+    final rocket = ambient ? null : camera.lensAt(_rocketShown);
+    final lenses = Map<V3, Lens>.identity();
     for (final spark in _sparks) {
-      final at = camera.project(spark.at);
+      final about = spark.about;
+      final lens = spark.exhaust
+          ? rocket
+          : about == null
+          ? null
+          : lenses.putIfAbsent(about, () => camera.lensAt(about));
+      final at = lens?.project(spark.at) ?? camera.project(spark.at);
       if (at == null) continue;
       final left = 1 - spark.age / spark.life;
       final scale = (camera.scaleAt(camera.depthOf(spark.at)) / 40).clamp(
@@ -1496,20 +1627,25 @@ class SpaceWorld extends ChangeNotifier {
   }
 
   void _paintLasers(Canvas canvas, Camera camera) {
+    final rocket = camera.lensAt(_rocketShown);
     for (final laser in _lasers) {
+      final from = _muzzleOf(laser.cannon);
       final target = laser.ship.world;
-      final head = laser.from.lerp(target, laser.progress.clamp(0, 1));
-      final tail = laser.from.lerp(
-        target,
-        (laser.progress - 0.4).clamp(0, 1),
-      );
-      final a = camera.project(tail);
-      final b = camera.project(head);
-      if (a == null || b == null) continue;
-      final width = (camera.scaleAt(camera.depthOf(head)) * 0.12).clamp(
-        3.0,
-        14.0,
-      );
+      // Each end where its solid is drawn: the cannon through the rocket's
+      // lens, the ship through its own, whose middle is where the camera
+      // puts it.
+      final start = rocket.project(from);
+      final end = camera.project(target);
+      if (start == null || end == null) continue;
+      final head = laser.progress.clamp(0.0, 1.0);
+      // A bolt, not a beam: a fifth of the way long.
+      final tail = (laser.progress - 0.2).clamp(0.0, 1.0);
+      final a = Offset.lerp(start, end, tail)!;
+      final b = Offset.lerp(start, end, head)!;
+      final depth =
+          camera.depthOf(from) +
+          (camera.depthOf(target) - camera.depthOf(from)) * head;
+      final width = (camera.scaleAt(depth) * 0.09).clamp(2.5, 10.0);
       canvas
         ..drawLine(
           a,

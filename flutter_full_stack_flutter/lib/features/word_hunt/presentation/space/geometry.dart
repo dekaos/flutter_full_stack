@@ -185,6 +185,74 @@ class Camera {
 
   /// How many pixels one unit of the world spans at [depth].
   double scaleAt(double depth) => focal / math.max(depth, 0.05);
+
+  /// How a solid whose middle is at [centre] is seen: as if the camera had
+  /// turned to face it squarely, then put where this camera puts its
+  /// middle, at the size this camera gives it there.
+  ///
+  /// A wide lens stretches what is off to its side - on an upright phone,
+  /// whose view is wide across its long side, a planet in a corner came out
+  /// half as long again one way as the other. Seen through its own [Lens],
+  /// a solid keeps its shape wherever it is on the screen; only where it
+  /// is, and how big, come from this camera.
+  Lens lensAt(V3 centre) {
+    final d = centre - eye;
+    final depth = d.dot(forward);
+    final distance = d.length;
+    final centred = Offset(size.width / 2, size.height / 2);
+    if (depth <= 0.05 || distance == 0) {
+      return Lens._(centred, eye, right, up, forward, focal);
+    }
+    final ahead = d * (1 / distance);
+    final across = ahead.cross(up);
+    if (across.length < 1e-6) {
+      return Lens._(centred, eye, right, up, forward, focal);
+    }
+    final side = across.unit;
+    return Lens._(
+      Offset(
+        centred.dx + focal * d.dot(right) / depth,
+        centred.dy - focal * d.dot(up) / depth,
+      ),
+      eye,
+      side,
+      side.cross(ahead),
+      ahead,
+      focal * distance / depth,
+    );
+  }
+}
+
+/// A camera turned to look straight at one solid: see [Camera.lensAt].
+@immutable
+class Lens {
+  const Lens._(
+    this.origin,
+    this.eye,
+    this.right,
+    this.up,
+    this.forward,
+    this.focal,
+  );
+
+  /// Where the solid's middle lands on the screen.
+  final Offset origin;
+  final V3 eye;
+  final V3 right;
+  final V3 up;
+  final V3 forward;
+  final double focal;
+
+  /// Where [p] lands on the screen, or `null` when it is behind the eye.
+  Offset? project(V3 p) {
+    final d = p - eye;
+    final z = d.dot(forward);
+    if (z <= 0.05) return null;
+    return Offset(
+      origin.dx + focal * d.dot(right) / z,
+      origin.dy - focal * d.dot(up) / z,
+    );
+  }
 }
 
 /// A colour as three channels from `0` to `1`, for lighting arithmetic.
@@ -207,6 +275,11 @@ class Rgb {
 
   /// Channel by channel: a light on a surface.
   Rgb times(Rgb o) => Rgb(r * o.r, g * o.g, b * o.b);
+
+  /// This colour as light: from the screen's encoding into linear
+  /// intensities, where light adds up as it does in the world. (Gamma 2 -
+  /// near enough to the screen's 2.2, and a square is cheap.)
+  Rgb get linear => Rgb(r * r, g * g, b * b);
 
   Rgb lerp(Rgb o, double t) =>
       Rgb(r + (o.r - r) * t, g + (o.g - g) * t, b + (o.b - b) * t);
@@ -239,4 +312,56 @@ double noise3(double x, double y, double z, {int seed = 0}) {
               math.sin(z * 5.3 + x * 1.9 - s) *
               math.cos(y * 4.7 - x * 2.1 + s)) /
       1.75;
+}
+
+int _hash(int x, int y, int z, int seed) {
+  var n = x * 73856093 ^ y * 19349663 ^ z * 83492791 ^ seed * 2654435761;
+  n = (n ^ (n >> 13)) * 1274126177;
+  n ^= n >> 16;
+  return n & 0xffff;
+}
+
+double _corner(int x, int y, int z, int seed) =>
+    _hash(x, y, z, seed) / 32767.5 - 1;
+
+/// Value noise over space, `-1` to `1`: random values on a lattice, eased
+/// between - smooth, and without the regular stripes of [noise3]. What
+/// coasts, craters and clouds are made of.
+double valueNoise3(double x, double y, double z, {int seed = 0}) {
+  final xi = x.floor();
+  final yi = y.floor();
+  final zi = z.floor();
+  double ease(double t) => t * t * (3 - 2 * t);
+  final u = ease(x - xi);
+  final v = ease(y - yi);
+  final w = ease(z - zi);
+  double lerp(double a, double b, double t) => a + (b - a) * t;
+  double c(int dx, int dy, int dz) => _corner(xi + dx, yi + dy, zi + dz, seed);
+  return lerp(
+    lerp(lerp(c(0, 0, 0), c(1, 0, 0), u), lerp(c(0, 1, 0), c(1, 1, 0), u), v),
+    lerp(lerp(c(0, 0, 1), c(1, 0, 1), u), lerp(c(0, 1, 1), c(1, 1, 1), u), v),
+    w,
+  );
+}
+
+/// [valueNoise3] in [octaves] layers, each twice as fine and half as
+/// strong as the last: fractal detail, as nature has it. `-1` to `1`.
+double fbm3(
+  double x,
+  double y,
+  double z, {
+  int octaves = 4,
+  int seed = 0,
+}) {
+  var sum = 0.0;
+  var amplitude = 1.0;
+  var norm = 0.0;
+  var f = 1.0;
+  for (var i = 0; i < octaves; i++) {
+    sum += amplitude * valueNoise3(x * f, y * f, z * f, seed: seed + i * 31);
+    norm += amplitude;
+    amplitude *= 0.5;
+    f *= 2.03;
+  }
+  return sum / norm;
 }

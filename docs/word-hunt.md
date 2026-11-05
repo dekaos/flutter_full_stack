@@ -89,24 +89,65 @@ there are exhaustive, so the analyzer lists what is missing.
 
 ## The 3D
 
-It is real 3D — a perspective camera, solids lit by one sun, depth — drawn on
-an ordinary Flutter canvas, with no engine and no assets:
+It is real 3D — a perspective camera, lit solids, depth — drawn on an
+ordinary Flutter canvas, with no engine and no assets:
 
 - **Meshes are made from numbers** (`space/models.dart`): the saucers and the
-  rocket are profiles turned on a lathe, the planet and rocks are subdivided
-  icosahedra pushed out by noise. Nothing to license, nothing in the bundle.
+  rocket are profiles turned on a lathe, the planet, moon and rocks are
+  subdivided icosahedra pushed out by noise. Nothing to license, nothing in
+  the bundle.
+- **Shading is smooth** (`space/mesh.dart`). Each corner has its own normal,
+  colour and finish, and the GPU blends the three corners' light across
+  each triangle, so a curve looks curved rather than cut from facets. A mesh
+  is built in parts — a hull, a dome, a fin — each smoothed within itself up
+  to a crease angle and kept sharp against the others, which is how a
+  saucer's rim stays a crisp edge between two smooth shells. A planet's
+  colours are per corner too, so its coasts fade from sea to land.
+  `mesh_test.dart` holds this.
+- **Materials** (`Finish`): glossy paint, chrome, glass, water, rock. Light
+  is worked out per corner in linear light — the sun, the sky above and the
+  dark below, a highlight shaped by the finish, the surroundings reflected
+  in metal and glass, a fresnel sheen at grazing angles, an atmosphere round
+  the planet's edge — then tone mapped (ACES) and encoded for the screen.
+  Adding colours in screen values, as the first version did, washes
+  everything out.
 - **One renderer** (`space/renderer.dart`) turns, lights and projects every
-  mesh of a frame, drops faces turned away, sorts the rest far to near (a
-  counting sort, linear in the faces) and hands them to the canvas as one
-  `drawVertices` call per layer. Each face is flat-shaded — sun, sky and
-  ground light, a rim light, a highlight, fog — which is the low-poly look.
-  About 2,000 faces a frame.
-- **Glows are 2D, over the 3D**: engine flame, lasers, sparks, shields, the
-  atmosphere — additive radial gradients at projected points. So are the
+  mesh of a frame, drops faces turned away or off the screen (and lights
+  only the corners of faces it keeps), sorts the rest far to near and hands
+  them to the canvas as one `drawVertices` call per layer. The sort is
+  exact, and paints each solid whole — a ship, the rocket, a splinter — in
+  front of or behind the next; only the planet and its rings, which go round
+  each other, are sorted face by face. It used to be a bucket sort over the
+  frame's depths, which made faces a hair apart (a fin and the rocket's
+  body, a dome and its hull) swap places from frame to frame whenever ships
+  flew far off — that is, every time the words changed — and flicker.
+  `renderer_test.dart` holds it.
+- **The sky is painted once per theme** (`space/nebula.dart`): clouds of gas
+  folded over themselves by domain-warped noise, dark lanes of dust, a faint
+  galactic band — 192 pixels square, made on another isolate the first time
+  a theme's space asks for it, and drawn scaled up, since it is soft by
+  nature. Until it is ready, a plainer gradient sky stands in.
+- **Each solid is seen through its own lens** (`Camera.lensAt`). The
+  camera's field of view is set across the shorter side, so an upright
+  phone sees about 104° top to bottom — a wide angle, which stretches what
+  is off to the side as a wide-angle photo does: a planet in a corner came
+  out half as long again one way as the other, and the rocket at the bottom
+  stood tall. So each solid is projected as if the camera had turned to face
+  it squarely, then placed where the camera puts its middle, at the size it
+  gives it there. Depth, light and which side is seen are unchanged; only
+  the stretch is gone. `renderer_test.dart` holds a ball in a corner round.
+- **Glows are 2D, over the 3D**: the engine's flame, lasers, sparks,
+  shields — additive radial gradients at projected points, each through the
+  lens of the solid it belongs to, so a flame stays on its nozzle. So are the
   words, which are always on top and always upright.
 - **Every theme is a corner of space of its own**, from one hue
-  (`space/palette.dart`): sky, nebulae, planet, light. The sky stays near
-  black whatever the hue, because words are read over it.
+  (`space/palette.dart`): sky, nebula, planet, light. The sky stays dark
+  whatever the hue, because words are read over it.
+
+About 6,500 faces a frame — the rocket and the planet are the heaviest —
+for roughly 1.6 times the work of the faceted first version, which drew
+2,400. Measured in a JIT test run on a laptop, so only the ratio means
+anything; the frame-timing suite does not cover the word hunt yet.
 
 **Why not Flame.** It was considered. Flame's 3D
 (`flame_3d`) and `flutter_scene` both run on Flutter GPU, which is
@@ -124,7 +165,9 @@ and each ship roams inside its own, so no word is ever over another. When even
 the best grid is too small (six long phrases on a narrow phone in large text),
 the words and ships of that wave are made just small enough to fit. The
 camera's sway is budgeted into the field's margins, so a word never drifts
-under a panel.
+under a panel. When the field changes under a wave — a phone turned — every
+ship keeps its cell and its place in it; and the prompt card above keeps one
+height whatever it shows, so it never moves the field as the words change.
 
 **The game decides nothing in the world.** `MissionController` owns every rule
 and clock; `SpaceWorld` only shows what it is told (a wave, a hit, a miss) and

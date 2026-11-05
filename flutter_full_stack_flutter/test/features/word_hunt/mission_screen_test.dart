@@ -163,8 +163,36 @@ void main() {
     final round = app.mission(_deck).round!;
     await frames(tester, MissionPace.answer);
     expect(app.mission(_deck).round!.outcome, RoundOutcome.timedOut);
-    expect(find.text('The answer was'), findsOneWidget);
-    expect(find.text(round.target.en), findsWidgets);
+    expect(
+      find.text('The answer was ${round.target.en}', findRichText: true),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the word asked for is always on a card of one height', (
+    tester,
+  ) async {
+    // The ships fly in what the card leaves: were it to grow a line, the
+    // whole play area would move under them as the words changed.
+    final app = await _flying(tester);
+    double height() => tester.getSize(find.byType(PromptCard)).height;
+    final heights = <String, double>{'asked': height()};
+
+    await _shoot(tester, _wrong(app.mission(_deck).round!));
+    heights['missed'] = height();
+    await _shoot(tester, app.mission(_deck).round!.answer);
+    await frames(tester, MissionScreen.readAfter);
+    app.voice.finish();
+    heights['found'] = height();
+    await frames(tester, MissionPace.afterHit);
+    await frames(tester, const Duration(milliseconds: 400));
+    heights['in a streak'] = height();
+    await frames(tester, MissionPace.answer);
+    heights['out of time'] = height();
+    await frames(tester, MissionPace.afterTimeout);
+    heights['next'] = height();
+
+    expect(heights.values.toSet(), hasLength(1), reason: '$heights');
   });
 
   testWidgets('Back pauses, and the pause has the way out', (tester) async {

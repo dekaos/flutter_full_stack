@@ -31,12 +31,14 @@ class SpacePalette {
       rock = Rgb.hsl(hue + 10, 0.14, 0.46),
       lighting = Lighting(
         sun: const V3(-0.5, 0.7, 0.55).unit,
-        key: const Rgb(1, 0.95, 0.88) * 0.92,
-        sky: Rgb.hsl(hue, 0.38, 0.66) * 0.36,
-        ground: Rgb.hsl(hue + 40, 0.35, 0.45) * 0.2,
-        rim: Rgb.hsl(hue + 30, 0.85, 0.74) * 0.55,
-        fog: Rgb.hsl(hue - 10, 0.45, 0.1),
-        fogDensity: 0.014,
+        key: const Rgb(1, 0.94, 0.86) * 2.1,
+        sky: Rgb.hsl(hue, 0.45, 0.6).linear * 0.32,
+        ground: Rgb.hsl(hue + 40, 0.4, 0.4).linear * 0.12,
+        rim: Rgb.hsl(hue + 30, 0.85, 0.72).linear * 0.5,
+        fog: Rgb.hsl(hue - 10, 0.45, 0.1).linear,
+        fogDensity: 0.012,
+        skyEnv: Rgb.hsl(hue + 10, 0.55, 0.62).linear * 0.95,
+        groundEnv: Rgb.hsl(hue - 20, 0.35, 0.12).linear * 0.6,
       );
 
   /// The lobby's: CNA's blue, with its red in the details.
@@ -52,6 +54,9 @@ class SpacePalette {
 
   /// Lasers, sparks and the light of a hit.
   final Color glow;
+
+  /// The planet's air, lit by its sun: what rings its edge.
+  Rgb get air => Rgb.hsl(hue + 15, 0.85, 0.65).linear * 1.4;
 
   final Rgb sea;
   final Rgb land;

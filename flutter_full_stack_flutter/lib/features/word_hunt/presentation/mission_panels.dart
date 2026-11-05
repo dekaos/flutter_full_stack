@@ -179,6 +179,10 @@ class _Shields extends StatelessWidget {
 
 /// The word asked for, in Portuguese, the score beside it, and the time
 /// left under it.
+///
+/// It is the same height whatever it shows - a long word, the answer once
+/// time is up, the combo badge or none - because the ships fly in what it
+/// leaves: a card that grew a line would move the whole play area.
 class PromptCard extends StatelessWidget {
   const PromptCard({required this.state, super.key});
 
@@ -192,6 +196,10 @@ class PromptCard extends StatelessWidget {
     final missed =
         round != null && !round.live && round.outcome != RoundOutcome.hit;
     final found = round != null && round.outcome == RoundOutcome.hit;
+    final word = theme.textTheme.headlineMedium?.copyWith(
+      fontWeight: FontWeight.w800,
+      color: theme.colorScheme.onSurface,
+    );
     return HuntPanel(
       accent: found ? HuntColours.gold : null,
       padding: const EdgeInsets.fromLTRB(18, 12, 16, 12),
@@ -206,12 +214,29 @@ class PromptCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      round == null
-                          ? state.deck.title(l10n)
-                          : missed
-                          ? l10n.huntAnswerWas
-                          : l10n.huntFind,
+                    // Once time is up, the answer is said on this line, not
+                    // on one of its own.
+                    Text.rich(
+                      key: missed ? const Key('hunt-answer') : null,
+                      TextSpan(
+                        text: round == null
+                            ? state.deck.title(l10n)
+                            : missed
+                            ? '${l10n.huntAnswerWas} '
+                            : l10n.huntFind,
+                        children: [
+                          if (missed)
+                            TextSpan(
+                              text: round.target.en,
+                              style: const TextStyle(
+                                color: HuntColours.gold,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -236,26 +261,23 @@ class PromptCard extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         children: [...previous, ?current],
                       ),
-                      child: Text(
-                        round?.target.pt ?? l10n.huntReady,
+                      // One line, always: a word too long for it is set a
+                      // little smaller rather than wrapped onto a second.
+                      child: SizedBox(
                         key: ValueKey(round?.number ?? 0),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: theme.colorScheme.onSurface,
+                        height: _line(context, word),
+                        width: double.infinity,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            round?.target.pt ?? l10n.huntReady,
+                            maxLines: 1,
+                            style: word,
+                          ),
                         ),
                       ),
                     ),
-                    if (missed)
-                      Text(
-                        round.target.en,
-                        key: const Key('hunt-answer'),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: HuntColours.gold,
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -269,6 +291,12 @@ class PromptCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// How tall one line of [style] is, with the device's text size.
+double _line(BuildContext context, TextStyle? style) {
+  final size = style?.fontSize ?? 28;
+  return MediaQuery.textScalerOf(context).scale(size) * (style?.height ?? 1.2);
 }
 
 class _Score extends StatelessWidget {
@@ -304,30 +332,29 @@ class _Score extends StatelessWidget {
             ),
           ),
         ),
-        AnimatedSwitcher(
+        // Always laid out, only shown when there is a streak: its coming
+        // and going must not change the card's height.
+        AnimatedOpacity(
+          opacity: state.streak > 0 ? 1 : 0,
           duration: context.motion(const Duration(milliseconds: 220)),
-          child: state.streak > 0
-              ? Container(
-                  key: ValueKey(state.multiplier),
-                  margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: HuntColours.gold),
-                    color: HuntColours.gold.withValues(alpha: 0.14),
-                  ),
-                  child: Text(
-                    l10n.huntCombo(state.multiplier / 100),
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: HuntColours.gold,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink(),
+          child: Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: HuntColours.gold),
+              color: HuntColours.gold.withValues(alpha: 0.14),
+            ),
+            child: Text(
+              l10n.huntCombo(
+                MissionRules.multiplier(math.max(state.streak, 1)) / 100,
+              ),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: HuntColours.gold,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ),
       ],
     );

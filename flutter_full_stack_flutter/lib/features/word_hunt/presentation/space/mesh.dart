@@ -1,30 +1,102 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/space/geometry.dart';
 
-/// A solid made of flat triangles, each with its own colour: the low-poly
-/// look, where every facet catches the light on its own.
+/// What a surface is made of, as the light sees it.
+@immutable
+class Finish {
+  const Finish({
+    this.specular = 0.15,
+    this.shininess = 16,
+    this.metal = 0,
+    this.sheen = 0,
+  });
+
+  /// Chalky: nearly no highlight.
+  static const matte = Finish(specular: 0.03, shininess: 6);
+
+  /// Bare stone: a dull, broad sheen.
+  static const rock = Finish(specular: 0.06, shininess: 10);
+
+  /// Glossy paint over metal: a tight highlight and a faint reflection at
+  /// the edges.
+  static const paint = Finish(specular: 0.55, shininess: 30, sheen: 0.14);
+
+  /// Polished metal: it shows the sky around it more than its own colour.
+  static const chrome = Finish(
+    specular: 1.1,
+    shininess: 50,
+    metal: 0.85,
+    sheen: 0.25,
+  );
+
+  /// Glass: dark in itself, bright where it reflects, and brightest at the
+  /// edges, as glass is.
+  static const glass = Finish(
+    specular: 1.5,
+    shininess: 55,
+    metal: 0.5,
+    sheen: 0.8,
+  );
+
+  /// Open water seen from space: the sun's glint across it.
+  static const water = Finish(specular: 0.7, shininess: 48, sheen: 0.1);
+
+  /// How bright the sun's highlight on it is.
+  final double specular;
+
+  /// How tight that highlight is.
+  final double shininess;
+
+  /// How much it reflects its surroundings instead of showing its colour,
+  /// `0` to `1`.
+  final double metal;
+
+  /// How much it reflects the sky when seen edge on.
+  final double sheen;
+}
+
+/// A solid made of triangles, shaded smoothly across each surface and
+/// sharply where one surface meets another.
 ///
 /// Built once, by a [MeshBuilder], and drawn as many times as wanted at any
-/// place, turn and size by the `Renderer`. Its triangles are wound so that,
-/// seen from outside, their corners run anticlockwise - which is how the
-/// renderer knows a face is turned away and need not be drawn.
+/// place, turn and size by the `Renderer`. Every corner carries its own
+/// normal, colour and [Finish], so the light is worked out per corner and
+/// blended across each triangle by the GPU: a curve looks curved, not cut
+/// from flat facets. Its triangles are wound so that, seen from outside,
+/// their corners run anticlockwise - which is how the renderer knows a face
+/// is turned away and need not be drawn.
 class Mesh {
-  Mesh._(this.positions, this.indices, this.colors, this.glow, this.radius);
+  Mesh._(
+    this.positions,
+    this.normals,
+    this.colors,
+    this.glow,
+    this.finishes,
+    this.indices,
+    this.radius,
+  );
 
   /// `x, y, z` of every corner.
   final Float64List positions;
 
-  /// Three corners per triangle.
-  final Uint16List indices;
+  /// The surface's direction at every corner, a unit vector.
+  final Float64List normals;
 
-  /// `r, g, b` of every triangle, `0` to `1`.
+  /// `r, g, b` of every corner, as linear light, `0` to `1`.
   final Float64List colors;
 
-  /// How much every triangle shines by its own light, `0` to `1`: a window,
-  /// a lamp, an engine. Lit faces are shaded; glowing ones are not.
+  /// How much every corner shines by its own light, `0` to `1`: a window,
+  /// a lamp, an engine.
   final Float64List glow;
+
+  /// Each corner's [Finish], as `specular, shininess, metal, sheen`.
+  final Float64List finishes;
+
+  /// Three corners per triangle.
+  final Uint32List indices;
 
   /// How far the furthest corner is from the origin.
   final double radius;
@@ -33,14 +105,39 @@ class Mesh {
   int get faceCount => indices.length ~/ 3;
 }
 
-/// Puts a [Mesh] together a triangle at a time.
+/// Puts a [Mesh] together a triangle at a time, in parts.
+///
+/// Each part - a hull, a dome, a fin - is smoothed within itself and kept
+/// sharp against the others: its faces share their normals at a corner only
+/// with faces of the same part that meet them at less than its `smooth`
+/// angle. So a saucer's rim is a crisp edge between two smooth shells, and
+/// a fin stays flat.
 class MeshBuilder {
   final List<double> _positions = [];
   final List<int> _indices = [];
-  final List<double> _colors = [];
+
+  // Three of each per face, one for each of its corners.
+  final List<Rgb> _colors = [];
   final List<double> _glow = [];
+  final List<Finish> _finishes = [];
+
+  final List<int> _parts = [];
+  final List<double> _creases = [];
+
+  int _part = 0;
+  double _crease = math.cos(40 * math.pi / 180);
+  Finish _finish = Finish.paint;
 
   int get faceCount => _indices.length ~/ 3;
+
+  /// Starts a new part: what is added from here on is smoothed across
+  /// edges gentler than [smooth] degrees - `0` for flat facets, `180` for
+  /// smooth all over - and has [finish] unless a face says otherwise.
+  void part({double smooth = 40, Finish finish = Finish.paint}) {
+    _part++;
+    _crease = smooth <= 0 ? 2 : math.cos(smooth * math.pi / 180);
+    _finish = finish;
+  }
 
   /// Adds a corner, returning its index.
   int vertex(V3 p) {
@@ -53,7 +150,20 @@ class MeshBuilder {
 
   /// A triangle through corners [a], [b] and [c], turned to face along
   /// [outward] - whichever way round its corners were given.
-  void tri(int a, int b, int c, Rgb color, {V3? outward, double glow = 0}) {
+  ///
+  /// Each corner can have a [corners] colour and finish of its own, which
+  /// the light then blends across the face: a coast fading from sea to
+  /// land, rather than a triangle of each.
+  void tri(
+    int a,
+    int b,
+    int c,
+    Rgb color, {
+    V3? outward,
+    double glow = 0,
+    Finish? finish,
+    (Rgb, Finish) Function(int corner)? corners,
+  }) {
     var (p, q) = (b, c);
     if (outward != null) {
       final pa = _at(a);
@@ -61,8 +171,15 @@ class MeshBuilder {
       if (normal.dot(outward) < 0) (p, q) = (c, b);
     }
     _indices.addAll([a, p, q]);
-    _colors.addAll([color.r, color.g, color.b]);
-    _glow.add(glow);
+    for (final corner in [a, p, q]) {
+      final (rgb, surface) =
+          corners?.call(corner) ?? (color, finish ?? _finish);
+      _colors.add(rgb);
+      _glow.add(glow);
+      _finishes.add(surface);
+    }
+    _parts.add(_part);
+    _creases.add(_crease);
   }
 
   /// Two triangles over the four corners [a], [b], [c], [d], in order round
@@ -75,9 +192,10 @@ class MeshBuilder {
     Rgb color, {
     V3? outward,
     double glow = 0,
+    Finish? finish,
   }) {
-    tri(a, b, c, color, outward: outward, glow: glow);
-    tri(a, c, d, color, outward: outward, glow: glow);
+    tri(a, b, c, color, outward: outward, glow: glow, finish: finish);
+    tri(a, c, d, color, outward: outward, glow: glow, finish: finish);
   }
 
   /// Turns every face from [fromFace] on to face away from [center]. Right
@@ -94,23 +212,112 @@ class MeshBuilder {
       if (normal.dot(middle - center) < 0) {
         _indices[f * 3 + 1] = c;
         _indices[f * 3 + 2] = b;
+        // Each corner's colour, glow and finish go with it.
+        void swap<T>(List<T> of) {
+          final first = of[f * 3 + 1];
+          of[f * 3 + 1] = of[f * 3 + 2];
+          of[f * 3 + 2] = first;
+        }
+
+        swap(_colors);
+        swap(_glow);
+        swap(_finishes);
       }
     }
   }
 
+  /// The mesh: each corner of each face given the normal of its part's
+  /// surface there, and corners that differ in normal, colour, glow or
+  /// finish kept apart, so each edge between them stays sharp.
   Mesh build() {
-    var radius = 0.0;
-    for (var i = 0; i < _positions.length; i += 3) {
-      radius = math.max(
-        radius,
-        V3(_positions[i], _positions[i + 1], _positions[i + 2]).length,
+    final faces = faceCount;
+    final normal = Float64List(faces * 3);
+    final weighted = Float64List(faces * 3);
+    final touching = List.generate(_positions.length ~/ 3, (_) => <int>[]);
+    for (var f = 0; f < faces; f++) {
+      final a = _at(_indices[f * 3]);
+      final cross = (_at(_indices[f * 3 + 1]) - a).cross(
+        _at(_indices[f * 3 + 2]) - a,
       );
+      final unit = cross.unit;
+      normal
+        ..[f * 3] = unit.x
+        ..[f * 3 + 1] = unit.y
+        ..[f * 3 + 2] = unit.z;
+      weighted
+        ..[f * 3] = cross.x
+        ..[f * 3 + 1] = cross.y
+        ..[f * 3 + 2] = cross.z;
+      for (var k = 0; k < 3; k++) {
+        touching[_indices[f * 3 + k]].add(f);
+      }
+    }
+
+    final positions = <double>[];
+    final normals = <double>[];
+    final colors = <double>[];
+    final glow = <double>[];
+    final finishes = <double>[];
+    final indices = <int>[];
+    final seen = <String, int>{};
+    var radius = 0.0;
+
+    for (var f = 0; f < faces; f++) {
+      for (var k = 0; k < 3; k++) {
+        final rgb = _colors[f * 3 + k].linear;
+        final finish = _finishes[f * 3 + k];
+        final shine = _glow[f * 3 + k];
+        final p = _indices[f * 3 + k];
+        var nx = 0.0;
+        var ny = 0.0;
+        var nz = 0.0;
+        for (final g in touching[p]) {
+          if (_parts[g] != _parts[f]) continue;
+          final agree =
+              normal[f * 3] * normal[g * 3] +
+              normal[f * 3 + 1] * normal[g * 3 + 1] +
+              normal[f * 3 + 2] * normal[g * 3 + 2];
+          if (g != f && agree < _creases[f]) continue;
+          nx += weighted[g * 3];
+          ny += weighted[g * 3 + 1];
+          nz += weighted[g * 3 + 2];
+        }
+        final length = math.sqrt(nx * nx + ny * ny + nz * nz);
+        if (length > 0) {
+          nx /= length;
+          ny /= length;
+          nz /= length;
+        }
+        final key =
+            '$p|${(nx * 512).round()},${(ny * 512).round()},'
+            '${(nz * 512).round()}|${rgb.r},${rgb.g},${rgb.b}|$shine|'
+            '${identityHashCode(finish)}';
+        indices.add(
+          seen.putIfAbsent(key, () {
+            final at = _at(p);
+            radius = math.max(radius, at.length);
+            positions.addAll([at.x, at.y, at.z]);
+            normals.addAll([nx, ny, nz]);
+            colors.addAll([rgb.r, rgb.g, rgb.b]);
+            glow.add(shine);
+            finishes.addAll([
+              finish.specular,
+              finish.shininess,
+              finish.metal,
+              finish.sheen,
+            ]);
+            return positions.length ~/ 3 - 1;
+          }),
+        );
+      }
     }
     return Mesh._(
-      Float64List.fromList(_positions),
-      Uint16List.fromList(_indices),
-      Float64List.fromList(_colors),
-      Float64List.fromList(_glow),
+      Float64List.fromList(positions),
+      Float64List.fromList(normals),
+      Float64List.fromList(colors),
+      Float64List.fromList(glow),
+      Float64List.fromList(finishes),
+      Uint32List.fromList(indices),
       radius,
     );
   }
@@ -118,20 +325,24 @@ class MeshBuilder {
   // ----------------------------------------------------------- solids --
 
   /// A solid of revolution: [profile] - pairs of radius and height, from the
-  /// top down - turned round an axis in [segments] steps.
+  /// top down - turned round an axis in [segments] steps, as one part.
   ///
   /// [place] puts a point given across the axis (`x`, `z`) and along it
   /// (`h`) into the mesh, so the same profile can stand upright (a saucer)
-  /// or lie along `z` (a rocket). [color] and [glow] are asked for each
-  /// band of the profile and each step round it.
+  /// or lie along `z` (a rocket). [color], [glow] and [finish] are asked
+  /// for each band of the profile and each step round it.
   void lathe(
     List<(double, double)> profile, {
     required int segments,
     required Rgb Function(int band, int step) color,
     double Function(int band, int step)? glow,
+    Finish Function(int band, int step)? finish,
     V3 Function(double x, double h, double z)? place,
     double twist = 0,
+    double smooth = 40,
+    Finish base = Finish.paint,
   }) {
+    part(smooth: smooth, finish: base);
     final put = place ?? V3.new;
     final rings = <List<int>>[];
     for (final (r, h) in profile) {
@@ -167,21 +378,42 @@ class MeshBuilder {
             put(nr * math.cos(angle), nh, nr * math.sin(angle)) - put(0, 0, 0);
         final c = color(i, j);
         final g = glow?.call(i, j) ?? 0;
+        final f = finish?.call(i, j);
         if (top.length == 1) {
-          tri(top[0], bottom[j], bottom[k], c, outward: dir, glow: g);
+          tri(
+            top[0],
+            bottom[j],
+            bottom[k],
+            c,
+            outward: dir,
+            glow: g,
+            finish: f,
+          );
         } else if (bottom.length == 1) {
-          tri(top[j], top[k], bottom[0], c, outward: dir, glow: g);
+          tri(top[j], top[k], bottom[0], c, outward: dir, glow: g, finish: f);
         } else {
-          quad(top[j], top[k], bottom[k], bottom[j], c, outward: dir, glow: g);
+          quad(
+            top[j],
+            top[k],
+            bottom[k],
+            bottom[j],
+            c,
+            outward: dir,
+            glow: g,
+            finish: f,
+          );
         }
       }
     }
   }
 
   /// A ball of radius [radius] about [center], from an icosahedron split
-  /// [detail] times. [shape] can push each corner in or out - by its
-  /// direction from the middle - and [color] colours each face by its
-  /// middle's.
+  /// [detail] times, as one part, smooth all over unless [smooth] says
+  /// otherwise. [shape] can push each corner in or out - by its direction
+  /// from the middle - and [stretch] draws it out along each axis.
+  /// [color], [glow] and [finish] are asked for each face, by its middle's
+  /// direction - or, with [blend], [color] and [finish] for each corner, by
+  /// its own, and blended across the faces between.
   void sphere({
     required double radius,
     required Rgb Function(V3 direction) color,
@@ -189,28 +421,44 @@ class MeshBuilder {
     int detail = 1,
     double Function(V3 direction)? shape,
     double Function(V3 direction)? glow,
+    Finish Function(V3 direction)? finish,
+    V3 stretch = const V3(1, 1, 1),
+    double smooth = 180,
+    Finish base = Finish.paint,
+    bool blend = false,
   }) {
+    part(smooth: smooth, finish: base);
     final (points, faces) = _icosphere(detail);
     final from = faceCount;
+    final first = _positions.length ~/ 3;
     final index = [
       for (final p in points)
-        vertex(center + p * (radius * (shape?.call(p) ?? 1))),
+        vertex(
+          center +
+              V3(p.x * stretch.x, p.y * stretch.y, p.z * stretch.z) *
+                  (radius * (shape?.call(p) ?? 1)),
+        ),
     ];
+    final looks = blend
+        ? [for (final p in points) (color(p), finish?.call(p) ?? base)]
+        : null;
     for (final (a, b, c) in faces) {
       final middle = (points[a] + points[b] + points[c]).unit;
       tri(
         index[a],
         index[b],
         index[c],
-        color(middle),
+        looks == null ? color(middle) : looks[a].$1,
         glow: glow?.call(middle) ?? 0,
+        finish: finish?.call(middle),
+        corners: looks == null ? null : (corner) => looks[corner - first],
       );
     }
     outwardFrom(from, center);
   }
 
   /// A box with its corners at [min] and [max], one colour, turned by
-  /// [turn] about [pivot].
+  /// [turn] about [pivot]: a part of its own, flat-faced.
   void box(
     V3 min,
     V3 max,
@@ -218,7 +466,9 @@ class MeshBuilder {
     Rot turn = Rot.identity,
     V3 pivot = V3.zero,
     double glow = 0,
+    Finish finish = Finish.paint,
   }) {
+    part(smooth: 0, finish: finish);
     final from = faceCount;
     V3 corner(int i) =>
         pivot +
@@ -244,8 +494,17 @@ class MeshBuilder {
   }
 
   /// A flat slab through the outline [points] (in order round it), [depth]
-  /// thick across [across]: a fin, a wing.
-  void slab(List<V3> points, V3 across, double depth, Rgb color) {
+  /// thick across [across]: a fin, a wing. Its faces stay flat; its edges
+  /// are rounded a little by [smooth].
+  void slab(
+    List<V3> points,
+    V3 across,
+    double depth,
+    Rgb color, {
+    Finish finish = Finish.paint,
+    double smooth = 0,
+  }) {
+    part(smooth: smooth, finish: finish);
     final from = faceCount;
     final half = across.unit * (depth / 2);
     final front = [for (final p in points) vertex(p + half)];
@@ -274,6 +533,7 @@ class MeshBuilder {
     required Rgb Function(int step) color,
     double glow = 0,
   }) {
+    part(smooth: 0, finish: Finish.matte);
     final a = <int>[];
     final b = <int>[];
     for (var j = 0; j < segments; j++) {

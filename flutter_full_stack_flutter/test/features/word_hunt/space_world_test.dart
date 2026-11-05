@@ -98,6 +98,34 @@ void main() {
       });
     });
 
+    test('stay where they are when the panels above them change a little', () {
+      // The prompt card grows a line when time runs out, and the combo
+      // badge comes and goes: the field moves by a few pixels, and the
+      // ships with it - never to somewhere else.
+      final world = _world(
+        const Size(390, 844),
+        const EdgeInsets.only(top: 250, bottom: 160),
+      )..launch(1, _longest.take(5).toList());
+      _fly(world, 2);
+      for (final top in [262.0, 250.0, 274.0, 250.0]) {
+        final before = {
+          for (final ship in world.ships) ship.index: ship.position,
+        };
+        world.layout(
+          const Size(390, 844),
+          EdgeInsets.only(top: top, bottom: 160),
+        );
+        _fly(world, 1 / 60);
+        for (final ship in world.ships) {
+          expect(
+            (ship.position - before[ship.index]!).distance,
+            lessThan(30),
+            reason: 'ship ${ship.index} jumped, the top at $top',
+          );
+        }
+      }
+    });
+
     test('stay inside a field that changes shape under them', () {
       final world = _world(
         const Size(390, 844),
@@ -196,6 +224,37 @@ void main() {
       expect(world.ships, hasLength(5));
       expect(world.round, 4);
     });
+  });
+
+  test('the planet and its moon keep out of the play', () {
+    // Over more than a whole orbit. The moon used to swing a wide loop
+    // that brought it far nearer than its planet and down through the
+    // words, for a few seconds of every minute.
+    final mission = _world(
+      const Size(390, 844),
+      const EdgeInsets.only(top: 250, bottom: 160),
+    )..launch(1, _longest.take(4).toList());
+    final lobby = SpaceWorld(ambient: true)
+      ..layout(const Size(390, 844), EdgeInsets.zero);
+    addTearDown(lobby.dispose);
+    var seen = 0;
+    for (var second = 0; second < 80; second++) {
+      _fly(mission, 1);
+      _draw(mission);
+      final (planet, size) = mission.planetOnScreen!;
+      expect(planet.dy + size, lessThan(mission.field.top), reason: 'above');
+      expect(mission.moonOnScreen, isNull, reason: 'none in a mission');
+
+      _fly(lobby, 1);
+      _draw(lobby);
+      final (home, big) = lobby.planetOnScreen!;
+      if (lobby.moonOnScreen case (final moon, final small)) {
+        seen++;
+        expect((moon - home).distance, lessThan(big * 3.2), reason: 'near');
+        expect(small, lessThan(big * 0.3), reason: 'never close up');
+      }
+    }
+    expect(seen, greaterThan(40), reason: 'the lobby has its moon');
   });
 
   test('the lobby flies no words and fires nothing', () {
