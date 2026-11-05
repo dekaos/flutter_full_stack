@@ -21,10 +21,34 @@ Same source, same bytes, on any machine. A failure here is always real. It
 gates the release APK against `tool/size_budget.json` with 5% of headroom,
 because a toolchain upgrade moves it a percent or two on its own.
 
-This one exists because the app already carries weight you would not guess
-from reading it: Inter is bundled in `assets/fonts/` rather than fetched, which
-is right for a first run on a bad connection and is also a permanent addition
-to every download.
+**What it measures is the arm64 APK of a per-ABI split**
+(`--split-per-abi --target-platform android-arm64`): what an arm64 phone
+installs. Without the split, `--target-platform` narrows only Flutter's own
+libraries, and the APK still carries every plugin's native code for x86_64 and
+32-bit ARM. That APK measured 78 MB; the arm64 one is 41 MB (38.85 MiB). Of
+those, as of the budget recorded with this change:
+
+| | uncompressed in the APK |
+|---|---|
+| `libonnxruntime.so` — ONNX Runtime, which scores pronunciation | 18.4 MiB |
+| `libflutter.so` — the engine | 11.2 MiB |
+| `libapp.so` — the app's Dart, compiled | 6.9 MiB |
+| everything else: dex, the Inter fonts, resources, licences | ~2.4 MiB |
+
+**The native libraries are stored uncompressed, on purpose.** That is the
+Android Gradle Plugin's default: a page-aligned, uncompressed `.so` is loaded
+straight from the APK, so nothing is extracted on install and the app takes
+less space on the phone. Compressing them
+(`packaging.jniLibs.useLegacyPackaging = true`) was measured too: the arm64
+APK drops to 17.6 MB, and the phone then keeps both the APK and ~38 MB of
+extracted libraries. That is the better trade for an APK handed out directly,
+and no gain through the Play Store, which compresses what it downloads. The
+three big libraries compress to 6.6, 5.2 and 2.7 MiB.
+
+This gate exists because the app already carries weight you would not guess
+from reading it: ONNX Runtime above all, and Inter, bundled in
+`assets/fonts/` rather than fetched, which is right for a first run on a bad
+connection and is also a permanent addition to every download.
 
 ## 2. Coverage — a ratchet, not a target
 
@@ -99,7 +123,19 @@ four themes.
 | average / 90th frame **rasterizer** time | what the GPU pays for blur, gradients, clipping |
 | missed build & rasterizer budget counts | absolute, not relative: zero dropped frames becoming any is a regression no percentage expresses |
 
-Relative metrics fail at **+35%**; missed-frame counts fail at **+2 frames**.
+Relative metrics fail at **+35%** (and more than 0.2 ms); missed-frame counts
+fail at **+2 frames** — unless the baseline already missed at least half its
+frames. Then the count follows how many frames were drawn rather than how slow
+they were (a faster run draws more, and "misses" more), so it is reported and
+skipped; the frame times still gate that run. On CI's emulator, rendering in
+software, nearly every frame misses the raster budget, which is why its raster
+counts are skipped and its build counts are not.
+
+**CI requires a baseline.** Without one nothing is gated and the run passes,
+which is right on a machine measuring a device for the first time and wrong in
+CI, where the app could get as slow as it liked in silence. So CI passes
+`--require-baseline`: a missing entry for `ci-android-emulator/profile`, or a
+measured screen the entry has nothing for, fails the job.
 
 ### Two honest caveats
 
@@ -141,9 +177,26 @@ phone's:
 PERF_TAG=pixel-7 melos run perf:baseline
 ```
 
+**CI's numbers can only be taken by CI.** Download the `perf-report` artifact
+of one or more green runs of the *Frame timings* job, then:
+
+```bash
+dart run tool/perf_budget.dart --update --tag ci-android-emulator \
+  --report run-a.json --report run-b.json --note "CI runs <ids>, <what changed>"
+```
+
+**Use more than one run.** The baseline keeps the worst each metric did across
+the reports given, and records how many there were. One run is not enough:
+two CI runs of the same commit on the same emulator differed by 30–40% in
+raster time, so a baseline taken from one lucky run fails the next ordinary
+one, and a gate that fails on noise is worse than none. The first baseline,
+`ci-android-emulator/profile`, is the worst of two runs; adding the next green
+runs' reports to a later `--update` makes it steadier.
+
 Commit the diff, and say in the message what moved the numbers. That sentence
 is the whole point of the file: a baseline updated without explanation is drift
-with extra steps.
+with extra steps. Moving the emulator pin or its renderer in `ci.yml` changes
+what is measured, so record the CI entry again when either moves.
 
 ## What none of this covers
 

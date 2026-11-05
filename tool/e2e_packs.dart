@@ -36,10 +36,9 @@ Future<void> main(List<String> args) async {
   await out.create(recursive: true);
 
   final names = <String>[
-    for (final file
-        in lexicons.listSync().whereType<File>().where(
-          (f) => f.path.endsWith('.json'),
-        ))
+    for (final file in lexicons.listSync().whereType<File>().where(
+      (f) => f.path.endsWith('.json'),
+    ))
       (jsonDecode(await file.readAsString()) as Map<String, dynamic>)['model']
           as String,
   ]..sort();

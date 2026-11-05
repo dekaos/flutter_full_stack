@@ -457,8 +457,12 @@ endpoint tests get the separate one on 9090.
   start-up without the JWT peppers. The `test` job needs no such secrets:
   `withServerpod` never executes `lib/server.dart`'s `run()`.
 - **perf** — the frame-timing suite in profile mode on an emulator, gated by
-  `tool/perf_budget.dart`; no server
-- **size** — the release APK against its byte budget
+  `tool/perf_budget.dart` against `tool/perf_baseline.json`; no server. It
+  fails without a baseline (`--require-baseline`), so recording a new one —
+  how, in [docs/performance.md](docs/performance.md) — is part of moving the
+  emulator pin
+- **size** — the arm64 APK of a per-ABI release split against its byte
+  budget (why that APK, in [docs/performance.md](docs/performance.md))
 
 **Both emulator jobs pin the emulator, to 36.2.12 (`emulator-build:
 14214601`), and its renderer, to `-gpu swangle_indirect`.** Each works around

@@ -180,8 +180,13 @@ melos:
 
     # ----------------------------------------------------------------- size --
     size:measure:
-      description: Build the release APK whose size the budget gates.
-      exec: flutter build apk --release --target-platform android-arm64
+      description: >-
+        Build the release APK whose size the budget gates: the arm64 one of a
+        per-ABI split, which is what an arm64 phone installs. Without
+        --split-per-abi, --target-platform only narrows Flutter's own
+        libraries, and the APK still carries every plugin's native code for
+        x86_64 and 32-bit ARM - 37 MB of ONNX Runtime no arm64 phone runs.
+      exec: flutter build apk --release --split-per-abi --target-platform android-arm64
       packageFilters:
         scope: flutter_full_stack_flutter
 

@@ -1,0 +1,27 @@
+{
+  "ci-android-emulator/profile": {
+    "recorded": "2026-11-05T13:19:42.212474Z",
+    "samples": 2,
+    "note": "Worst of CI runs 42029582815 (bb20e5e, the first green one) and 42023955700 (the same app on the emulator diagnosis branch): emulator 36.2.12, -gpu swangle_indirect, profile.",
+    "language_screen": {
+      "average_frame_build_time_millis": 8.06,
+      "90th_percentile_frame_build_time_millis": 21.072,
+      "99th_percentile_frame_build_time_millis": 66.79,
+      "average_frame_rasterizer_time_millis": 158.975,
+      "90th_percentile_frame_rasterizer_time_millis": 306.369,
+      "missed_frame_build_budget_count": 4,
+      "missed_frame_rasterizer_budget_count": 30,
+      "frame_count": 32
+    },
+    "practice_screen": {
+      "average_frame_build_time_millis": 1.711,
+      "90th_percentile_frame_build_time_millis": 2.617,
+      "99th_percentile_frame_build_time_millis": 6.843,
+      "average_frame_rasterizer_time_millis": 149.82,
+      "90th_percentile_frame_rasterizer_time_millis": 282.318,
+      "missed_frame_build_budget_count": 1,
+      "missed_frame_rasterizer_budget_count": 67,
+      "frame_count": 88
+    }
+  }
+}

@@ -362,9 +362,14 @@ jobs:
           # The `&&` stays on one line: this action runs each line of
           # `script` in a separate `sh -c`, so a trailing `&&` is an
           # unterminated command rather than a chain.
+          #
+          # `--require-baseline`: without an entry for ci-android-emulator in
+          # tool/perf_baseline.json nothing would be gated, and the job would
+          # pass however slow the app got. It fails instead, and says how to
+          # record one from this job's `perf-report` artifact.
           script: |
             nohup adb logcat -v time > /tmp/logcat.txt 2>&1 &
-            dart run melos:melos run perf:measure --no-select && dart run tool/perf_budget.dart --tag ci-android-emulator
+            dart run melos:melos run perf:measure --no-select && dart run tool/perf_budget.dart --tag ci-android-emulator --require-baseline
 
       # The numbers are worth keeping even when the gate passes: drift is only
       # visible across runs, and until a baseline exists this artifact is the

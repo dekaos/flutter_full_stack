@@ -194,8 +194,12 @@ melos run perf            # measure, then gate against the recorded baseline
 
 A new screen gets its own `watchPerformance(..., reportKey: '<screen>')` block;
 `tool/perf_budget.dart` gates every summary in the report, and fails on a
-screen the baseline has and the report has lost. Profile mode only — see
-[docs/performance.md](../../../docs/performance.md).
+screen the baseline has and the report has lost. CI also fails on a screen the
+baseline has *no entry* for (`--require-baseline`), so a new block means a
+second step after its first CI run: record that run's `perf-report` artifact
+into `tool/perf_baseline.json` with `--update`, as
+[docs/performance.md](../../../docs/performance.md) describes. Profile mode
+only.
 
 ## Checklist
 
