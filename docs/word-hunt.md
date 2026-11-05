@@ -1,7 +1,7 @@
 # The word hunt
 
 The app opens on a game. It asks for a word in Portuguese, and the learner
-finds it in English among little saucers flying through a 3D corner of space,
+finds it in English among ships of every kind flying through a 3D corner of space,
 and shoots it. This page covers how it plays, where the words come from and
 the rules they keep to, how the 3D is drawn without a 3D engine, and what to
 know before changing any of it.
@@ -16,7 +16,7 @@ redone: the controls, the words, the look, and the rules underneath.
 |---|---|
 | **Lobby** (`/`) | Fifteen themes in three levels, each card with the best stars and score made on it. Over a slowly turning low-poly planet |
 | **Mission** (`/mission/:deck`) | Ten words from one theme, never the same one twice. Four ships to choose from at first, five from the fourth word, six from the eighth |
-| **A shot** | Tap a ship, anywhere on it or its word. The rocket turns and fires; the laser lands a fifth of a second later, and only then is the shot judged |
+| **A shot** | Tap a ship, anywhere on it or its word. The learner's fighter turns and fires from one cannon, then the other; the laser lands a fifth of a second later, and only then is the shot judged |
 | **The answer** | Explodes, scores, and its English word is read aloud by the device's voice |
 | **A wrong ship** | Its shield takes the shot and it shows what its word means ("cat" / "gato"), so a mistake teaches something. It costs one of three shields, and cannot be shot again |
 | **Time** | Fifteen seconds a word, shown as a draining bar. Running out shows the answer and moves on; it costs no shield |
@@ -92,16 +92,32 @@ there are exhaustive, so the analyzer lists what is missing.
 It is real 3D — a perspective camera, lit solids, depth — drawn on an
 ordinary Flutter canvas, with no engine and no assets:
 
-- **Meshes are made from numbers** (`space/models.dart`): the saucers and the
-  rocket are profiles turned on a lathe, the planet, moon and rocks are
-  subdivided icosahedra pushed out by noise. Nothing to license, nothing in
-  the bundle.
+- **Meshes are made from numbers** (`space/models.dart`): hulls, nacelles
+  and domes are profiles turned on a lathe, wings and fins are slabs, cargo
+  is boxes, and the planet, moon and rocks are subdivided icosahedra pushed
+  out by noise. Nothing to license, nothing in the bundle.
+- **The learner flies a working spacecraft**, not a toy rocket: a panelled,
+  faceted hull, a framed glass canopy, twin engines on pylons, short swept
+  wings with navigation lights (red to port, green to starboard), radiator
+  fins and two laser cannons under the nose that fire in turn. It is in a
+  utilitarian, hard science-fiction spirit - the look of a craft built to
+  be used - but an original design: no ship, name, logo or livery is taken
+  from any game. It is in CNA's white and red over graphite.
+- **The words fly on six kinds of ship** (`ShipStyle`): a saucer, a scout
+  drone with one glowing eye, a swept-wing interceptor, a cargo hauler, a
+  ray, and a probe on solar panels. Each wave gives every ship a different
+  kind, in a random order, in its own colour. The saucer turns about itself;
+  the others face where they fly, turning towards the side they are going.
+  Their engines, eyes and lamps glow - only when turned towards the viewer,
+  since a light behind its ship is hidden by it. Their colours are chosen
+  when they are drawn (`Swatch`), so six meshes serve every colour.
 - **Shading is smooth** (`space/mesh.dart`). Each corner has its own normal,
   colour and finish, and the GPU blends the three corners' light across
   each triangle, so a curve looks curved rather than cut from facets. A mesh
   is built in parts — a hull, a dome, a fin — each smoothed within itself up
   to a crease angle and kept sharp against the others, which is how a
-  saucer's rim stays a crisp edge between two smooth shells. A planet's
+  saucer's rim stays a crisp edge between two smooth shells, and a
+  hauler's containers stay boxes. A planet's
   colours are per corner too, so its coasts fade from sea to land.
   `mesh_test.dart` holds this.
 - **Materials** (`Finish`): glossy paint, chrome, glass, water, rock. Light
@@ -115,10 +131,10 @@ ordinary Flutter canvas, with no engine and no assets:
   mesh of a frame, drops faces turned away or off the screen (and lights
   only the corners of faces it keeps), sorts the rest far to near and hands
   them to the canvas as one `drawVertices` call per layer. The sort is
-  exact, and paints each solid whole — a ship, the rocket, a splinter — in
+  exact, and paints each solid whole — a ship, the fighter, a splinter — in
   front of or behind the next; only the planet and its rings, which go round
   each other, are sorted face by face. It used to be a bucket sort over the
-  frame's depths, which made faces a hair apart (a fin and the rocket's
+  frame's depths, which made faces a hair apart (a fin and the craft's
   body, a dome and its hull) swap places from frame to frame whenever ships
   flew far off — that is, every time the words changed — and flicker.
   `renderer_test.dart` holds it.
@@ -131,7 +147,7 @@ ordinary Flutter canvas, with no engine and no assets:
   camera's field of view is set across the shorter side, so an upright
   phone sees about 104° top to bottom — a wide angle, which stretches what
   is off to the side as a wide-angle photo does: a planet in a corner came
-  out half as long again one way as the other, and the rocket at the bottom
+  out half as long again one way as the other, and the craft at the bottom
   stood tall. So each solid is projected as if the camera had turned to face
   it squarely, then placed where the camera puts its middle, at the size it
   gives it there. Depth, light and which side is seen are unchanged; only
@@ -144,7 +160,7 @@ ordinary Flutter canvas, with no engine and no assets:
   (`space/palette.dart`): sky, nebula, planet, light. The sky stays dark
   whatever the hue, because words are read over it.
 
-About 6,500 faces a frame — the rocket and the planet are the heaviest —
+About 6,200 faces a frame — the fighter and the planet are the heaviest —
 for roughly 1.6 times the work of the faceted first version, which drew
 2,400. Measured in a JIT test run on a laptop, so only the ratio means
 anything; the frame-timing suite does not cover the word hunt yet.

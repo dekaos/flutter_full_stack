@@ -218,6 +218,16 @@ void main() {
       expect(world.ships.single.revealed, isTrue);
     });
 
+    test('a wave mixes its kinds of ship', () {
+      world.launch(5, _longest);
+      final styles = [
+        for (final ship in world.ships)
+          if (ship.leaving < 0) ship.style,
+      ];
+      expect(styles, hasLength(_longest.length));
+      expect(styles.toSet(), hasLength(_longest.length), reason: 'all apart');
+    });
+
     test('a new wave sends the last one away', () {
       world.launch(4, _longest.skip(1).take(5).toList());
       _fly(world, 1.5);

@@ -25,8 +25,11 @@ class WordShip {
     required this.delay,
     required this.phase,
     required this.spin,
+    required this.style,
+    required this.facing,
   }) : destination = position,
-       depthGoal = depth;
+       depthGoal = depth,
+       heading = math.pi + facing;
 
   /// Its place among the round's choices.
   final int index;
@@ -40,6 +43,15 @@ class WordShip {
 
   /// Which of [ShipColours] it is painted in.
   final int variant;
+
+  /// What kind of ship it is.
+  final ShipStyle style;
+
+  /// Which way it faces, for a style that faces where it flies: turned a
+  /// little from the viewer by [facing] at rest, and round towards wherever
+  /// it is going.
+  double heading;
+  final double facing;
 
   /// The part of the field it flies in. A wave's cells never overlap, and
   /// each is big enough for its ship's word, so no word is ever over
@@ -121,7 +133,7 @@ const _shown = 0.8;
 class _Laser {
   _Laser(this.cannon, this.ship, this.round);
 
-  /// Which of the rocket's cannons fired it.
+  /// Which of the fighter's cannons fired it.
   final int cannon;
   final WordShip ship;
   final int round;
@@ -162,7 +174,7 @@ class _Spark {
   /// so a ship's sparks burst from the ship as it is drawn.
   final V3? about;
 
-  /// From the rocket's engine, and seen through the rocket's lens.
+  /// From the fighter's engines, and seen through the fighter's lens.
   final bool exhaust;
   V3 at;
   V3 velocity;
@@ -206,7 +218,7 @@ class _Rock {
 }
 
 /// The word hunt's space: the ships with words on them, the learner's
-/// rocket and its lasers, explosions, and the sky it all happens in -
+/// fighter and its lasers, explosions, and the sky it all happens in -
 /// simulated a frame at a time, and drawn in 3D.
 ///
 /// It decides nothing about the game. The screen tells it what the mission
@@ -232,7 +244,7 @@ class SpaceWorld extends ChangeNotifier {
     if (ambient) _seedTraffic();
   }
 
-  /// The lobby's world: no rocket and no words, just traffic going by.
+  /// The lobby's world: no fighter and no words, just traffic going by.
   final bool ambient;
 
   SpacePalette palette;
@@ -533,6 +545,8 @@ class SpaceWorld extends ChangeNotifier {
     this.pace = pace.clamp(0.0, 1.0);
     _warp = 1;
     final wave = <WordShip>[];
+    // A mix of kinds in every wave, never two of one until each has flown.
+    final styles = [...ShipStyle.values]..shuffle(_random);
     for (final (i, word) in words.indexed) {
       final ship = WordShip._(
         index: i,
@@ -544,6 +558,8 @@ class SpaceWorld extends ChangeNotifier {
         delay: i * 0.09,
         phase: _random.nextDouble() * math.pi * 2,
         spin: (0.5 + _random.nextDouble() * 0.7) * (i.isEven ? 1 : -1),
+        style: styles[i % styles.length],
+        facing: (_random.nextDouble() - 0.5) * 1.1,
       );
       wave.add(ship);
     }
@@ -753,7 +769,7 @@ class SpaceWorld extends ChangeNotifier {
       ..arrival = math.min(1, ship.arrival + dt / 0.75)
       ..flash = math.max(0, ship.flash - dt * 1.6)
       ..wobble = math.max(0, ship.wobble - dt * 1.4)
-      ..yaw += ship.spin * dt;
+      ..yaw += ship.spin * ship.style.spin * dt;
     if (ship.lingering > 0) {
       ship.lingering -= dt;
       if (ship.lingering <= 0 && ship.leaving < 0) ship.leaving = 0;
@@ -789,6 +805,7 @@ class SpaceWorld extends ChangeNotifier {
       ..depth += (ship.depthGoal - ship.depth) * (1 - math.exp(-dt * 0.5))
       ..bank += (-ship.velocity.dx * 0.006 - ship.bank) * ease;
     ship.position = _inside(ship, ship.position);
+    if (ship.style.spin == 0) _steer(ship, dt, cruise);
 
     final arrive = Curves.easeOutCubic.transform(ship.arrival);
     var screen = Offset.lerp(_vanishing, ship.position, arrive)!;
@@ -800,6 +817,17 @@ class SpaceWorld extends ChangeNotifier {
     }
     final bob = still ? 0.0 : math.sin(time * 1.7 + ship.phase) * 0.07;
     ship.world = _base!.unproject(screen, depth) + V3(0, bob, 0);
+  }
+
+  /// Turns [ship] towards the way it is flying: facing the viewer, a little
+  /// aside, when it hovers, and round towards one side as it goes that way
+  /// - never snapping, as nothing that size could.
+  void _steer(WordShip ship, double dt, double cruise) {
+    final across = cruise <= 0
+        ? 0.0
+        : (ship.velocity.dx / cruise).clamp(-1.5, 1.5);
+    final goal = math.pi + ship.facing * 0.6 + math.atan(across / 0.6);
+    ship.heading += (goal - ship.heading) * (1 - math.exp(-dt * 1.8));
   }
 
   /// [at], moved just enough for [ship]'s footprint to be in its cell - or,
@@ -837,7 +865,7 @@ class SpaceWorld extends ChangeNotifier {
   Offset get _vanishing =>
       Offset(_field.center.dx, _field.top + _field.height * 0.35);
 
-  V3 get _rocketAt {
+  V3 get _fighterAt {
     final base = _base!;
     return base.unproject(
       // Under the middle of the field, whichever side the panels are on.
@@ -849,11 +877,9 @@ class SpaceWorld extends ChangeNotifier {
     );
   }
 
-  // Seen through its own lens it keeps its true shape, which is shorter
-  // than the wide lens used to stretch it to: a little bigger makes up.
-  static const _rocketScale = 0.7;
+  static const _fighterScale = 0.6;
 
-  Rot get _rocketTurn {
+  Rot get _fighterTurn {
     final roll =
         (still ? 0.0 : math.sin(time * 0.8) * 0.06) +
         (_aimYawGoal - _aimYaw) * 0.9;
@@ -862,23 +888,24 @@ class SpaceWorld extends ChangeNotifier {
 
   double _aimYawGoal = 0;
 
-  /// Where the rocket is drawn: where it flies, bobbing as it hovers.
-  V3 get _rocketShown =>
-      _rocketAt + V3(0, still ? 0 : math.sin(time * 1.3) * 0.035, 0);
+  /// Where the fighter is drawn: where it flies, bobbing as it hovers.
+  V3 get _fighterShown =>
+      _fighterAt + V3(0, still ? 0 : math.sin(time * 1.3) * 0.035, 0);
 
   /// Where cannon [i] fires from, in the world.
   V3 _muzzleOf(int i) =>
-      _rocketShown + _rocketTurn.apply(Models.muzzles[i] * _rocketScale);
+      _fighterShown + _fighterTurn.apply(Models.muzzles[i] * _fighterScale);
 
-  V3 get _engine =>
-      _rocketShown + _rocketTurn.apply(const V3(0, 0, 0.7 * _rocketScale));
+  /// Where engine [i] is, in the world.
+  V3 _engine(int i) =>
+      _fighterShown + _fighterTurn.apply(Models.exhausts[i] * _fighterScale);
 
   void _aim(double dt) {
     if (_base == null || ambient) return;
     final target = _sinceShot < 0.7 && _aimAt != null
         ? _aimAt!
         : _base!.unproject(_field.center, 9);
-    final facing = Rot.facing(target - _rocketAt);
+    final facing = Rot.facing(target - _fighterAt);
     _aimYawGoal = facing.yaw;
     final ease = 1 - math.exp(-dt * 12);
     _aimYaw += (facing.yaw - _aimYaw) * ease;
@@ -888,10 +915,10 @@ class SpaceWorld extends ChangeNotifier {
     _exhaust += dt * 34;
     while (_exhaust >= 1) {
       _exhaust -= 1;
-      final back = _rocketTurn.apply(const V3(0, 0, 1));
+      final back = _fighterTurn.apply(const V3(0, 0, 1));
       _sparks.add(
         _Spark(
-          at: _engine,
+          at: _engine(_sparks.length.isEven ? 0 : 1),
           exhaust: true,
           velocity: back * (1.2 + _random.nextDouble() * 1.2) + _scatter(0.25),
           color: _random.nextBool()
@@ -1033,6 +1060,8 @@ class SpaceWorld extends ChangeNotifier {
           label: '',
           meaning: '',
           variant: i,
+          style: ShipStyle.values[(i * 2 + 1) % ShipStyle.values.length],
+          facing: 0,
           position: Offset.zero,
           depth: 11 + i * 3.5,
           delay: 0,
@@ -1044,7 +1073,7 @@ class SpaceWorld extends ChangeNotifier {
   }
 
   void _cruise(WordShip ship, double dt) {
-    ship.yaw += ship.spin * dt;
+    ship.yaw += ship.spin * ship.style.spin * dt;
     if (size.isEmpty) return;
     // Each loops a wide lazy ellipse of its own.
     final t = still
@@ -1056,6 +1085,8 @@ class SpaceWorld extends ChangeNotifier {
     );
     ship
       ..bank = -math.sin(t) * 0.25
+      // Nose along its loop, as far as it moves across.
+      ..heading = math.pi + math.atan(-math.sin(t) * 2.5)
       ..world =
           _base!.unproject(at, ship.depth) +
           V3(0, math.sin(time * 1.2 + ship.phase) * 0.12, 0);
@@ -1108,15 +1139,12 @@ class SpaceWorld extends ChangeNotifier {
     _renderer.begin(swayed, palette.lighting);
     for (final ship in _traffic) {
       _renderer.draw(
-        Models.saucer(ship.variant),
+        Models.ship(ship.style),
         at: ship.world,
-        turn:
-            Rot.euler(
-              pitch: 0.34 + _elevation(swayed, ship.world),
-              roll: ship.bank,
-            ) *
-            Rot.euler(yaw: ship.yaw),
+        turn: _turnOf(ship, swayed),
         scale: _shipScale,
+        paint: ShipColours.body[ship.variant],
+        trim: ShipColours.lights[ship.variant],
         fog: 0.9,
       );
     }
@@ -1127,7 +1155,7 @@ class SpaceWorld extends ChangeNotifier {
     for (final shard in _shards) {
       final left = 1 - shard.age / shard.life;
       _renderer.draw(
-        Models.shard(shard.variant),
+        Models.shard,
         at: shard.at,
         turn: Rot.euler(
           yaw: shard.spin.x * shard.age,
@@ -1135,16 +1163,18 @@ class SpaceWorld extends ChangeNotifier {
           roll: shard.spin.z * shard.age,
         ),
         scale: shard.size * (0.3 + 0.7 * left),
+        paint: ShipColours.body[shard.variant],
+        trim: ShipColours.lights[shard.variant],
         glow: 0.2 * left,
         fog: 0.3,
       );
     }
     if (!ambient) {
       _renderer.draw(
-        Models.rocket,
-        at: _rocketShown,
-        turn: _rocketTurn,
-        scale: _rocketScale,
+        Models.fighter,
+        at: _fighterShown,
+        turn: _fighterTurn,
+        scale: _fighterScale,
         fog: 0,
       );
     }
@@ -1455,9 +1485,20 @@ class SpaceWorld extends ChangeNotifier {
     return math.atan2(d.dot(camera.up), d.dot(camera.forward));
   }
 
-  void _paintShip(WordShip ship, Camera camera) {
+  /// How [ship] is turned: spun about itself or facing where it goes, then
+  /// tipped to be seen from a little above, banked into its turn, and
+  /// shaken when a shot has just hit its shield.
+  Rot _turnOf(WordShip ship, Camera camera) {
     final wobble = ship.wobble * math.sin(time * 34) * 0.3;
-    final tip = 0.34 + _elevation(camera, ship.world);
+    final tip = ship.style.tip + _elevation(camera, ship.world);
+    return Rot.euler(pitch: tip + wobble, roll: ship.bank + wobble * 0.6) *
+        Rot.euler(yaw: ship.style.spin > 0 ? ship.yaw : ship.heading);
+  }
+
+  double _scaleOf(WordShip ship) =>
+      _shipScale * (0.85 + 0.15 * Curves.easeOutBack.transform(ship.arrival));
+
+  void _paintShip(WordShip ship, Camera camera) {
     final pulse = 0.5 + 0.5 * math.sin(time * 6);
     final (tint, tinted) = ship.flash > 0
         ? (const Rgb(1, 0.3, 0.38), ship.flash * 0.65)
@@ -1467,14 +1508,12 @@ class SpaceWorld extends ChangeNotifier {
         ? (const Rgb(1, 0.84, 0.35), 0.12 + 0.16 * pulse)
         : (null, 0.0);
     _renderer.draw(
-      Models.saucer(ship.variant),
+      Models.ship(ship.style),
       at: ship.world,
-      turn:
-          Rot.euler(pitch: tip + wobble, roll: ship.bank + wobble * 0.6) *
-          Rot.euler(yaw: ship.yaw),
-      scale:
-          _shipScale *
-          (0.85 + 0.15 * Curves.easeOutBack.transform(ship.arrival)),
+      turn: _turnOf(ship, camera),
+      scale: _scaleOf(ship),
+      paint: ShipColours.body[ship.variant],
+      trim: ShipColours.lights[ship.variant],
       tint: tint,
       tinted: tinted,
       light: ship.missed ? 0.55 : 1,
@@ -1496,13 +1535,27 @@ class SpaceWorld extends ChangeNotifier {
         (ship.leaving > 0 ? 1 - ship.leaving : 1) *
         Curves.easeIn.transform(ship.arrival);
     if (!ship.missed) {
-      _glow(
-        canvas,
-        at.translate(0, radius * 0.3),
-        radius * 0.9,
-        ShipColours.lights[ship.variant].color.withValues(alpha: 0.5),
-        strength: fade,
-      );
+      final turn = _turnOf(ship, camera);
+      final scale = _scaleOf(ship);
+      final lens = camera.lensAt(ship.world);
+      final colour = ShipColours.lights[ship.variant].color;
+      for (final light in ship.style.lights) {
+        final where = ship.world + turn.apply(light.at * scale);
+        var towards = 1.0;
+        if (light.facing case final facing?) {
+          towards = turn.apply(facing).dot((camera.eye - where).unit);
+          if (towards <= 0) continue;
+        }
+        final shown = lens.project(where);
+        if (shown == null) continue;
+        _glow(
+          canvas,
+          shown,
+          radius * light.size * (0.5 + 0.5 * towards),
+          colour.withValues(alpha: 0.55),
+          strength: fade,
+        );
+      }
     }
     if (ship.flash > 0) {
       final shield = Paint()
@@ -1550,30 +1603,32 @@ class SpaceWorld extends ChangeNotifier {
   }
 
   void _paintEngine(Canvas canvas, Camera camera) {
-    final rocket = camera.lensAt(_rocketShown);
-    final at = rocket.project(_engine);
-    if (at == null) return;
-    final scale = camera.scaleAt(camera.depthOf(_engine));
+    final fighter = camera.lensAt(_fighterShown);
     final flicker = still
         ? 1.0
         : 0.86 + 0.08 * math.sin(time * 41) + 0.06 * math.sin(time * 67 + 1);
-    // Light thrown round the nozzle, then the flame, then its white-hot
-    // heart.
-    _glow(
-      canvas,
-      at,
-      1.1 * scale * flicker,
-      const Color(0xFFFF5A1F).withValues(alpha: 0.32),
-    );
-    _glow(
-      canvas,
-      at,
-      0.5 * scale * flicker,
-      const Color(0xFFFF9A45).withValues(alpha: 0.8),
-    );
-    _glow(canvas, at, 0.2 * scale * flicker, const Color(0xFFFFF6DC));
+    final scale = camera.scaleAt(camera.depthOf(_fighterShown));
+    for (var i = 0; i < Models.exhausts.length; i++) {
+      final at = fighter.project(_engine(i));
+      if (at == null) continue;
+      // Light thrown round the bell, then the plasma, then its white-hot
+      // heart.
+      _glow(
+        canvas,
+        at,
+        0.75 * scale * flicker,
+        const Color(0xFF3A8BFF).withValues(alpha: 0.32),
+      );
+      _glow(
+        canvas,
+        at,
+        0.34 * scale * flicker,
+        const Color(0xFF8FD8FF).withValues(alpha: 0.85),
+      );
+      _glow(canvas, at, 0.14 * scale * flicker, const Color(0xFFF2FBFF));
+    }
     if (_muzzle > 0) {
-      final muzzle = rocket.project(_muzzleOf(_cannon));
+      final muzzle = fighter.project(_muzzleOf(_cannon));
       if (muzzle != null) {
         _glow(
           canvas,
@@ -1597,12 +1652,12 @@ class SpaceWorld extends ChangeNotifier {
     final paint = Paint()
       ..blendMode = BlendMode.plus
       ..strokeCap = StrokeCap.round;
-    final rocket = ambient ? null : camera.lensAt(_rocketShown);
+    final fighter = ambient ? null : camera.lensAt(_fighterShown);
     final lenses = Map<V3, Lens>.identity();
     for (final spark in _sparks) {
       final about = spark.about;
       final lens = spark.exhaust
-          ? rocket
+          ? fighter
           : about == null
           ? null
           : lenses.putIfAbsent(about, () => camera.lensAt(about));
@@ -1627,14 +1682,14 @@ class SpaceWorld extends ChangeNotifier {
   }
 
   void _paintLasers(Canvas canvas, Camera camera) {
-    final rocket = camera.lensAt(_rocketShown);
+    final fighter = camera.lensAt(_fighterShown);
     for (final laser in _lasers) {
       final from = _muzzleOf(laser.cannon);
       final target = laser.ship.world;
-      // Each end where its solid is drawn: the cannon through the rocket's
+      // Each end where its solid is drawn: the cannon through the fighter's
       // lens, the ship through its own, whose middle is where the camera
       // puts it.
-      final start = rocket.project(from);
+      final start = fighter.project(from);
       final end = camera.project(target);
       if (start == null || end == null) continue;
       final head = laser.progress.clamp(0.0, 1.0);

@@ -74,7 +74,7 @@ class Lighting {
 ///
 /// The sort is exact and the same every frame for the same scene, so no
 /// two faces can swap places from one frame to the next - which is what a
-/// flicker is. It sorts by solid first: a ship, the rocket, a splinter is
+/// flicker is. It sorts by solid first: a ship, the fighter, a splinter is
 /// painted whole, in front of or behind the next, by how far its middle is
 /// ([draw]'s `whole`), and only its own faces are sorted among themselves.
 /// That is right for solids that do not pass through one another, which
@@ -129,6 +129,9 @@ class Renderer {
   /// much distance fades it. [limb] is an atmosphere: light of that colour
   /// round its edge, brighter on the side the sun is on.
   ///
+  /// [paint] and [trim] colour whatever of it was made of a [Swatch]: one
+  /// ship's mesh, in this ship's colours.
+  ///
   /// [whole] paints it as one solid, in front of or behind the others by
   /// how far its origin is. Off, its faces are sorted in among everyone
   /// else's: for something another solid goes through, as a planet's rings
@@ -144,6 +147,8 @@ class Renderer {
     double light = 1,
     double fog = 1,
     Rgb? limb,
+    Rgb? paint,
+    Rgb? trim,
     bool whole = true,
   }) {
     if (scale <= 0) return;
@@ -238,6 +243,8 @@ class Renderer {
       light: light,
       fog: fog.clamp(0, 1),
       limb: limb,
+      paint: paint?.linear,
+      trim: trim?.linear,
     );
     int lit(int i) {
       if (_litFor[i] != draw) {
@@ -376,6 +383,8 @@ class _Tone {
     required this.light,
     required this.fog,
     required this.limb,
+    required this.paint,
+    required this.trim,
   });
 
   final Lighting lighting;
@@ -390,6 +399,8 @@ class _Tone {
   final double light;
   final double fog;
   final Rgb? limb;
+  final Rgb? paint;
+  final Rgb? trim;
 
   /// ACES, as Narkowicz fitted it: a film's response, which rolls a bright
   /// highlight off into white instead of clipping it flat.
@@ -453,6 +464,17 @@ class _Tone {
     var ar = colors[i * 3];
     var ag = colors[i * 3 + 1];
     var ab = colors[i * 3 + 2];
+    final chosen = switch (mesh.roles[i]) {
+      1 => paint,
+      2 => trim,
+      _ => null,
+    };
+    if (chosen != null) {
+      final shade = mesh.shades[i];
+      ar = chosen.r * shade;
+      ag = chosen.g * shade;
+      ab = chosen.b * shade;
+    }
     final t = tint;
     if (t != null && tinted > 0) {
       ar += (t.r - ar) * tinted;

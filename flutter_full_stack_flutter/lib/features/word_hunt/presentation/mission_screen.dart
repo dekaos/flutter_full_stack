@@ -16,7 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// A mission on one deck: the word asked for at the top, the ships carrying
-/// English words in the middle, the learner's rocket at the bottom. Tap the
+/// English words in the middle, the learner's fighter at the bottom. Tap the
 /// ship whose word is the one asked for.
 ///
 /// Mobile first: everything is played with one thumb - a tap on a ship
@@ -171,7 +171,7 @@ class _MissionScreenState extends ConsumerState<MissionScreen>
           // the panel goes to the side instead.
           final side = size.width > size.height * 1.25 && size.height < 600;
           final panel = side ? math.min<double>(320, size.width * 0.38) : 0.0;
-          final rocket = side
+          final cockpit = side
               ? math.max<double>(96, size.height * 0.24)
               : math.max<double>(128, size.height * 0.19);
           final clear = side
@@ -179,11 +179,11 @@ class _MissionScreenState extends ConsumerState<MissionScreen>
                   left: padding.left + panel + 16,
                   right: padding.right,
                   top: padding.top + 8,
-                  bottom: padding.bottom + rocket,
+                  bottom: padding.bottom + cockpit,
                 )
               : EdgeInsets.only(
                   top: padding.top + _hud + 10,
-                  bottom: padding.bottom + rocket,
+                  bottom: padding.bottom + cockpit,
                 );
           final round = state.round;
           final hud = Measured(

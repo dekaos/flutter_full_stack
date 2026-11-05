@@ -58,6 +58,24 @@ class Finish {
   final double sheen;
 }
 
+/// A colour left to be chosen when the mesh is drawn: the ship's own
+/// paint ([Swatch.paint]) or its trim - its lights, its accents
+/// ([Swatch.trim]) - each [shade]d lighter or darker. So one mesh is every
+/// colour of a ship, rather than one mesh per colour.
+class Swatch extends Rgb {
+  const Swatch._(this.role, this.shade, super.r, super.g, super.b);
+
+  /// The ship's colour, at [shade] of its brightness.
+  const Swatch.paint([double shade = 1]) : this._(1, shade, 0.7, 0.7, 0.7);
+
+  /// The ship's lights' colour, at [shade] of its brightness.
+  const Swatch.trim([double shade = 1]) : this._(2, shade, 1, 1, 0.9);
+
+  /// `1` for paint, `2` for trim.
+  final int role;
+  final double shade;
+}
+
 /// A solid made of triangles, shaded smoothly across each surface and
 /// sharply where one surface meets another.
 ///
@@ -75,6 +93,8 @@ class Mesh {
     this.colors,
     this.glow,
     this.finishes,
+    this.roles,
+    this.shades,
     this.indices,
     this.radius,
   );
@@ -94,6 +114,12 @@ class Mesh {
 
   /// Each corner's [Finish], as `specular, shininess, metal, sheen`.
   final Float64List finishes;
+
+  /// Whether each corner takes its colour from the drawing - `1` the
+  /// paint, `2` the trim (see [Swatch]) - or keeps its own, `0`; and how
+  /// much lighter or darker than that colour it is.
+  final Uint8List roles;
+  final Float64List shades;
 
   /// Three corners per triangle.
   final Uint32List indices;
@@ -258,13 +284,18 @@ class MeshBuilder {
     final colors = <double>[];
     final glow = <double>[];
     final finishes = <double>[];
+    final roles = <int>[];
+    final shades = <double>[];
     final indices = <int>[];
     final seen = <String, int>{};
     var radius = 0.0;
 
     for (var f = 0; f < faces; f++) {
       for (var k = 0; k < 3; k++) {
-        final rgb = _colors[f * 3 + k].linear;
+        final own = _colors[f * 3 + k];
+        final rgb = own.linear;
+        final role = own is Swatch ? own.role : 0;
+        final shade = own is Swatch ? own.shade : 1.0;
         final finish = _finishes[f * 3 + k];
         final shine = _glow[f * 3 + k];
         final p = _indices[f * 3 + k];
@@ -291,7 +322,7 @@ class MeshBuilder {
         final key =
             '$p|${(nx * 512).round()},${(ny * 512).round()},'
             '${(nz * 512).round()}|${rgb.r},${rgb.g},${rgb.b}|$shine|'
-            '${identityHashCode(finish)}';
+            '${identityHashCode(finish)}|$role|$shade';
         indices.add(
           seen.putIfAbsent(key, () {
             final at = _at(p);
@@ -306,6 +337,8 @@ class MeshBuilder {
               finish.metal,
               finish.sheen,
             ]);
+            roles.add(role);
+            shades.add(shade);
             return positions.length ~/ 3 - 1;
           }),
         );
@@ -317,6 +350,8 @@ class MeshBuilder {
       Float64List.fromList(colors),
       Float64List.fromList(glow),
       Float64List.fromList(finishes),
+      Uint8List.fromList(roles),
+      Float64List.fromList(shades),
       Uint32List.fromList(indices),
       radius,
     );
@@ -329,7 +364,7 @@ class MeshBuilder {
   ///
   /// [place] puts a point given across the axis (`x`, `z`) and along it
   /// (`h`) into the mesh, so the same profile can stand upright (a saucer)
-  /// or lie along `z` (a rocket). [color], [glow] and [finish] are asked
+  /// or lie along `z` (a hull). [color], [glow] and [finish] are asked
   /// for each band of the profile and each step round it.
   void lathe(
     List<(double, double)> profile, {

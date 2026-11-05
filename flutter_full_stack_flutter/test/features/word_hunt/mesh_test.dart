@@ -107,12 +107,37 @@ void main() {
     }
   });
 
-  test('the rocket and the saucers are built smooth, and not too heavy', () {
-    for (final mesh in [Models.rocket, Models.saucer(0)]) {
-      // Fewer corners than three per face: corners are shared, which is
-      // what smooth shading is.
-      expect(mesh.vertexCount, lessThan(mesh.faceCount * 3 ~/ 2));
-      expect(mesh.faceCount, lessThan(2600), reason: 'a frame has a budget');
+  test(
+    'the fighter and every kind of word ship fit, and are not too heavy',
+    () {
+      for (final mesh in [
+        Models.fighter,
+        for (final style in ShipStyle.values) Models.ship(style),
+      ]) {
+        expect(mesh.faceCount, lessThan(2600), reason: 'a frame has a budget');
+        // About two units across, as the layout of a wave expects.
+        expect(mesh.radius, inInclusiveRange(0.8, 1.3));
+      }
+    },
+  );
+
+  test('the curved ships are smooth', () {
+    // Fewer corners than three per face: corners are shared, which is what
+    // smooth shading is. (The hauler and the probe are boxes and panels,
+    // flat-faced on purpose.)
+    for (final style in [ShipStyle.saucer, ShipStyle.orb, ShipStyle.manta]) {
+      final mesh = Models.ship(style);
+      expect(
+        mesh.vertexCount,
+        lessThan(mesh.faceCount * 3 ~/ 2),
+        reason: style.name,
+      );
     }
+  });
+
+  test('a ship is coloured as it is drawn: its paint and its trim', () {
+    final ship = Models.ship(ShipStyle.saucer);
+    final roles = {for (final role in ship.roles) role};
+    expect(roles, containsAll([0, 1, 2]), reason: 'its own, paint, trim');
   });
 }
