@@ -278,5 +278,298 @@
     "placeholders": {
       "word": { "type": "String", "example": "weather" }
     }
+  },
+
+  "huntTitle": "Word Hunt",
+  "@huntTitle": {
+    "description": "Name of the word hunt game, the headline of its lobby."
+  },
+
+  "huntTagline": "We ask for a word. Find it in English and hit its ship.",
+  "@huntTagline": {
+    "description": "Under the word hunt's headline: how the game is played, in one line."
+  },
+
+  "huntPronunciation": "Practise pronunciation",
+  "@huntPronunciation": {
+    "description": "Tooltip of the lobby button that opens pronunciation practice."
+  },
+
+  "huntLevelFirst": "First steps",
+  "@huntLevelFirst": {
+    "description": "Heading over the word hunt's beginner themes."
+  },
+
+  "huntLevelEveryday": "Everyday life",
+  "@huntLevelEveryday": {
+    "description": "Heading over the word hunt's everyday themes."
+  },
+
+  "huntLevelFurther": "Going further",
+  "@huntLevelFurther": {
+    "description": "Heading over the word hunt's harder themes."
+  },
+
+  "huntDeckWords": "{count} words",
+  "@huntDeckWords": {
+    "description": "On a theme's card: how many words it has.",
+    "placeholders": {
+      "count": { "type": "int", "example": "18" }
+    }
+  },
+
+  "huntDeckBest": "Best {score}",
+  "@huntDeckBest": {
+    "description": "On a theme's card: the highest score made on it.",
+    "placeholders": {
+      "score": { "type": "int", "format": "decimalPattern", "example": "1250" }
+    }
+  },
+
+  "huntDeckStars": "{stars, plural, =0{No stars yet} =1{1 star of 3} other{{stars} stars of 3}}",
+  "@huntDeckStars": {
+    "description": "Read by a screen reader for a theme's best stars.",
+    "placeholders": {
+      "stars": { "type": "int", "example": "2" }
+    }
+  },
+
+  "huntDeckGreetings": "Everyday phrases",
+  "@huntDeckGreetings": {
+    "description": "Word hunt theme: greetings and polite phrases."
+  },
+
+  "huntDeckColors": "Colours",
+  "@huntDeckColors": {
+    "description": "Word hunt theme: colours."
+  },
+
+  "huntDeckNumbers": "Numbers",
+  "@huntDeckNumbers": {
+    "description": "Word hunt theme: numbers."
+  },
+
+  "huntDeckAnimals": "Animals",
+  "@huntDeckAnimals": {
+    "description": "Word hunt theme: animals."
+  },
+
+  "huntDeckFamily": "Family and people",
+  "@huntDeckFamily": {
+    "description": "Word hunt theme: family members and people."
+  },
+
+  "huntDeckFood": "Food and drink",
+  "@huntDeckFood": {
+    "description": "Word hunt theme: food and drink."
+  },
+
+  "huntDeckHome": "At home",
+  "@huntDeckHome": {
+    "description": "Word hunt theme: rooms and things in a house."
+  },
+
+  "huntDeckBody": "The body",
+  "@huntDeckBody": {
+    "description": "Word hunt theme: parts of the body."
+  },
+
+  "huntDeckClothes": "Clothes",
+  "@huntDeckClothes": {
+    "description": "Word hunt theme: clothes and accessories."
+  },
+
+  "huntDeckTime": "Days and time",
+  "@huntDeckTime": {
+    "description": "Word hunt theme: days of the week and words for time."
+  },
+
+  "huntDeckCity": "Around town",
+  "@huntDeckCity": {
+    "description": "Word hunt theme: places in a city and transport."
+  },
+
+  "huntDeckNature": "Nature and weather",
+  "@huntDeckNature": {
+    "description": "Word hunt theme: nature and weather."
+  },
+
+  "huntDeckSchool": "School and work",
+  "@huntDeckSchool": {
+    "description": "Word hunt theme: school and work."
+  },
+
+  "huntDeckActions": "Actions",
+  "@huntDeckActions": {
+    "description": "Word hunt theme: everyday verbs."
+  },
+
+  "huntDeckFeelings": "How it is, how you feel",
+  "@huntDeckFeelings": {
+    "description": "Word hunt theme: adjectives for feelings and opposites."
+  },
+
+  "huntFind": "Find in English",
+  "@huntFind": {
+    "description": "Over the word the learner is asked to find, in the word hunt."
+  },
+
+  "huntAnswerWas": "The answer was",
+  "@huntAnswerWas": {
+    "description": "In the word hunt, over the answer once time has run out on a word."
+  },
+
+  "huntWordOf": "Word {current} of {total}",
+  "@huntWordOf": {
+    "description": "Read by a screen reader for the word hunt's progress.",
+    "placeholders": {
+      "current": { "type": "int", "example": "3" },
+      "total": { "type": "int", "example": "10" }
+    }
+  },
+
+  "huntScore": "Score",
+  "@huntScore": {
+    "description": "Label of the word hunt's score."
+  },
+
+  "huntCombo": "Combo ×{multiplier}",
+  "@huntCombo": {
+    "description": "Chip shown while words are found in a row: what the next one scores at.",
+    "placeholders": {
+      "multiplier": { "type": "double", "format": "decimalPattern", "example": "1.5" }
+    }
+  },
+
+  "huntShields": "{count, plural, =0{No shields left} =1{1 shield left} other{{count} shields left}}",
+  "@huntShields": {
+    "description": "Read by a screen reader for the rocket's shields: each wrong shot takes one.",
+    "placeholders": {
+      "count": { "type": "int", "example": "2" }
+    }
+  },
+
+  "huntHint": "Hint",
+  "@huntHint": {
+    "description": "Button that lights up the right ship, for half its points."
+  },
+
+  "huntHintsLeft": "{count, plural, =0{No hints left} =1{1 hint left} other{{count} hints left}}",
+  "@huntHintsLeft": {
+    "description": "Tooltip of the hint button.",
+    "placeholders": {
+      "count": { "type": "int", "example": "3" }
+    }
+  },
+
+  "huntPause": "Pause",
+  "@huntPause": {
+    "description": "Tooltip of the word hunt's pause button."
+  },
+
+  "huntPaused": "Paused",
+  "@huntPaused": {
+    "description": "Heading of the word hunt's pause panel."
+  },
+
+  "huntResume": "Keep playing",
+  "@huntResume": {
+    "description": "Button that ends the pause."
+  },
+
+  "huntQuit": "Leave the mission",
+  "@huntQuit": {
+    "description": "Button on the pause panel that goes back to the themes."
+  },
+
+  "huntReady": "Get ready!",
+  "@huntReady": {
+    "description": "Over the countdown before a mission's first word."
+  },
+
+  "huntGo": "Go!",
+  "@huntGo": {
+    "description": "The end of the countdown, as the first ships fly in."
+  },
+
+  "huntShipsLabel": "Ships",
+  "@huntShipsLabel": {
+    "description": "Heading of the row of buttons that stands in for the ships when a screen reader is on."
+  },
+
+  "huntShoot": "Shoot \u201c{word}\u201d",
+  "@huntShoot": {
+    "description": "Read by a screen reader for a ship: firing at it.",
+    "placeholders": {
+      "word": { "type": "String", "example": "cat" }
+    }
+  },
+
+  "huntResultsDone": "Mission complete!",
+  "@huntResultsDone": {
+    "description": "Results heading when the mission earned at least one star."
+  },
+
+  "huntResultsAlmost": "Almost there!",
+  "@huntResultsAlmost": {
+    "description": "Results heading when the mission earned no stars. Encouraging, never a verdict."
+  },
+
+  "huntResultsWrecked": "Out of shields!",
+  "@huntResultsWrecked": {
+    "description": "Results heading when wrong shots used up every shield."
+  },
+
+  "huntNewBest": "New record!",
+  "@huntNewBest": {
+    "description": "Badge on the results when this score beats the theme's best."
+  },
+
+  "huntFoundOf": "{found} of {total} words found",
+  "@huntFoundOf": {
+    "description": "On the results: how many of the mission's words were found.",
+    "placeholders": {
+      "found": { "type": "int", "example": "8" },
+      "total": { "type": "int", "example": "10" }
+    }
+  },
+
+  "huntBestStreak": "Best streak: {count}",
+  "@huntBestStreak": {
+    "description": "On the results: most words found in a row.",
+    "placeholders": {
+      "count": { "type": "int", "example": "5" }
+    }
+  },
+
+  "huntMissionWords": "This mission's words",
+  "@huntMissionWords": {
+    "description": "Heading over the list of words on the results."
+  },
+
+  "huntHear": "Hear \u201c{word}\u201d",
+  "@huntHear": {
+    "description": "Tooltip of the speaker button beside a word on the results.",
+    "placeholders": {
+      "word": { "type": "String", "example": "cat" }
+    }
+  },
+
+  "huntPlayAgain": "Play again",
+  "@huntPlayAgain": {
+    "description": "Results button: a new mission on the same theme."
+  },
+
+  "huntOtherThemes": "Other themes",
+  "@huntOtherThemes": {
+    "description": "Results button: back to the list of themes."
+  },
+
+  "huntStars": "{stars, plural, =0{No stars} =1{1 star} other{{stars} stars}}",
+  "@huntStars": {
+    "description": "Read by a screen reader for the stars a mission earned.",
+    "placeholders": {
+      "stars": { "type": "int", "example": "3" }
+    }
   }
 }

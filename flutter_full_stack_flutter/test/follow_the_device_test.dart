@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_full_stack_flutter/app/app.dart';
 import 'package:flutter_full_stack_flutter/app/locale_controller.dart';
+import 'package:flutter_full_stack_flutter/app/router.dart';
 import 'package:flutter_full_stack_flutter/core/pronunciation/model_store.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/language_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/language_pack.dart';
@@ -26,6 +27,17 @@ Widget _app() => ProviderScope(
   ],
   child: const App(),
 );
+
+/// Opens the app on the language chooser, where both buttons are. The app
+/// opens on the word hunt, whose space moves on every frame, so nothing
+/// settles until the chooser covers it.
+Future<void> _open(WidgetTester tester) async {
+  await tester.pumpWidget(_app());
+  ProviderScope.containerOf(
+    tester.element(find.byType(App)),
+  ).read(routerProvider).goNamed('languages');
+  await tester.pumpAndSettle();
+}
 
 Brightness _showing(WidgetTester tester) =>
     Theme.of(tester.element(find.byType(LanguageScreen))).brightness;
@@ -65,8 +77,7 @@ void main() {
         tester.platformDispatcher.platformBrightnessTestValue = device;
         addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
-        await tester.pumpWidget(_app());
-        await tester.pumpAndSettle();
+        await _open(tester);
         // Following the device: what is on screen is what the device asked for.
         expect(_showing(tester), device);
 
@@ -84,8 +95,7 @@ void main() {
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
-      await tester.pumpWidget(_app());
-      await tester.pumpAndSettle();
+      await _open(tester);
 
       // The regression: the cycle had a third step - back to following a
       // light device from pinned light - that changed nothing on screen,
@@ -107,8 +117,7 @@ void main() {
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
-      await tester.pumpWidget(_app());
-      await tester.pumpAndSettle();
+      await _open(tester);
       await _tap(tester, 'app-theme');
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
       await tester.pumpAndSettle();
@@ -122,8 +131,7 @@ void main() {
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
-      await tester.pumpWidget(_app());
-      await tester.pumpAndSettle();
+      await _open(tester);
       expect(find.byTooltip('Switch to the dark theme'), findsOneWidget);
       expect(find.byIcon(Icons.dark_mode_outlined), findsOneWidget);
 
@@ -144,8 +152,7 @@ void main() {
         tester.platformDispatcher.localesTestValue = <Locale>[Locale(code)];
         addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-        await tester.pumpWidget(_app());
-        await tester.pumpAndSettle();
+        await _open(tester);
         expect(find.text(deviceCopy), findsOneWidget);
 
         await _nextLanguage(tester);
@@ -162,8 +169,7 @@ void main() {
       tester.platformDispatcher.localesTestValue = const <Locale>[Locale('pt')];
       addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-      await tester.pumpWidget(_app());
-      await tester.pumpAndSettle();
+      await _open(tester);
 
       // Two languages, so: device → the other one → the device's own → device.
       await _nextLanguage(tester);

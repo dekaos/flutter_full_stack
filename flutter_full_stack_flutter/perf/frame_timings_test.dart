@@ -20,8 +20,9 @@ import '../integration_test/support/on_device.dart';
 /// Two screens, each its own summary in the report, so a regression says
 /// which one it is in:
 ///
-/// - `language_screen`: launch - the splash's mark, the aurora drifting in,
-///   the headline and panel rising - then each place arriving as its page
+/// - `language_screen`: the chooser, opened from the word hunt the app
+///   now launches into - the aurora drifting in, the headline and panel
+///   rising - then each place arriving as its page
 ///   comes into view, the parallax of a swipe, a tab tap animating across
 ///   two pages, and the theme flipped both ways (four `ThemeData` rebuilt,
 ///   every glass surface repainted over a full-screen scene).
@@ -76,12 +77,16 @@ void main() {
     );
     addTearDown(container.dispose);
 
+    // Launch, outside the measurement: the app opens on the word hunt now,
+    // which has no baseline yet, and what is measured here is the chooser
+    // it leads to - its entrance included, as it rises in over the word
+    // hunt.
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const App()),
+    );
+    await openPronunciation(tester);
+
     await binding.watchPerformance(() async {
-      // Launch, including the entrance: the first thing a learner ever sees,
-      // and among the most expensive frames the app draws.
-      await tester.pumpWidget(
-        UncontrolledProviderScope(container: container, child: const App()),
-      );
       await pumpUntilFound(
         tester,
         find.descendant(

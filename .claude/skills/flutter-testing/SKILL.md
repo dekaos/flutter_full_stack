@@ -108,6 +108,12 @@ Details that are easy to get wrong:
   `await tester.pump()` settles it. Use `pumpAndSettle` only when an animation
   is running — it returns as soon as no frame is scheduled, which is also true
   while a real request is in flight.
+- **Never `pumpAndSettle` over the word hunt.** The app opens on it, and its
+  space moves on every frame, so settling there never returns. Pump frames
+  (`frames` in `test/features/word_hunt/app_support.dart`), or go to the
+  screen under test before settling — `goNamed('languages')` on
+  `routerProvider`, as `test/app/router_test.dart` does. A covered route's
+  tickers are muted, so the chooser settles as it always did.
 - **`ProviderScope` is required**, even with no overrides. Without it any
   `ref.watch` throws.
 - **So is a theme.** Widgets read design tokens through

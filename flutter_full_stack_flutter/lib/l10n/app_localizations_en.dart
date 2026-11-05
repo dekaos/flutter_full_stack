@@ -195,4 +195,218 @@ class AppLocalizationsEn extends AppLocalizations {
   String practiceHearWordYours(String word) {
     return 'Hear how you said “$word”';
   }
+
+  @override
+  String get huntTitle => 'Word Hunt';
+
+  @override
+  String get huntTagline =>
+      'We ask for a word. Find it in English and hit its ship.';
+
+  @override
+  String get huntPronunciation => 'Practise pronunciation';
+
+  @override
+  String get huntLevelFirst => 'First steps';
+
+  @override
+  String get huntLevelEveryday => 'Everyday life';
+
+  @override
+  String get huntLevelFurther => 'Going further';
+
+  @override
+  String huntDeckWords(int count) {
+    return '$count words';
+  }
+
+  @override
+  String huntDeckBest(int score) {
+    final intl.NumberFormat scoreNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String scoreString = scoreNumberFormat.format(score);
+
+    return 'Best $scoreString';
+  }
+
+  @override
+  String huntDeckStars(int stars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      stars,
+      locale: localeName,
+      other: '$stars stars of 3',
+      one: '1 star of 3',
+      zero: 'No stars yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get huntDeckGreetings => 'Everyday phrases';
+
+  @override
+  String get huntDeckColors => 'Colours';
+
+  @override
+  String get huntDeckNumbers => 'Numbers';
+
+  @override
+  String get huntDeckAnimals => 'Animals';
+
+  @override
+  String get huntDeckFamily => 'Family and people';
+
+  @override
+  String get huntDeckFood => 'Food and drink';
+
+  @override
+  String get huntDeckHome => 'At home';
+
+  @override
+  String get huntDeckBody => 'The body';
+
+  @override
+  String get huntDeckClothes => 'Clothes';
+
+  @override
+  String get huntDeckTime => 'Days and time';
+
+  @override
+  String get huntDeckCity => 'Around town';
+
+  @override
+  String get huntDeckNature => 'Nature and weather';
+
+  @override
+  String get huntDeckSchool => 'School and work';
+
+  @override
+  String get huntDeckActions => 'Actions';
+
+  @override
+  String get huntDeckFeelings => 'How it is, how you feel';
+
+  @override
+  String get huntFind => 'Find in English';
+
+  @override
+  String get huntAnswerWas => 'The answer was';
+
+  @override
+  String huntWordOf(int current, int total) {
+    return 'Word $current of $total';
+  }
+
+  @override
+  String get huntScore => 'Score';
+
+  @override
+  String huntCombo(double multiplier) {
+    final intl.NumberFormat multiplierNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String multiplierString = multiplierNumberFormat.format(multiplier);
+
+    return 'Combo ×$multiplierString';
+  }
+
+  @override
+  String huntShields(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count shields left',
+      one: '1 shield left',
+      zero: 'No shields left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get huntHint => 'Hint';
+
+  @override
+  String huntHintsLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hints left',
+      one: '1 hint left',
+      zero: 'No hints left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get huntPause => 'Pause';
+
+  @override
+  String get huntPaused => 'Paused';
+
+  @override
+  String get huntResume => 'Keep playing';
+
+  @override
+  String get huntQuit => 'Leave the mission';
+
+  @override
+  String get huntReady => 'Get ready!';
+
+  @override
+  String get huntGo => 'Go!';
+
+  @override
+  String get huntShipsLabel => 'Ships';
+
+  @override
+  String huntShoot(String word) {
+    return 'Shoot “$word”';
+  }
+
+  @override
+  String get huntResultsDone => 'Mission complete!';
+
+  @override
+  String get huntResultsAlmost => 'Almost there!';
+
+  @override
+  String get huntResultsWrecked => 'Out of shields!';
+
+  @override
+  String get huntNewBest => 'New record!';
+
+  @override
+  String huntFoundOf(int found, int total) {
+    return '$found of $total words found';
+  }
+
+  @override
+  String huntBestStreak(int count) {
+    return 'Best streak: $count';
+  }
+
+  @override
+  String get huntMissionWords => 'This mission\'s words';
+
+  @override
+  String huntHear(String word) {
+    return 'Hear “$word”';
+  }
+
+  @override
+  String get huntPlayAgain => 'Play again';
+
+  @override
+  String get huntOtherThemes => 'Other themes';
+
+  @override
+  String huntStars(int stars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      stars,
+      locale: localeName,
+      other: '$stars stars',
+      one: '1 star',
+      zero: 'No stars',
+    );
+    return '$_temp0';
+  }
 }

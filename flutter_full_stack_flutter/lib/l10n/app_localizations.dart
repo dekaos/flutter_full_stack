@@ -397,6 +397,312 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hear how you said “{word}”'**
   String practiceHearWordYours(String word);
+
+  /// Name of the word hunt game, the headline of its lobby.
+  ///
+  /// In en, this message translates to:
+  /// **'Word Hunt'**
+  String get huntTitle;
+
+  /// Under the word hunt's headline: how the game is played, in one line.
+  ///
+  /// In en, this message translates to:
+  /// **'We ask for a word. Find it in English and hit its ship.'**
+  String get huntTagline;
+
+  /// Tooltip of the lobby button that opens pronunciation practice.
+  ///
+  /// In en, this message translates to:
+  /// **'Practise pronunciation'**
+  String get huntPronunciation;
+
+  /// Heading over the word hunt's beginner themes.
+  ///
+  /// In en, this message translates to:
+  /// **'First steps'**
+  String get huntLevelFirst;
+
+  /// Heading over the word hunt's everyday themes.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyday life'**
+  String get huntLevelEveryday;
+
+  /// Heading over the word hunt's harder themes.
+  ///
+  /// In en, this message translates to:
+  /// **'Going further'**
+  String get huntLevelFurther;
+
+  /// On a theme's card: how many words it has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} words'**
+  String huntDeckWords(int count);
+
+  /// On a theme's card: the highest score made on it.
+  ///
+  /// In en, this message translates to:
+  /// **'Best {score}'**
+  String huntDeckBest(int score);
+
+  /// Read by a screen reader for a theme's best stars.
+  ///
+  /// In en, this message translates to:
+  /// **'{stars, plural, =0{No stars yet} =1{1 star of 3} other{{stars} stars of 3}}'**
+  String huntDeckStars(int stars);
+
+  /// Word hunt theme: greetings and polite phrases.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyday phrases'**
+  String get huntDeckGreetings;
+
+  /// Word hunt theme: colours.
+  ///
+  /// In en, this message translates to:
+  /// **'Colours'**
+  String get huntDeckColors;
+
+  /// Word hunt theme: numbers.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbers'**
+  String get huntDeckNumbers;
+
+  /// Word hunt theme: animals.
+  ///
+  /// In en, this message translates to:
+  /// **'Animals'**
+  String get huntDeckAnimals;
+
+  /// Word hunt theme: family members and people.
+  ///
+  /// In en, this message translates to:
+  /// **'Family and people'**
+  String get huntDeckFamily;
+
+  /// Word hunt theme: food and drink.
+  ///
+  /// In en, this message translates to:
+  /// **'Food and drink'**
+  String get huntDeckFood;
+
+  /// Word hunt theme: rooms and things in a house.
+  ///
+  /// In en, this message translates to:
+  /// **'At home'**
+  String get huntDeckHome;
+
+  /// Word hunt theme: parts of the body.
+  ///
+  /// In en, this message translates to:
+  /// **'The body'**
+  String get huntDeckBody;
+
+  /// Word hunt theme: clothes and accessories.
+  ///
+  /// In en, this message translates to:
+  /// **'Clothes'**
+  String get huntDeckClothes;
+
+  /// Word hunt theme: days of the week and words for time.
+  ///
+  /// In en, this message translates to:
+  /// **'Days and time'**
+  String get huntDeckTime;
+
+  /// Word hunt theme: places in a city and transport.
+  ///
+  /// In en, this message translates to:
+  /// **'Around town'**
+  String get huntDeckCity;
+
+  /// Word hunt theme: nature and weather.
+  ///
+  /// In en, this message translates to:
+  /// **'Nature and weather'**
+  String get huntDeckNature;
+
+  /// Word hunt theme: school and work.
+  ///
+  /// In en, this message translates to:
+  /// **'School and work'**
+  String get huntDeckSchool;
+
+  /// Word hunt theme: everyday verbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions'**
+  String get huntDeckActions;
+
+  /// Word hunt theme: adjectives for feelings and opposites.
+  ///
+  /// In en, this message translates to:
+  /// **'How it is, how you feel'**
+  String get huntDeckFeelings;
+
+  /// Over the word the learner is asked to find, in the word hunt.
+  ///
+  /// In en, this message translates to:
+  /// **'Find in English'**
+  String get huntFind;
+
+  /// In the word hunt, over the answer once time has run out on a word.
+  ///
+  /// In en, this message translates to:
+  /// **'The answer was'**
+  String get huntAnswerWas;
+
+  /// Read by a screen reader for the word hunt's progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Word {current} of {total}'**
+  String huntWordOf(int current, int total);
+
+  /// Label of the word hunt's score.
+  ///
+  /// In en, this message translates to:
+  /// **'Score'**
+  String get huntScore;
+
+  /// Chip shown while words are found in a row: what the next one scores at.
+  ///
+  /// In en, this message translates to:
+  /// **'Combo ×{multiplier}'**
+  String huntCombo(double multiplier);
+
+  /// Read by a screen reader for the rocket's shields: each wrong shot takes one.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No shields left} =1{1 shield left} other{{count} shields left}}'**
+  String huntShields(int count);
+
+  /// Button that lights up the right ship, for half its points.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint'**
+  String get huntHint;
+
+  /// Tooltip of the hint button.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No hints left} =1{1 hint left} other{{count} hints left}}'**
+  String huntHintsLeft(int count);
+
+  /// Tooltip of the word hunt's pause button.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get huntPause;
+
+  /// Heading of the word hunt's pause panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get huntPaused;
+
+  /// Button that ends the pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep playing'**
+  String get huntResume;
+
+  /// Button on the pause panel that goes back to the themes.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the mission'**
+  String get huntQuit;
+
+  /// Over the countdown before a mission's first word.
+  ///
+  /// In en, this message translates to:
+  /// **'Get ready!'**
+  String get huntReady;
+
+  /// The end of the countdown, as the first ships fly in.
+  ///
+  /// In en, this message translates to:
+  /// **'Go!'**
+  String get huntGo;
+
+  /// Heading of the row of buttons that stands in for the ships when a screen reader is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Ships'**
+  String get huntShipsLabel;
+
+  /// Read by a screen reader for a ship: firing at it.
+  ///
+  /// In en, this message translates to:
+  /// **'Shoot “{word}”'**
+  String huntShoot(String word);
+
+  /// Results heading when the mission earned at least one star.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission complete!'**
+  String get huntResultsDone;
+
+  /// Results heading when the mission earned no stars. Encouraging, never a verdict.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost there!'**
+  String get huntResultsAlmost;
+
+  /// Results heading when wrong shots used up every shield.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of shields!'**
+  String get huntResultsWrecked;
+
+  /// Badge on the results when this score beats the theme's best.
+  ///
+  /// In en, this message translates to:
+  /// **'New record!'**
+  String get huntNewBest;
+
+  /// On the results: how many of the mission's words were found.
+  ///
+  /// In en, this message translates to:
+  /// **'{found} of {total} words found'**
+  String huntFoundOf(int found, int total);
+
+  /// On the results: most words found in a row.
+  ///
+  /// In en, this message translates to:
+  /// **'Best streak: {count}'**
+  String huntBestStreak(int count);
+
+  /// Heading over the list of words on the results.
+  ///
+  /// In en, this message translates to:
+  /// **'This mission\'s words'**
+  String get huntMissionWords;
+
+  /// Tooltip of the speaker button beside a word on the results.
+  ///
+  /// In en, this message translates to:
+  /// **'Hear “{word}”'**
+  String huntHear(String word);
+
+  /// Results button: a new mission on the same theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get huntPlayAgain;
+
+  /// Results button: back to the list of themes.
+  ///
+  /// In en, this message translates to:
+  /// **'Other themes'**
+  String get huntOtherThemes;
+
+  /// Read by a screen reader for the stars a mission earned.
+  ///
+  /// In en, this message translates to:
+  /// **'{stars, plural, =0{No stars} =1{1 star} other{{stars} stars}}'**
+  String huntStars(int stars);
 }
 
 class _AppLocalizationsDelegate

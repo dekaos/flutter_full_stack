@@ -21,5 +21,6 @@
     //
     // If you do want Java tooling on android/, drop this setting and point
     // JAVA_HOME - or java.import.gradle.java.home - at a JDK 17 or newer.
-    "java.import.gradle.enabled": false
+    "java.import.gradle.enabled": false,
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

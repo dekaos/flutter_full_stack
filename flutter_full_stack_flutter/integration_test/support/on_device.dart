@@ -134,6 +134,19 @@ Future<void> pumpUntilFound(
   timeout: timeout,
 );
 
+/// Goes from the word hunt, where the app opens, to the language chooser -
+/// the way a learner does, by its button. The word hunt's space moves on
+/// every frame, so nothing there settles; the chooser, covering it, does.
+Future<void> openPronunciation(WidgetTester tester) async {
+  final button = find.byKey(const Key('hunt-pronunciation'));
+  await pumpUntilFound(
+    tester,
+    button,
+    failure: 'The word hunt never offered pronunciation practice.',
+  );
+  await tester.tap(button);
+}
+
 /// Presses the record button, holds it for [hold] as a learner does while
 /// they read, and lets go.
 ///

@@ -76,7 +76,23 @@ enum Sound {
 
   /// A Korean temple bell, struck with a log: deep, soft at the start, and
   /// pulsing slowly as it rings.
-  templeBell(0.72);
+  templeBell(0.72),
+
+  /// The word hunt's laser leaving the rocket: a quick, bright "pew", soft
+  /// enough to be heard a few times a word.
+  laser(0.24),
+
+  /// The answer hit: a sparkle of bells running up a chord, over a soft
+  /// thump - the game's one big reward, and it should feel like one.
+  burst(0.5),
+
+  /// A wrong ship's shield taking the shot: a rubbery "boing" that falls
+  /// away. Like the score's weakest chime, never a buzzer.
+  bonk(0.4),
+
+  /// A wave of ships coming out of the dark: a quick shimmer rising up a
+  /// scale.
+  warp(0.26);
 
   Sound(this.volume, {this.hit = Duration.zero});
 
@@ -117,6 +133,10 @@ enum Sound {
     Sound.fanfare => _fanfare(),
     Sound.guitarStrum => _guitarStrum(),
     Sound.templeBell => _templeBell(),
+    Sound.laser => _laser(),
+    Sound.burst => _burst(),
+    Sound.bonk => _bonk(),
+    Sound.warp => _warp(),
   };
 }
 
@@ -715,5 +735,95 @@ Float32List _templeBell() {
         )
         // Let it die away inside its length rather than be cut off.
         ..shape((t) => 1 - ease(t, 1.6, seconds));
+  return tape.finish();
+}
+
+// ------------------------------------------------------------ word hunt --
+
+/// "Pew": a tone diving from high to low in a fifth of a second, with a
+/// little of its octave and twelfth for bite.
+Float32List _laser() {
+  const seconds = 0.22;
+  final tape = tone(
+    seconds,
+    hz: (t) => 1500 * math.exp(-t * 9) + 380,
+    partials: const [1, 2, 3],
+    loudness: const [1, 0.35, 0.12],
+  )..shape((t) => pluck(t, decay: 0.07, attack: 0.002));
+  return tape.finish();
+}
+
+/// A quick run of bells up a major chord - C, E, G, C, E - each a little
+/// softer, over a low thump that falls in pitch as it fades: the hit felt
+/// as much as heard.
+Float32List _burst() {
+  final tape = Tape(1.1)
+    ..mix(
+      tone(0.45, hz: (t) => 140 * math.exp(-t * 6) + 55)
+        ..shape((t) => pluck(t, decay: 0.12)),
+      gain: 0.9,
+    );
+  for (final (i, hz) in const [
+    1046.5,
+    1318.5,
+    1568.0,
+    2093.0,
+    2637.0,
+  ].indexed) {
+    tape.mix(
+      strike(
+        hz,
+        ratios: const [1, 2.76, 5.4],
+        loudness: const [1, 0.25, 0.06],
+        decays: const [0.28, 0.08, 0.03],
+        seconds: 0.9,
+      ),
+      at: 0.03 + i * 0.045,
+      gain: 0.55 - i * 0.05,
+    );
+  }
+  return tape.finish();
+}
+
+/// "Boing": a round, low tone sliding down, wobbling as a spring does as it
+/// settles. Soft at its top, so it reads as a bump rather than an alarm.
+Float32List _bonk() {
+  const seconds = 0.42;
+  final tape =
+      tone(
+        seconds,
+        hz: (t) => 300 * math.exp(-t * 4.5) + 120,
+        partials: const [1, 2, 3.1],
+        loudness: const [1, 0.18, 0.05],
+      )..shape(
+        (t) => pluck(t, decay: 0.13) * (1 + 0.25 * math.sin(_tau * 14 * t)),
+      );
+  return tape.finish();
+}
+
+/// Six soft mallet notes rising up a major scale's bright end, a breath
+/// apart, the last ringing on: ships arriving out of nowhere.
+Float32List _warp() {
+  final tape = Tape(0.95);
+  for (final (i, hz) in const [
+    523.3,
+    659.3,
+    784.0,
+    987.8,
+    1174.7,
+    1568.0,
+  ].indexed) {
+    tape.mix(
+      strike(
+        hz,
+        ratios: const [1, 3],
+        loudness: const [1, 0.1],
+        decays: const [0.18, 0.05],
+        seconds: 0.6,
+      ),
+      at: i * 0.045,
+      gain: 0.5 + i * 0.06,
+    );
+  }
   return tape.finish();
 }

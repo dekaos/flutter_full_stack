@@ -8,10 +8,27 @@ import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/l
 import 'package:flutter_full_stack_flutter/features/pronunciation/presentation/practice_screen.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/language_pack.dart';
 import 'package:flutter_full_stack_flutter/features/pronunciation/providers/practice_controller.dart';
+import 'package:flutter_full_stack_flutter/features/word_hunt/presentation/word_hunt_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/practice.dart';
+
+/// Pumps the app and goes to the language chooser, before letting anything
+/// settle: the app opens on the word hunt, whose space moves on every
+/// frame, so `pumpAndSettle` would never return there. Covered by the
+/// chooser, it stops.
+Future<void> _toChooser(
+  WidgetTester tester,
+  ProviderContainer container,
+) async {
+  await tester.pumpWidget(
+    UncontrolledProviderScope(container: container, child: const App()),
+  );
+  await tester.pump();
+  container.read(routerProvider).goNamed('languages');
+  await _settle(tester);
+}
 
 /// Pumps and lets the real asynchronous work finish: the chooser loads a
 /// lexicon asset and stats the pack, and neither schedules a frame, so
@@ -59,7 +76,7 @@ Future<void> _navigate(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('the app opens on the language chooser', (tester) async {
+  testWidgets('the app opens on the word hunt', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -76,19 +93,20 @@ void main() {
         child: const App(),
       ),
     );
-    await tester.pumpAndSettle();
+    // Past the splash; not settled, as the word hunt's space never is.
+    for (var i = 0; i < 150; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
 
-    expect(find.byType(LanguageScreen), findsOneWidget);
+    expect(find.byType(WordHuntScreen), findsOneWidget);
+    expect(find.byType(LanguageScreen), findsNothing);
   });
 
   testWidgets('practice can be left, to pick another language', (tester) async {
     final container = _container();
     addTearDown(container.dispose);
 
-    await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const App()),
-    );
-    await _settle(tester);
+    await _toChooser(tester, container);
 
     // Its pack is on the device, so the button starts practice.
     await tester.tap(find.byKey(const Key('language-action-en')));
@@ -98,6 +116,9 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.byType(LanguageScreen), findsOneWidget);
+
+    // And the chooser itself goes back to the word hunt, the app's home.
+    expect(find.byType(BackButton), findsOneWidget);
   });
 
   testWidgets('a link straight into practice still has a way back', (
@@ -106,14 +127,11 @@ void main() {
     final container = _container();
     addTearDown(container.dispose);
 
-    await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const App()),
-    );
-    await _settle(tester);
+    await _toChooser(tester, container);
 
     // Nothing was tapped: this is the deep-link case, and it is the one that
     // sibling routes plus `push` would have left stranded.
-    container.read(routerProvider).go('/practice/es');
+    container.read(routerProvider).go('/languages/practice/es');
     await _navigate(tester);
 
     expect(find.byType(PracticeScreen), findsOneWidget);
@@ -125,12 +143,9 @@ void main() {
     final container = _container(packs: const []);
     addTearDown(container.dispose);
 
-    await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const App()),
-    );
-    await _settle(tester);
+    await _toChooser(tester, container);
 
-    container.read(routerProvider).go('/practice/ko');
+    container.read(routerProvider).go('/languages/practice/ko');
     await _navigate(tester);
 
     expect(find.byType(PracticeScreen), findsNothing);

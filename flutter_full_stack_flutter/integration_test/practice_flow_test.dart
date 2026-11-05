@@ -80,6 +80,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(container: container, child: const App()),
     );
+    await openPronunciation(tester);
 
     // The chooser opens on English, its pack not on the device yet: the
     // button offers the download.

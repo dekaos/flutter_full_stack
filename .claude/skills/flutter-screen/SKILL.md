@@ -253,14 +253,17 @@ GoRouter router(Ref ref) {
     routes: [
       GoRoute(
         path: '/',
-        name: 'languages',
-        builder: (context, state) => const LanguageScreen(),
-        routes: [/* practice/:lang, a child so Back works */],
-      ),
-      GoRoute(
-        path: '/orders',
-        name: 'orders',
-        builder: (context, state) => const OrdersScreen(),
+        name: 'wordHunt',
+        builder: (context, state) => const WordHuntScreen(),
+        routes: [
+          /* mission/:deck, and languages with practice/:lang under it -
+             children, so Back always leads home */
+          GoRoute(
+            path: 'orders',
+            name: 'orders',
+            builder: (context, state) => const OrdersScreen(),
+          ),
+        ],
       ),
     ],
   );
@@ -270,8 +273,9 @@ GoRouter router(Ref ref) {
 Give every route a `name` and navigate with `context.goNamed('orders')`, so a
 path change does not mean hunting for string literals. `go` replaces the stack,
 `push` stacks on top. A screen that is reached *from* another and must have a
-way back is a child route of it, as practice is of the chooser — the comment
-on that route in `lib/app/router.dart` says why.
+way back is a child route of it, as practice is of the chooser and the chooser
+of the word hunt — the comment on the practice route in `lib/app/router.dart`
+says why.
 
 ## 4. Generate
 

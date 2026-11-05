@@ -163,9 +163,12 @@ the access token once and retries that same call before surfacing an error.
 It is a native Dart workspace: a single `pubspec.lock` at the root, and one
 `dart pub get` there resolves all three packages together.
 
+The app opens on the word hunt, a vocabulary game in 3D
+([docs/word-hunt.md](docs/word-hunt.md)); pronunciation practice is a tap away
+from it.
+
 Beside them, outside the workspace, [`scorer/`](scorer) is a Python toolchain
-for pronunciation practice, which is what the app opens on. It never runs in
-production: it exports the acoustic models the app downloads, and builds the
+for pronunciation practice. It never runs in production: it exports the acoustic models the app downloads, and builds the
 lexicons and calibration curves the app bundles.
 
 ## Requirements
@@ -320,6 +323,8 @@ it produces — a dirty `git status` afterwards means the pipeline will fail.
   **[docs/i18n.md](docs/i18n.md)**
 - What practice plays, why nothing plays while the microphone is open, and how
   to tune or add a sound: **[docs/sound.md](docs/sound.md)**
+- The word hunt: how it plays, the rules its words keep to, and how its 3D is
+  drawn without an engine: **[docs/word-hunt.md](docs/word-hunt.md)**
 - The app's mark (CNA's logo), its icons and its animated splash, and how to
   redraw them: **[docs/branding.md](docs/branding.md)**
 - Which pronunciation models the app runs, their licences, and what has to

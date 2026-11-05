@@ -29,6 +29,11 @@ The app's own shape — MVVM, which folder holds which role, and how a controlle
 reaches the backend — is drawn out in
 [docs/flutter-architecture.md](docs/flutter-architecture.md).
 
+The app opens on the word hunt (`lib/features/word_hunt/`), a vocabulary game
+drawn in 3D on a plain canvas; pronunciation practice is a child route of it.
+How it plays, the rules its words keep to and how the 3D works are in
+[docs/word-hunt.md](docs/word-hunt.md).
+
 ## Commands
 
 Every task has a Melos script. Use them instead of ad-hoc commands — CI invokes
@@ -217,6 +222,13 @@ Task** or **Abort** — and the status bar reads `Waiting for preLaunchTask
 Abort, then either stop the running server or debug against it with the
 **Attach to the running server** configuration. The reason is in the task's
 panel, which is why that panel must not be given `"close": true`.
+
+**Never `pumpAndSettle` while the word hunt is on screen.** It is where the
+app opens, and its space moves on every frame, so a test that pumps `App` and
+settles there times out. Pump frames instead, or navigate to the screen under
+test first: a covered route's tickers are muted, so the chooser opened over the
+lobby settles as before. `router_test.dart` and `follow_the_device_test.dart`
+show the pattern.
 
 **Tests need the containers running.** `melos run test` talks to the `*_test`
 Postgres on port 9090. Start it with `melos run docker:up` first. The test

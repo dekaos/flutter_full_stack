@@ -195,4 +195,218 @@ class AppLocalizationsPt extends AppLocalizations {
   String practiceHearWordYours(String word) {
     return 'Ouvir como você disse “$word”';
   }
+
+  @override
+  String get huntTitle => 'Caça-Palavras';
+
+  @override
+  String get huntTagline =>
+      'A gente pede uma palavra. Ache ela em inglês e acerte a nave.';
+
+  @override
+  String get huntPronunciation => 'Praticar pronúncia';
+
+  @override
+  String get huntLevelFirst => 'Primeiros passos';
+
+  @override
+  String get huntLevelEveryday => 'No dia a dia';
+
+  @override
+  String get huntLevelFurther => 'Indo além';
+
+  @override
+  String huntDeckWords(int count) {
+    return '$count palavras';
+  }
+
+  @override
+  String huntDeckBest(int score) {
+    final intl.NumberFormat scoreNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String scoreString = scoreNumberFormat.format(score);
+
+    return 'Recorde $scoreString';
+  }
+
+  @override
+  String huntDeckStars(int stars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      stars,
+      locale: localeName,
+      other: '$stars estrelas de 3',
+      one: '1 estrela de 3',
+      zero: 'Nenhuma estrela ainda',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get huntDeckGreetings => 'Frases do dia a dia';
+
+  @override
+  String get huntDeckColors => 'Cores';
+
+  @override
+  String get huntDeckNumbers => 'Números';
+
+  @override
+  String get huntDeckAnimals => 'Animais';
+
+  @override
+  String get huntDeckFamily => 'Família e pessoas';
+
+  @override
+  String get huntDeckFood => 'Comida e bebida';
+
+  @override
+  String get huntDeckHome => 'Em casa';
+
+  @override
+  String get huntDeckBody => 'O corpo';
+
+  @override
+  String get huntDeckClothes => 'Roupas';
+
+  @override
+  String get huntDeckTime => 'Dias e horas';
+
+  @override
+  String get huntDeckCity => 'Pela cidade';
+
+  @override
+  String get huntDeckNature => 'Natureza e clima';
+
+  @override
+  String get huntDeckSchool => 'Escola e trabalho';
+
+  @override
+  String get huntDeckActions => 'Ações';
+
+  @override
+  String get huntDeckFeelings => 'Como é, como está';
+
+  @override
+  String get huntFind => 'Ache em inglês';
+
+  @override
+  String get huntAnswerWas => 'A resposta era';
+
+  @override
+  String huntWordOf(int current, int total) {
+    return 'Palavra $current de $total';
+  }
+
+  @override
+  String get huntScore => 'Pontos';
+
+  @override
+  String huntCombo(double multiplier) {
+    final intl.NumberFormat multiplierNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String multiplierString = multiplierNumberFormat.format(multiplier);
+
+    return 'Combo ×$multiplierString';
+  }
+
+  @override
+  String huntShields(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Restam $count escudos',
+      one: 'Resta 1 escudo',
+      zero: 'Sem escudos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get huntHint => 'Dica';
+
+  @override
+  String huntHintsLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Restam $count dicas',
+      one: 'Resta 1 dica',
+      zero: 'Sem dicas',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get huntPause => 'Pausar';
+
+  @override
+  String get huntPaused => 'Pausado';
+
+  @override
+  String get huntResume => 'Continuar';
+
+  @override
+  String get huntQuit => 'Sair da missão';
+
+  @override
+  String get huntReady => 'Prepare-se!';
+
+  @override
+  String get huntGo => 'Já!';
+
+  @override
+  String get huntShipsLabel => 'Naves';
+
+  @override
+  String huntShoot(String word) {
+    return 'Atirar em “$word”';
+  }
+
+  @override
+  String get huntResultsDone => 'Missão cumprida!';
+
+  @override
+  String get huntResultsAlmost => 'Quase lá!';
+
+  @override
+  String get huntResultsWrecked => 'Os escudos acabaram!';
+
+  @override
+  String get huntNewBest => 'Novo recorde!';
+
+  @override
+  String huntFoundOf(int found, int total) {
+    return '$found de $total palavras encontradas';
+  }
+
+  @override
+  String huntBestStreak(int count) {
+    return 'Maior sequência: $count';
+  }
+
+  @override
+  String get huntMissionWords => 'As palavras da missão';
+
+  @override
+  String huntHear(String word) {
+    return 'Ouvir “$word”';
+  }
+
+  @override
+  String get huntPlayAgain => 'Jogar de novo';
+
+  @override
+  String get huntOtherThemes => 'Outros temas';
+
+  @override
+  String huntStars(int stars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      stars,
+      locale: localeName,
+      other: '$stars estrelas',
+      one: '1 estrela',
+      zero: 'Nenhuma estrela',
+    );
+    return '$_temp0';
+  }
 }
